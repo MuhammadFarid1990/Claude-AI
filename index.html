@@ -708,6 +708,155 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
   .status-bar { padding-top: max(.4rem, env(safe-area-inset-top, 0px)); }
   .tab-bar { padding-bottom: calc(.7rem + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* ── Bloom Chat ──────────────────────────────────── */
+#chat-fab {
+  position: absolute;
+  bottom: calc(4.2rem + env(safe-area-inset-bottom, 0px));
+  right: 1rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c084fc, #818cf8);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: 0 4px 14px rgba(192,132,252,.5);
+  z-index: 200;
+  transition: transform .15s;
+}
+#chat-fab:active { transform: scale(.92); }
+
+#chat-panel {
+  position: absolute;
+  inset: 0;
+  background: #faf5ff;
+  display: flex;
+  flex-direction: column;
+  z-index: 300;
+  border-radius: inherit;
+  transform: translateY(100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+#chat-panel.open { transform: translateY(0); }
+
+#chat-header {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: calc(.8rem + env(safe-area-inset-top, 0px)) 1rem .8rem;
+  background: linear-gradient(135deg, #c084fc22, #818cf822);
+  border-bottom: 1px solid #e9d5ff;
+  flex-shrink: 0;
+}
+#chat-header .ch-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c084fc, #818cf8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+#chat-header .ch-title { font-weight: 700; font-size: .95rem; color: #4c1d95; flex: 1; }
+#chat-header .ch-sub { font-size: .7rem; color: #7c3aed; }
+#chat-close {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #7c3aed;
+  padding: .2rem;
+  line-height: 1;
+}
+
+#chat-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: .8rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.chat-bubble {
+  max-width: 82%;
+  padding: .55rem .8rem;
+  border-radius: 1.1rem;
+  font-size: .82rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+.bubble-user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #c084fc, #818cf8);
+  color: #fff;
+  border-bottom-right-radius: .3rem;
+}
+.bubble-bot {
+  align-self: flex-start;
+  background: #fff;
+  color: #3b0764;
+  border: 1px solid #e9d5ff;
+  border-bottom-left-radius: .3rem;
+}
+.bubble-bot.thinking { color: #a78bfa; font-style: italic; }
+
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: .4rem .8rem;
+  flex-shrink: 0;
+}
+.sug-chip {
+  background: #f3e8ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+  border-radius: 1rem;
+  padding: .3rem .7rem;
+  font-size: .73rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sug-chip:active { background: #ede9fe; }
+
+#chat-input-row {
+  display: flex;
+  gap: .5rem;
+  padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom, 0px));
+  background: #fff;
+  border-top: 1px solid #e9d5ff;
+  flex-shrink: 0;
+}
+#chat-input {
+  flex: 1;
+  border: 1.5px solid #ddd6fe;
+  border-radius: 1.5rem;
+  padding: .45rem .9rem;
+  font-size: .82rem;
+  outline: none;
+  color: #3b0764;
+  background: #faf5ff;
+}
+#chat-input:focus { border-color: #a78bfa; }
+#chat-send {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c084fc, #818cf8);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+#chat-send:active { opacity: .8; }
 </style>
 
 <!-- Atmospheric floating orbs -->
@@ -1332,6 +1481,33 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
   </div>
 
   </div><!-- /appView -->
+
+  <!-- Bloom Chat FAB -->
+  <button id="chat-fab" onclick="openChat()" aria-label="Open Bloom AI chat">🌸</button>
+
+  <!-- Bloom Chat Panel -->
+  <div id="chat-panel" role="dialog" aria-modal="true" aria-label="Bloom AI Chat">
+    <div id="chat-header">
+      <div class="ch-avatar">🌸</div>
+      <div>
+        <div class="ch-title">Bloom AI</div>
+        <div class="ch-sub">Pregnancy &amp; parenting companion</div>
+      </div>
+      <button id="chat-close" onclick="closeChat()" aria-label="Close chat">✕</button>
+    </div>
+    <div id="chat-msgs"></div>
+    <div class="chat-suggestions" id="chat-sugs">
+      <button class="sug-chip" onclick="useSug(this)">What to eat in first trimester?</button>
+      <button class="sug-chip" onclick="useSug(this)">When does morning sickness end?</button>
+      <button class="sug-chip" onclick="useSug(this)">How often should newborn feed?</button>
+      <button class="sug-chip" onclick="useSug(this)">Safe exercises while pregnant?</button>
+    </div>
+    <div id="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Ask Bloom anything…" autocomplete="off"
+        onkeydown="if(event.key==='Enter')doSend()">
+      <button id="chat-send" onclick="doSend()" aria-label="Send">➤</button>
+    </div>
+  </div>
 
 </div><!-- /phone -->
 </div><!-- /phone-wrap -->
@@ -2057,4 +2233,174 @@ buildMoodQs();
 renderSchedule(0);
 renderDocQs();
 renderAppts();
+
+/* ── Bloom Knowledge Base (RAG — no API cost) ─────── */
+const BLOOM_KB = [
+  { tags:['first trimester','weeks','pregnancy','development'], content:'The first trimester (weeks 1–12) is when all major organs form. The embryo becomes a fetus by week 10. Nausea, fatigue, and breast tenderness are common. Folic acid (400–800 mcg/day) is critical during this period.' },
+  { tags:['second trimester','weeks 13-28','pregnancy','development'], content:'The second trimester (weeks 13–28) is often the most comfortable. The baby can hear, move, and develop facial features. Many people experience reduced nausea, increased energy, and visible baby movements (quickening, ~18–22 weeks).' },
+  { tags:['third trimester','weeks 29-40','pregnancy','development'], content:'The third trimester (weeks 29–40) involves rapid baby growth. Common symptoms include back pain, heartburn, frequent urination, and Braxton Hicks contractions. The baby settles into a head-down position around 36 weeks.' },
+  { tags:['morning sickness','nausea','vomiting','first trimester'], content:'Morning sickness (nausea/vomiting) affects ~70–80% of pregnant people, typically peaking at 8–10 weeks and improving by 12–14 weeks. Small frequent meals, ginger, vitamin B6 (10–25 mg 3×/day), and staying hydrated can help.' },
+  { tags:['folic acid','folate','neural tube','supplement'], content:'Folic acid (400–800 mcg/day) prevents neural tube defects. Start 1–3 months before conception and continue through the first 12 weeks. Prenatal vitamins typically contain adequate amounts.' },
+  { tags:['prenatal vitamins','supplements','iron','calcium'], content:'Prenatal vitamins should include folic acid (400–800 mcg), iron (27 mg), calcium (1000 mg), iodine (150 mcg), and DHA/omega-3. Iron is best absorbed with vitamin C and away from calcium.' },
+  { tags:['foods to avoid','unsafe food','pregnancy diet','listeria'], content:'Avoid during pregnancy: raw/undercooked meat or fish, high-mercury fish (shark, swordfish, king mackerel), unpasteurized dairy/juice, raw sprouts, deli meats unless heated, and excess liver (vitamin A toxicity).' },
+  { tags:['safe foods','pregnancy nutrition','diet','eat'], content:'Healthy pregnancy foods: leafy greens (folate), lean proteins, dairy (calcium), legumes (folate, iron, protein), berries (antioxidants), eggs (choline), salmon (DHA, 2–3 servings/week), and whole grains (fiber).' },
+  { tags:['caffeine','coffee','tea','pregnancy'], content:'Limit caffeine to under 200 mg/day during pregnancy (~1 small coffee). High caffeine intake is linked to low birth weight and preterm birth. Herbal teas: ginger and peppermint are generally safe; avoid herbal teas with licorice root.' },
+  { tags:['exercise','safe exercise','workout','pregnant'], content:'Safe pregnancy exercises: walking, swimming, prenatal yoga, stationary cycling, and low-impact aerobics. Avoid contact sports, activities with fall risk, and lying flat on your back after the first trimester. Aim for 150 min/week of moderate activity.' },
+  { tags:['weight gain','healthy weight','pregnancy'], content:'Recommended pregnancy weight gain (single baby): underweight BMI <18.5 → 28–40 lbs; normal BMI 18.5–24.9 → 25–35 lbs; overweight BMI 25–29.9 → 15–25 lbs; obese BMI ≥30 → 11–20 lbs.' },
+  { tags:['kicks','fetal movement','kick count'], content:'Fetal movements are felt around 18–22 weeks (later for first pregnancies). By 28 weeks, count 10 movements within 2 hours once daily. Decreased movement warrants prompt medical evaluation.' },
+  { tags:['preterm labor','early labor','contractions'], content:'Signs of preterm labor (before 37 weeks): regular contractions every 10 min or more frequent, lower back ache, pelvic pressure, vaginal bleeding or fluid, or change in vaginal discharge. Seek care immediately.' },
+  { tags:['gestational diabetes','glucose','blood sugar'], content:'Gestational diabetes is diagnosed at 24–28 weeks via glucose tolerance test. Management: carb-controlled diet, regular moderate exercise, blood sugar monitoring, and sometimes insulin. It usually resolves after delivery.' },
+  { tags:['preeclampsia','high blood pressure','blood pressure'], content:'Preeclampsia signs (typically after 20 weeks): high blood pressure (≥140/90), protein in urine, severe headache, vision changes, upper abdominal pain, or sudden swelling. Seek immediate medical care if these occur.' },
+  { tags:['prenatal appointments','checkups','OB visits'], content:'Typical prenatal visit schedule: every 4 weeks until 28 weeks, every 2 weeks 28–36 weeks, then weekly until delivery. Key tests include early blood work, anatomy ultrasound (18–22 weeks), glucose screening (24–28 weeks), and GBS culture (~36 weeks).' },
+  { tags:['ultrasound','anatomy scan','gender'], content:'The anatomy ultrasound at 18–22 weeks checks fetal organ development, confirms placental position, measures growth, and can often reveal sex. First-trimester ultrasound (~8–12 weeks) confirms viability and dating.' },
+  { tags:['birth plan','delivery plan','labor plan'], content:'A birth plan outlines preferences for: pain management (epidural vs. natural), mobility during labor, fetal monitoring, interventions (episiotomy, IV), and immediate postpartum care (delayed cord clamping, skin-to-skin, breastfeeding).' },
+  { tags:['epidural','pain management','labor pain'], content:'Epidurals provide effective labor pain relief and are safe for most people. They can be placed any time during active labor. Side effects may include blood pressure drop, limited mobility, and itching. They do not increase C-section risk.' },
+  { tags:['c-section','cesarean','surgery','delivery'], content:'C-sections account for ~32% of US births. Recovery takes 6 weeks vs. 2–4 for vaginal delivery. Reasons include fetal distress, placenta previa, breech position, labor stall, or prior C-section. Skin-to-skin is possible after C-section.' },
+  { tags:['postpartum','after birth','recovery','fourth trimester'], content:'Postpartum recovery: vaginal bleeding (lochia) for 4–6 weeks, perineal soreness, fatigue, hormonal shifts causing mood swings. Pelvic floor PT, rest, nutrition, and support are essential. Six-week OB checkup is standard.' },
+  { tags:['postpartum depression','PPD','baby blues','mood'], content:'Baby blues (tearfulness, mood swings, anxiety) affect 80% of new parents and resolve within 2 weeks. Postpartum depression (PPD) — persistent sadness, inability to bond, hopelessness — affects ~1 in 7 and requires treatment. Seek help if symptoms persist beyond 2 weeks.' },
+  { tags:['breastfeeding','latch','nursing','milk'], content:'Good latch: baby\'s mouth covers most of the areola, not just the nipple. Lips flange outward. Breastfeeding should not be painful past the first few seconds. Nurse 8–12 times/24 hrs newborn. Milk usually comes in 2–4 days after delivery.' },
+  { tags:['milk supply','breastfeeding supply','low milk'], content:'To support milk supply: nurse or pump frequently (8–12×/day early on), ensure good latch, offer both breasts, stay hydrated (3 L/day), eat adequate calories (+500/day while nursing). Galactagogues (fenugreek, oats) have limited evidence.' },
+  { tags:['pumping','breast pump','pumping schedule'], content:'Pumping schedule for full supply: pump every 2–3 hours, including once at night, for the first few weeks. Double-electric pumps are most efficient. Store breast milk: 4 hrs room temp, 4 days refrigerator, 6 months freezer.' },
+  { tags:['formula','bottle feeding','formula feeding'], content:'Formula types: cow\'s milk-based (most common), soy-based (dairy allergy/intolerance), hydrolyzed (protein allergy), and amino acid-based (severe allergy). Prepare as directed; do not dilute or concentrate. All commercial formula is nutritionally complete.' },
+  { tags:['newborn feeding','how often feed','hunger cues'], content:'Newborns feed 8–12 times per 24 hrs (every 2–3 hrs). Hunger cues: rooting, sucking fists, turning head. Crying is a late hunger sign. Expect 6+ wet diapers and 3+ stools/day by day 4 of life.' },
+  { tags:['newborn weight','weight loss','birth weight'], content:'Newborns typically lose 5–7% of birth weight in the first few days. Most regain it by 10–14 days. Contact your provider if weight loss exceeds 10% or birth weight is not regained by 2 weeks.' },
+  { tags:['jaundice','yellow skin','bilirubin','newborn'], content:'Newborn jaundice (yellowing of skin/eyes) appears 2–4 days after birth and usually resolves by 2 weeks. Risk factors: prematurity, breastfeeding, large bruising. Severe jaundice (high bilirubin) is treated with phototherapy (bili lights).' },
+  { tags:['safe sleep','SIDS','sleep safety','crib'], content:'Safe sleep ABC: Alone, on their Back, in a Crib/bassinet. Firm flat surface, no loose bedding, pillows, bumpers, or stuffed animals. Room-sharing (not bed-sharing) for at least 6 months reduces SIDS risk. Pacifier at sleep lowers risk.' },
+  { tags:['sleep schedule','newborn sleep','how much sleep'], content:'Newborns sleep 14–17 hrs/day in 2–4 hour stretches. By 3–4 months, some consolidate nighttime sleep (longer stretches). By 6 months, many sleep 6+ hours at night. Sleep training (gentle methods) can begin at 4–6 months.' },
+  { tags:['swaddling','swaddle','calm baby'], content:'Swaddling can soothe newborns and improve sleep. Use a thin blanket, leave room for hips to flex (avoid tight wrapping of legs). Stop swaddling when baby shows signs of rolling (~2–3 months) to prevent entrapment risk.' },
+  { tags:['diaper','diaper change','wet diaper','rash'], content:'Change diapers every 2–3 hrs or when soiled. Normal: 6+ wet diapers and 3+ stools/day by day 4. For diaper rash: barrier cream at each change, air-dry bottom, avoid scented wipes. Severe rash may need antifungal treatment.' },
+  { tags:['cord care','umbilical cord','belly button'], content:'Umbilical cord stump falls off in 1–3 weeks. Keep dry and exposed to air. Fold diaper below stump. No tub baths until it falls off. Seek care if area is red, swollen, has discharge, or has foul odor.' },
+  { tags:['bath','bathing newborn','sponge bath'], content:'Sponge baths only until the umbilical cord stump falls off. Tub baths 2–3× weekly are sufficient for newborns — over-bathing dries skin. Use lukewarm water, unscented soap, and always support baby\'s head. Never leave unattended in water.' },
+  { tags:['baby colic','crying','fussy baby','inconsolable'], content:'Colic: crying ≥3 hrs/day, ≥3 days/week, for ≥3 weeks in an otherwise healthy infant. Peaks at 6 weeks, resolves by 3–4 months. Strategies: feeding check (gas, overfeeding), skin-to-skin, white noise, gentle rocking, swaddling.' },
+  { tags:['gas','gassy baby','burping','tummy pain'], content:'To reduce gas: burp after every 1–2 oz formula or when switching breasts, hold upright 20–30 min after feeding, try bicycle legs massage, tummy time when awake, consider paced bottle feeding.' },
+  { tags:['reflux','spit up','GERD','spitting up'], content:'Most spitting up is normal and peaks at 4 months. Reduce reflux: upright feeding, frequent smaller feeds, burping often. Worrying signs: projectile vomiting, poor weight gain, blood in spit-up, or extreme discomfort — see your provider.' },
+  { tags:['tummy time','development','motor skills'], content:'Start tummy time from birth, supervised while awake. Goal: 30 min total/day by 7 weeks. Tummy time builds neck/shoulder strength for rolling, sitting, and crawling milestones.' },
+  { tags:['milestones','development','baby development'], content:'Key milestones: 2 months — social smile, follows objects; 4 months — laughs, holds head steady; 6 months — sits with support, babbles; 9 months — pulls to stand; 12 months — first words, walks with support; 18 months — 10+ words.' },
+  { tags:['vaccines','immunizations','shots','schedule'], content:'CDC-recommended vaccines: Hepatitis B (birth), DTaP, Hib, PCV, IPV, RV (2 & 4 months), MMR, Varicella, Hepatitis A (12–15 months). Flu vaccine annually from 6 months. Vaccines are safe and essential for child health.' },
+  { tags:['fever','temperature','sick baby','illness'], content:'Call your provider for any fever in babies under 3 months. For older babies: temp ≥38°C/100.4°F rectally. Use acetaminophen for babies 2+ months, ibuprofen for babies 6+ months. Don\'t give aspirin to children under 18.' },
+  { tags:['solid foods','starting solids','first foods','weaning'], content:'Start solid foods at 6 months (not before 4 months). Signs of readiness: sits with little support, shows interest in food, good head control. Begin with single-ingredient purées or soft finger foods. Introduce one new food every 3–5 days to watch for allergies.' },
+  { tags:['allergens','food allergy','peanuts','introduction'], content:'Introduce common allergens (peanut, egg, milk, wheat, soy, tree nut, fish, sesame) early and repeatedly — current evidence supports introduction at ~6 months to reduce allergy risk. Start peanut butter thinned with water or purées, not whole nuts.' },
+  { tags:['choking','baby choking','safe foods','food safety'], content:'Choking hazards to avoid under 4 years: whole grapes, cherry tomatoes, raw carrots, whole nuts, large chunks of meat, popcorn, hard candy, and raisins. Cut round foods into small pieces or strips. Learn infant/child CPR.' },
+  { tags:['postpartum nutrition','breastfeeding diet','nutrition after baby'], content:'Breastfeeding increases caloric needs by ~500 kcal/day. Focus on: calcium (3 servings dairy/fortified foods), DHA (2–3 servings fatty fish/week or supplement), iron, vitamin D, and staying hydrated (3+ L/day). Avoid high-mercury fish.' },
+  { tags:['iron','anemia','iron deficiency','blood'], content:'Iron deficiency is common in pregnancy and postpartum. Prenatal iron: 27 mg/day. Signs of deficiency: fatigue, pallor, shortness of breath. Pair iron-rich foods with vitamin C; avoid consuming with calcium or coffee for best absorption.' },
+  { tags:['vitamin D','sunshine','bone health','supplement'], content:'Vitamin D is essential for bone development. Breastfed babies need 400 IU/day supplement from birth. Pregnant people should take 600–2000 IU/day. Sun exposure helps but is insufficient alone; use sunscreen still.' },
+  { tags:['mental health','anxiety','stress','wellbeing'], content:'Perinatal anxiety affects 15–20% of pregnant and postpartum people. Symptoms: excessive worry, sleep disruption, racing thoughts, panic attacks. Therapy (CBT), exercise, social support, and medication when needed are effective treatments.' },
+  { tags:['pelvic floor','kegel','incontinence','recovery'], content:'Pelvic floor exercises (Kegels): tighten pelvic muscles as if stopping urine flow, hold 5–10 sec, release, repeat 10–15 times/day. Start after delivery. Pelvic floor PT is recommended for leakage, pain, or prolapse symptoms.' },
+  { tags:['sex after birth','intimacy','postpartum sex'], content:'Most providers recommend waiting 6 weeks before resuming sex after delivery to allow healing. There is no medical harm in waiting longer. Common issues: low libido (hormones), vaginal dryness (especially while breastfeeding) — lubricant helps.' },
+  { tags:['contraception','birth control','postpartum'], content:'Ovulation can return as early as 3 weeks postpartum (sooner if not breastfeeding). Safe postpartum options: condoms, progestin-only pill (safe while breastfeeding), implant, IUD, or depot shot. Combined estrogen-progestin pills not recommended until 6 weeks postpartum.' },
+  { tags:['cord blood','cord blood banking','stem cells'], content:'Cord blood banking stores stem cells from the umbilical cord. Private banking costs $1500–$2500 upfront + annual fees; public banking is free. Private banking utility for a child\'s own future use is low; public donation can benefit others.' },
+  { tags:['car seat','car safety','infant seat'], content:'Use a rear-facing car seat from birth until the child outgrows its height/weight limit (often 2+ years). Install at 45° angle, harness snug (two-finger test at chest). Have installation checked at a certified tech station.' },
+  { tags:['baby proofing','home safety','childproofing'], content:'Babyproof before mobility (~6 months): cabinet locks, outlet covers, stair gates, furniture anchoring (tip-over risk), securing cords/blind chains, removing small objects (<1.75" diameter), locking medications and cleaning supplies.' },
+  { tags:['sleep training','sleep methods','cry it out','Ferber'], content:'Common sleep training methods: extinction ("cry it out") — abrupt; Ferber (graduated extinction) — check-ins at intervals; Fading/chair method — gradual parental withdrawal. All have similar outcomes; choose based on parental tolerance. Start at 4–6 months.' },
+  { tags:['toddler tantrums','meltdown','behavior','discipline'], content:'Tantrums peak 18 months–3 years. Prevention: consistent routines, verbal warnings before transitions, offering limited choices. During tantrum: stay calm, ensure safety, don\'t negotiate. Afterward: reconnect, name the emotion.' },
+  { tags:['language development','speech','words','talking'], content:'Language milestones: 12 months — 1–2 words; 18 months — 10–20 words; 24 months — 50+ words, 2-word phrases; 36 months — sentences, strangers understand ~75%. Encourage: narrate activities, read daily, limit screen time.' },
+  { tags:['screen time','TV','tablets','toddler screens'], content:'AAP guidelines: no screen time under 18–24 months except video calls. 2–5 years: limit to 1 hr/day of high-quality programming; watch together and discuss. Screen time should not replace sleep, physical activity, or social interaction.' },
+  { tags:['reading','books','literacy','early reading'], content:'Read aloud from birth — language exposure builds brain connections. Use board books, point to pictures, use expressive voices. By 6 months, babies reach for books. Regular reading at age 4–5 is the strongest predictor of school readiness.' },
+  { tags:['play','learning through play','stimulation'], content:'Play is how babies and toddlers learn. Newborn: high-contrast images, faces, voices. 3–6 months: rattles, mirrors. 6–12 months: peek-a-boo, soft blocks. 12–24 months: stacking, shape sorters, pretend play. Limit structured classes; free play is vital.' },
+  { tags:['potty training','toilet training','toddler toilet'], content:'Most children are ready for potty training between 18–30 months. Signs: staying dry for 2 hrs, showing awareness of urge, able to follow instructions. Child-led approach (3-day intensive or gradual) both work. Regression is normal during stressors.' },
+  { tags:['preschool','daycare','childcare'], content:'Quality childcare hallmarks: low child-to-staff ratio (3:1 infants, 4:1 toddlers, 8:1 preschool), warm responsive caregivers, stimulating environment, age-appropriate curriculum. Check licensing, inspect in person, and trust your instincts.' },
+  { tags:['growth spurt','cluster feeding','hunger increase'], content:'Growth spurts in infancy often occur around 2–3 weeks, 6 weeks, 3 months, and 6 months. Signs: sudden increased hunger, fussiness, disrupted sleep. Usually lasts 2–3 days. For breastfeeding, frequent nursing increases milk supply to match.' },
+  { tags:['postpartum weight','losing weight','after baby body'], content:'Postpartum weight loss: most lose 10–13 lbs at delivery. Gradual loss of 1–2 lbs/week is healthy. Breastfeeding burns ~500 extra calories/day. Focus on nutritious foods, gentle exercise (cleared by provider at 6 weeks), and adequate sleep over rapid loss.' },
+  { tags:['stretch marks','skin changes','pregnancy skin'], content:'Stretch marks are caused by skin stretching and genetics — no cream eliminates them, though some may reduce severity. They typically fade from red/purple to silver within 6–12 months postpartum. Common on abdomen, breasts, thighs, hips.' },
+  { tags:['back pain','sciatica','pregnancy pain'], content:'Back pain affects ~50% of pregnant people, especially in the third trimester. Strategies: supportive footwear, pregnancy pillow (between knees when sleeping), prenatal yoga, gentle stretching, warm compresses, and PT. Sciatica (shooting leg pain) is common.' },
+  { tags:['heartburn','indigestion','pregnancy acid reflux'], content:'Heartburn is common in the second and third trimesters due to progesterone and growing uterus. Management: eat small frequent meals, avoid lying down 2–3 hrs after eating, elevate head of bed, avoid spicy/fatty/acidic foods. Antacids (calcium carbonate) are safe.' },
+  { tags:['constipation','bowel','pregnancy gut'], content:'Constipation is common in pregnancy due to progesterone slowing the gut. Increase fiber (25–35 g/day via fruits, vegetables, whole grains, legumes), water (2.5–3 L/day), and physical activity. Stool softeners (docusate) are safe if needed.' },
+  { tags:['swelling','edema','feet swelling','pregnancy'], content:'Mild swelling of feet, ankles, and hands is normal, especially in the third trimester. Elevate feet, reduce sodium, stay hydrated, wear compression socks, and avoid standing for long periods. Sudden facial or hand swelling with headache — seek immediate care (preeclampsia sign).' },
+];
+
+function searchKb(q) {
+  const stopWords = new Set(['the','and','for','are','but','not','you','all','can','she','her','his','how','what','when','why','who','will','with','that','this','have','from','they','say','does','did','its','about','baby','my','me','is','it','do','be','a','an','in','on','of','to','at','as','up','by','we','i']);
+  const words = q.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stopWords.has(w));
+  if (!words.length) return '';
+  return BLOOM_KB.map(entry => {
+    const tagStr = entry.tags.join(' ').toLowerCase();
+    const contentStr = entry.content.toLowerCase();
+    let score = 0;
+    for (const w of words) {
+      if (tagStr.includes(w)) score += 5;
+      if (contentStr.includes(w)) score += 1;
+    }
+    return { ...entry, score };
+  })
+  .filter(e => e.score > 0)
+  .sort((a, b) => b.score - a.score)
+  .slice(0, 3)
+  .map(e => e.content)
+  .join('\n\n');
+}
+
+/* ── Chat UI ───────────────────────────────────── */
+let chatHistory = [];
+let chatOpen = false;
+
+function openChat() {
+  document.getElementById('chat-panel').classList.add('open');
+  chatOpen = true;
+  if (!chatHistory.length) {
+    addBubble('bot', "Hi! I'm Bloom 🌸 Your pregnancy & parenting AI companion. Ask me anything!");
+  }
+  setTimeout(() => document.getElementById('chat-input').focus(), 350);
+}
+
+function closeChat() {
+  document.getElementById('chat-panel').classList.remove('open');
+  chatOpen = false;
+}
+
+function useSug(btn) {
+  document.getElementById('chat-input').value = btn.textContent;
+  document.getElementById('chat-sugs').style.display = 'none';
+  doSend();
+}
+
+function addBubble(who, text) {
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className = 'chat-bubble bubble-' + who;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+async function doSend() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  document.getElementById('chat-sugs').style.display = 'none';
+
+  addBubble('user', msg);
+  const thinking = addBubble('bot', 'Thinking…');
+  thinking.classList.add('thinking');
+
+  const context = searchKb(msg);
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, context, history: chatHistory })
+    });
+    const data = await res.json();
+    thinking.remove();
+
+    if (!res.ok) {
+      addBubble('bot', data.error || 'Something went wrong. Please try again.');
+      return;
+    }
+
+    const reply = data.reply;
+    addBubble('bot', reply);
+    chatHistory.push({ role: 'user', content: msg });
+    chatHistory.push({ role: 'assistant', content: reply });
+    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+  } catch (e) {
+    thinking.remove();
+    addBubble('bot', 'Network error. Please check your connection and try again.');
+  }
+}
 </script>
