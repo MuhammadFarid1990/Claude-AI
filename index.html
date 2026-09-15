@@ -520,6 +520,9 @@ body::before {
 
 /* ── ME ───────────────────────────────────────── */
 .profile-card { display:flex;align-items:center;gap:.85rem; }
+.body-stat-tile { background:var(--rose-bg);border-radius:10px;padding:.5rem .65rem; }
+.bst-label { font-size:.62rem;color:var(--ink-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em; }
+.bst-val { font-size:.95rem;font-weight:800;color:var(--ink);font-family:var(--f-d);margin-top:.1rem; }
 .profile-avatar { width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--rose) 0%,#B82060 100%);display:flex;align-items:center;justify-content:center;font-size:1.25rem;font-weight:800;color:white;font-family:var(--f-d);flex-shrink:0;letter-spacing:-.01em; }
 .profile-name { font-family:var(--f-d);font-size:1.05rem;font-weight:800;color:var(--ink);letter-spacing:-.02em; }
 .profile-sub  { font-size:.68rem;color:var(--ink-muted);margin-top:.08rem; }
@@ -1317,6 +1320,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
     <!-- Section nav -->
     <div class="me-sec-nav">
       <button class="me-sec-pill active" onclick="jumpMe('profile',this)">Profile</button>
+      <button class="me-sec-pill" onclick="jumpMe('body',this)">Body</button>
       <button class="me-sec-pill" onclick="jumpMe('appointments',this)">Appointments</button>
       <button class="me-sec-pill" onclick="jumpMe('docqs',this)">Doctor Qs</button>
       <button class="me-sec-pill" onclick="jumpMe('vaccines',this)">Vaccines</button>
@@ -1342,6 +1346,72 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         <span class="privacy-badge">🔒 No data selling</span>
         <span class="trust-badge">✓ Dietitian-reviewed meals</span>
         <span class="trust-badge">✓ OB-GYN reviewed triage</span>
+      </div>
+    </div>
+
+    <!-- Body Profile -->
+    <div class="card" id="me-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem">
+        <div class="sec-title" style="margin-bottom:0">Body Profile</div>
+        <button id="bodyEditBtn" onclick="bodyEdit()" style="font-size:.72rem;font-family:var(--f-b);font-weight:600;color:var(--rose);background:none;border:none;cursor:pointer;padding:.2rem .4rem">Edit ✏️</button>
+      </div>
+
+      <!-- View mode -->
+      <div id="bodyView">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem">
+          <div class="body-stat-tile"><div class="bst-label">Height</div><div class="bst-val" id="bsHeight">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Pre-preg weight</div><div class="bst-val" id="bsPreWt">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Current weight</div><div class="bst-val" id="bsCurrWt">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Weight gained</div><div class="bst-val" id="bsGain">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Age</div><div class="bst-val" id="bsAge">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Blood type</div><div class="bst-val" id="bsBlood">—</div></div>
+          <div class="body-stat-tile" style="grid-column:1/-1"><div class="bst-label">Pre-preg BMI</div><div class="bst-val" id="bsBmi">—</div></div>
+        </div>
+        <div id="bsGainNote" style="font-size:.68rem;color:var(--ink-muted);margin-top:.55rem;line-height:1.45;display:none"></div>
+      </div>
+
+      <!-- Edit mode -->
+      <div id="bodyEditForm" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Height</div>
+            <div style="display:flex;gap:.3rem">
+              <select class="auth-input" id="bf-hft" style="flex:1;padding:.55rem .4rem;font-size:.8rem">
+                ${[4,5,6].map(f=>`<option value="${f}">${f} ft</option>`).join('')}
+              </select>
+              <select class="auth-input" id="bf-hin" style="flex:1;padding:.55rem .4rem;font-size:.8rem">
+                ${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>`<option value="${i}">${i} in</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Age</div>
+            <input class="auth-input" id="bf-age" type="number" placeholder="e.g. 28" style="padding:.55rem .7rem;font-size:.8rem">
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Pre-preg weight</div>
+            <div style="display:flex;gap:.3rem">
+              <input class="auth-input" id="bf-prewt" type="number" placeholder="e.g. 140" style="flex:1;padding:.55rem .5rem;font-size:.8rem;min-width:0">
+              <select class="auth-input" id="bf-wtunit" style="flex:0 0 50px;padding:.55rem .3rem;font-size:.8rem">
+                <option value="lb">lb</option><option value="kg">kg</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Current weight</div>
+            <input class="auth-input" id="bf-currwt" type="number" placeholder="e.g. 148" style="padding:.55rem .7rem;font-size:.8rem">
+          </div>
+          <div style="grid-column:1/-1">
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Blood type <span style="font-weight:400;color:var(--ink-muted)">(optional)</span></div>
+            <select class="auth-input" id="bf-blood" style="padding:.55rem .7rem;font-size:.8rem">
+              ${['','A+','A−','B+','B−','AB+','AB−','O+','O−'].map(t=>`<option value="${t}">${t||'Unknown'}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.65rem">
+          <button onclick="bodyCancel()" style="flex:.5;padding:.62rem;border:1.5px solid var(--rule);border-radius:10px;background:none;font-family:var(--f-b);font-size:.8rem;color:var(--ink-muted);cursor:pointer">Cancel</button>
+          <button onclick="bodySave()" style="flex:1;padding:.62rem;border:none;border-radius:10px;background:var(--rose);color:white;font-family:var(--f-b);font-weight:700;font-size:.8rem;cursor:pointer">Save changes</button>
+        </div>
       </div>
     </div>
 
@@ -1588,7 +1658,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
-const obData = { name:'', babyName:'', dueDate:'', firstBaby:'', heightFt:'5', heightIn:'4', weightVal:'', weightUnit:'lb', age:'', bloodType:'', diet:[], goals:[] };
+const obData = { name:'', babyName:'', dueDate:'', firstBaby:'', heightFt:'5', heightIn:'4', weightVal:'', weightUnit:'lb', currentWeight:'', age:'', bloodType:'', diet:[], goals:[] };
 
 const obSteps = [
   {
@@ -1869,6 +1939,9 @@ function launchApp(name, dueDate) {
   document.getElementById('loginView').hidden = true;
   document.getElementById('appView').hidden = false;
   document.getElementById('chat-fab').hidden = false;
+  // Populate body profile panel
+  renderBodyView();
+
   // Wire scroll hint to active screen
   const initScr = document.querySelector('.screen.active');
   if (initScr) {
@@ -1913,9 +1986,104 @@ function showMeSection(section) {
 }
 
 const mePillNames = {
-  profile:'Profile', appointments:'Appointments', docqs:'Doctor Qs',
+  profile:'Profile', body:'Body', appointments:'Appointments', docqs:'Doctor Qs',
   vaccines:'Vaccines', recovery:'Recovery', pricing:'Plans'
 };
+
+/* ── Body Profile panel ──────────────────────────── */
+// Recommended weight gain ranges by pre-preg BMI (IOM guidelines, lb)
+const gainRanges = [
+  { max:18.5, label:'Underweight', range:'28–40 lb' },
+  { max:24.9, label:'Normal weight', range:'25–35 lb' },
+  { max:29.9, label:'Overweight', range:'15–25 lb' },
+  { max:999,  label:'Obese', range:'11–20 lb' },
+];
+
+function renderBodyView() {
+  const hFt = parseInt(obData.heightFt||5), hIn = parseInt(obData.heightIn||4);
+  const hStr = hFt && hIn !== undefined ? `${hFt}′ ${hIn}″` : '—';
+  const preWt = parseFloat(obData.weightVal);
+  const currWt = parseFloat(obData.currentWeight||0);
+  const unit = obData.weightUnit || 'lb';
+
+  document.getElementById('bsHeight').textContent = hFt ? hStr : '—';
+  document.getElementById('bsPreWt').textContent  = preWt ? `${preWt} ${unit}` : '—';
+  document.getElementById('bsAge').textContent    = obData.age ? `${obData.age} yrs` : '—';
+  document.getElementById('bsBlood').textContent  = obData.bloodType || '—';
+
+  if (obData.currentWeight) {
+    document.getElementById('bsCurrWt').textContent = `${obData.currentWeight} ${unit}`;
+    const gain = (parseFloat(obData.currentWeight) - preWt);
+    const gainStr = gain >= 0 ? `+${gain.toFixed(1)} ${unit}` : `${gain.toFixed(1)} ${unit}`;
+    document.getElementById('bsGain').textContent = preWt ? gainStr : '—';
+  } else {
+    document.getElementById('bsCurrWt').textContent = '—';
+    document.getElementById('bsGain').textContent = '—';
+  }
+
+  // BMI from pre-pregnancy weight
+  const noteEl = document.getElementById('bsGainNote');
+  if (preWt && hFt) {
+    const heightCm = (hFt*12 + (parseInt(obData.heightIn)||0)) * 2.54;
+    const wtKg = unit === 'kg' ? preWt : preWt * 0.4536;
+    const bmi = wtKg / ((heightCm/100)**2);
+    const cat = gainRanges.find(r => bmi < r.max);
+    document.getElementById('bsBmi').textContent = `${bmi.toFixed(1)} (${cat.label})`;
+    noteEl.textContent = `Recommended weight gain: ${cat.range} total. You're currently ${obData.currentWeight ? document.getElementById('bsGain').textContent : 'not yet tracked'}.`;
+    noteEl.style.display = '';
+  } else {
+    document.getElementById('bsBmi').textContent = '—';
+    noteEl.style.display = 'none';
+  }
+}
+
+function bodyEdit() {
+  const form = document.getElementById('bodyEditForm');
+  const view = document.getElementById('bodyView');
+  // Populate form from obData
+  const hftEl = document.getElementById('bf-hft');
+  const hinEl = document.getElementById('bf-hin');
+  if (hftEl) hftEl.value = obData.heightFt || '5';
+  if (hinEl) hinEl.value = obData.heightIn  || '4';
+  const ageEl = document.getElementById('bf-age');
+  if (ageEl) ageEl.value = obData.age || '';
+  const preEl = document.getElementById('bf-prewt');
+  if (preEl) preEl.value = obData.weightVal || '';
+  const curEl = document.getElementById('bf-currwt');
+  if (curEl) curEl.value = obData.currentWeight || '';
+  const wuEl = document.getElementById('bf-wtunit');
+  if (wuEl) wuEl.value = obData.weightUnit || 'lb';
+  const blEl = document.getElementById('bf-blood');
+  if (blEl) blEl.value = obData.bloodType || '';
+  form.style.display = ''; view.style.display = 'none';
+  document.getElementById('bodyEditBtn').style.display = 'none';
+}
+
+function bodyCancel() {
+  document.getElementById('bodyEditForm').style.display = 'none';
+  document.getElementById('bodyView').style.display = '';
+  document.getElementById('bodyEditBtn').style.display = '';
+}
+
+function bodySave() {
+  obData.heightFt     = document.getElementById('bf-hft').value;
+  obData.heightIn     = document.getElementById('bf-hin').value;
+  obData.age          = document.getElementById('bf-age').value;
+  obData.weightVal    = document.getElementById('bf-prewt').value;
+  obData.currentWeight= document.getElementById('bf-currwt').value;
+  obData.weightUnit   = document.getElementById('bf-wtunit').value;
+  obData.bloodType    = document.getElementById('bf-blood').value;
+  bodyCancel();
+  renderBodyView();
+  // Refresh profile body line and calorie estimate
+  const bodyEl = document.getElementById('profileBody');
+  if (bodyEl && obData.weightVal) {
+    const hStr = `${obData.heightFt}′${obData.heightIn}″`;
+    const wStr = obData.weightVal + ' ' + obData.weightUnit;
+    const parts = [hStr, wStr, obData.bloodType ? `Blood ${obData.bloodType}` : ''].filter(Boolean);
+    bodyEl.textContent = parts.join(' · '); bodyEl.style.display = '';
+  }
+}
 
 function jumpMe(section, pillEl) {
   document.querySelectorAll('.me-sec-pill').forEach(p => p.classList.remove('active'));
