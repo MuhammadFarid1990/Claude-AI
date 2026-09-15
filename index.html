@@ -1071,9 +1071,9 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         </div>
       </div>
       <div class="baby-stats" style="margin-top:.65rem">
-        <div class="b-stat"><span class="bv">5.6″</span><span class="bl">Length</span></div>
-        <div class="b-stat"><span class="bv">6.7oz</span><span class="bl">Weight</span></div>
-        <div class="b-stat"><span class="bv">127</span><span class="bl">Days in</span></div>
+        <div class="b-stat"><span class="bv" id="babyLen">5.6″</span><span class="bl">Length</span></div>
+        <div class="b-stat"><span class="bv" id="babyWt">6.7oz</span><span class="bl">Weight</span></div>
+        <div class="b-stat"><span class="bv" id="babyDays">127</span><span class="bl">Days in</span></div>
       </div>
     </div>
 
@@ -1081,10 +1081,10 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
     <div class="card">
       <div class="sec-title">Pregnancy Progress</div>
       <div class="prog-wrap">
-        <div class="prog-label"><span>Week 18 of 40</span><span>22 weeks left</span></div>
-        <div class="prog-track"><div class="prog-fill"></div></div>
+        <div class="prog-label" id="progLabel"><span>Week 18 of 40</span><span>22 weeks left</span></div>
+        <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
       </div>
-      <div style="font-size:.65rem;color:var(--ink-muted);margin-top:.4rem">Due date: February 8, 2027 · Anatomy scan in 5 days</div>
+      <div id="progNote" style="font-size:.65rem;color:var(--ink-muted);margin-top:.4rem">Due date: February 8, 2027 · Anatomy scan in 5 days</div>
     </div>
 
     <!-- Quick actions -->
@@ -1250,7 +1250,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
     <!-- Kick counter panel -->
     <div class="health-panel" id="hp-kicks">
       <div class="card">
-        <div class="sec-title">Kick Counter · Week 18</div>
+        <div class="sec-title" id="kickTitle">Kick Counter · Week 18</div>
         <div style="font-size:.75rem;color:var(--ink-muted);line-height:1.45">Count 10 kicks. Most healthy babies reach 10 in under 2 hours. Start after a meal for best results.</div>
       </div>
 
@@ -1331,7 +1331,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         <div>
           <div class="profile-name">Customer</div>
           <div class="profile-sub">Due Feb 8, 2027 · Week 18 · T2</div>
-          <div class="profile-sub" style="margin-top:.12rem">Mediterranean · No shellfish · No nuts</div>
+          <div class="profile-sub" id="profileDiet" style="margin-top:.12rem">Mediterranean · No shellfish · No nuts</div>
           <div class="sub-badge">✓ Pregnancy Pass</div>
         </div>
       </div>
@@ -1587,7 +1587,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
-const obData = { name:'', dueDate:'', diet:[], goals:[] };
+const obData = { name:'', babyName:'', dueDate:'', firstBaby:'', diet:[], goals:[] };
 
 const obSteps = [
   {
@@ -1610,6 +1610,30 @@ const obSteps = [
     save() {
       obData.name    = document.getElementById('ob-name').value.trim() || 'Customer';
       obData.dueDate = document.getElementById('ob-due').value;
+    }
+  },
+  {
+    render() {
+      const opts = ["👶 Yes, first baby!","🤱 No, I've done this before"];
+      return `
+        <div>
+          <div style="font-size:1.8rem;margin-bottom:.35rem">✨</div>
+          <div class="onboard-title">Tell us about your baby</div>
+          <div class="onboard-sub">This helps us tailor tips and support for where you are.</div>
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.38rem">Baby's nickname / name <span style="font-weight:400;color:var(--ink-muted)">(optional)</span></div>
+          <input class="auth-input" id="ob-baby" placeholder="e.g. Sprout, Lily, or leave blank" value="${obData.babyName}">
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.5rem">Is this your first baby?</div>
+          <div class="option-chips">
+            ${opts.map(o=>`<button class="option-chip${obData.firstBaby===o?' selected':''}" onclick="pickFirst(this,'${o}')">${o}</button>`).join('')}
+          </div>
+        </div>`;
+    },
+    save() {
+      obData.babyName = document.getElementById('ob-baby').value.trim();
     }
   },
   {
@@ -1643,6 +1667,12 @@ const obSteps = [
     save() {}
   }
 ];
+
+function pickFirst(el, val) {
+  document.querySelectorAll('#onboardContent .option-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  obData.firstBaby = val;
+}
 
 function renderObStep() {
   document.getElementById('onboardContent').innerHTML = obSteps[obStep].render();
@@ -1694,6 +1724,16 @@ function finishOnboard() {
 }
 
 function launchApp(name, dueDate) {
+  // Baby size lookup by nearest even week
+  const wkSizes = {
+    6:{l:'¼″',w:'<1oz'},8:{l:'0.6″',w:'<1oz'},10:{l:'1.2″',w:'<1oz'},
+    12:{l:'2.1″',w:'0.5oz'},14:{l:'3.4″',w:'1.5oz'},16:{l:'4.6″',w:'3.5oz'},
+    18:{l:'5.6″',w:'6.7oz'},20:{l:'6.5″',w:'10.6oz'},22:{l:'7.6″',w:'15oz'},
+    24:{l:'8.7″',w:'1.3lb'},26:{l:'9.6″',w:'1.7lb'},28:{l:'10.2″',w:'2.2lb'},
+    30:{l:'10.8″',w:'2.9lb'},32:{l:'11.4″',w:'3.9lb'},34:{l:'11.8″',w:'4.7lb'},
+    36:{l:'12.6″',w:'5.8lb'},38:{l:'13.4″',w:'6.8lb'},40:{l:'14.0″',w:'7.5lb'}
+  };
+
   // Time-aware greeting
   const hr = new Date().getHours();
   const salutation = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
@@ -1707,6 +1747,7 @@ function launchApp(name, dueDate) {
   if (dueDate) {
     const due   = new Date(dueDate);
     const today = new Date();
+    const daysIn = Math.round((today - (new Date(due.getTime() - 280*24*60*60*1000)))/86400000);
     const weeksLeft = Math.round((due-today)/(7*24*60*60*1000));
     const wk = Math.max(1, Math.min(40, 40-weeksLeft));
     const tri = wk<=13?'First':wk<=26?'Second':'Third';
@@ -1714,8 +1755,33 @@ function launchApp(name, dueDate) {
     document.querySelector('.week-chip').textContent = `Week ${wk} · ${tri} Trimester`;
     badges.today = `Wk ${wk} · T${triKey}`;
     document.getElementById('headerBadge').textContent = badges.today;
-    // Update profile sub-text
-    document.querySelectorAll('.profile-sub').forEach((el,i)=>{ if(i===0) el.textContent=`Due ${new Date(dueDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · Week ${wk} · T${triKey}`; });
+    // Profile sub-text
+    document.querySelectorAll('.profile-sub').forEach((el,i)=>{ if(i===0) el.textContent=`Due ${due.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · Week ${wk} · T${triKey}`; });
+    // Baby stats
+    const nearest = Object.keys(wkSizes).map(Number).reduce((a,b)=>Math.abs(b-wk)<Math.abs(a-wk)?b:a);
+    const sz = wkSizes[nearest];
+    const lenEl=document.getElementById('babyLen'), wtEl=document.getElementById('babyWt'), daysEl=document.getElementById('babyDays');
+    if(lenEl) lenEl.textContent=sz.l;
+    if(wtEl)  wtEl.textContent=sz.w;
+    if(daysEl) daysEl.textContent=Math.max(0,daysIn);
+    // Progress bar
+    const pct = Math.round((wk/40)*100);
+    const pf = document.getElementById('progFill');
+    if(pf) pf.style.width=pct+'%';
+    const pl = document.getElementById('progLabel');
+    if(pl) pl.innerHTML=`<span>Week ${wk} of 40</span><span>${weeksLeft} weeks left</span>`;
+    const pn = document.getElementById('progNote');
+    if(pn) pn.textContent=`Due date: ${due.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`;
+    // Kick counter
+    const kt = document.getElementById('kickTitle');
+    if(kt) kt.textContent=`Kick Counter · Week ${wk}`;
+  }
+
+  // Diet on profile
+  const dietEl = document.getElementById('profileDiet');
+  if (dietEl) {
+    const dietLabels = obData.diet.map(d=>d.replace(/^[\S]+\s/,'')); // strip emoji
+    dietEl.textContent = dietLabels.length ? dietLabels.join(' · ') : 'No dietary preferences set';
   }
 
   // Update profile avatar & header avatar with initials
