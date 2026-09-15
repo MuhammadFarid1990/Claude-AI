@@ -1321,6 +1321,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
     <div class="me-sec-nav">
       <button class="me-sec-pill active" onclick="jumpMe('profile',this)">Profile</button>
       <button class="me-sec-pill" onclick="jumpMe('body',this)">Body</button>
+      <button class="me-sec-pill" onclick="jumpMe('dietgoals',this)">Diet & Goals</button>
       <button class="me-sec-pill" onclick="jumpMe('appointments',this)">Appointments</button>
       <button class="me-sec-pill" onclick="jumpMe('docqs',this)">Doctor Qs</button>
       <button class="me-sec-pill" onclick="jumpMe('vaccines',this)">Vaccines</button>
@@ -1330,14 +1331,38 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 
     <!-- Profile -->
     <div class="card" id="me-profile">
-      <div class="profile-card">
-        <div class="profile-avatar" id="profileAvatar">C</div>
-        <div>
-          <div class="profile-name">Customer</div>
-          <div class="profile-sub">Due Feb 8, 2027 · Week 18 · T2</div>
-          <div class="profile-sub" id="profileDiet" style="margin-top:.12rem">Mediterranean · No shellfish · No nuts</div>
-          <div class="profile-sub" id="profileBody" style="margin-top:.12rem;display:none"></div>
-          <div class="sub-badge">✓ Pregnancy Pass</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div class="profile-card" style="flex:1">
+          <div class="profile-avatar" id="profileAvatar">C</div>
+          <div>
+            <div class="profile-name">Customer</div>
+            <div class="profile-sub">Due Feb 8, 2027 · Week 18 · T2</div>
+            <div class="profile-sub" id="profileDiet" style="margin-top:.12rem">Mediterranean · No shellfish · No nuts</div>
+            <div class="profile-sub" id="profileBody" style="margin-top:.12rem;display:none"></div>
+            <div class="sub-badge">✓ Pregnancy Pass</div>
+          </div>
+        </div>
+        <button id="profileEditBtn" onclick="profileEdit()" style="font-size:.72rem;font-family:var(--f-b);font-weight:600;color:var(--rose);background:none;border:none;cursor:pointer;padding:.2rem .4rem;flex-shrink:0">Edit ✏️</button>
+      </div>
+      <!-- Profile inline edit form -->
+      <div id="profileEditForm" style="display:none;margin-top:.75rem;display:none">
+        <div style="display:grid;gap:.5rem">
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Your first name</div>
+            <input class="auth-input" id="pf-name" placeholder="e.g. Jessica" style="padding:.55rem .7rem;font-size:.85rem">
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Baby's name / nickname <span style="font-weight:400;color:var(--ink-muted)">(opt.)</span></div>
+            <input class="auth-input" id="pf-baby" placeholder="e.g. Sprout, Lily…" style="padding:.55rem .7rem;font-size:.85rem">
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Due date</div>
+            <input class="auth-input" id="pf-due" type="date" style="padding:.55rem .7rem;font-size:.85rem">
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.65rem">
+          <button onclick="profileCancel()" style="flex:.5;padding:.62rem;border:1.5px solid var(--rule);border-radius:10px;background:none;font-family:var(--f-b);font-size:.8rem;color:var(--ink-muted);cursor:pointer">Cancel</button>
+          <button onclick="profileSave()" style="flex:1;padding:.62rem;border:none;border-radius:10px;background:var(--rose);color:white;font-family:var(--f-b);font-weight:700;font-size:.8rem;cursor:pointer">Save changes</button>
         </div>
       </div>
       <div style="height:.65rem"></div>
@@ -1411,6 +1436,32 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         <div style="display:flex;gap:.5rem;margin-top:.65rem">
           <button onclick="bodyCancel()" style="flex:.5;padding:.62rem;border:1.5px solid var(--rule);border-radius:10px;background:none;font-family:var(--f-b);font-size:.8rem;color:var(--ink-muted);cursor:pointer">Cancel</button>
           <button onclick="bodySave()" style="flex:1;padding:.62rem;border:none;border-radius:10px;background:var(--rose);color:white;font-family:var(--f-b);font-weight:700;font-size:.8rem;cursor:pointer">Save changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diet & Goals -->
+    <div class="card" id="me-dietgoals">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem">
+        <div class="sec-title" style="margin-bottom:0">Diet & Goals</div>
+        <button id="dgEditBtn" onclick="dgEdit()" style="font-size:.72rem;font-family:var(--f-b);font-weight:600;color:var(--rose);background:none;border:none;cursor:pointer;padding:.2rem .4rem">Edit ✏️</button>
+      </div>
+      <!-- View -->
+      <div id="dgView">
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">Dietary preferences</div>
+        <div id="dgDietView" style="font-size:.8rem;color:var(--ink);line-height:1.5;margin-bottom:.65rem">None set</div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">Top priorities</div>
+        <div id="dgGoalsView" style="font-size:.8rem;color:var(--ink);line-height:1.5">None set</div>
+      </div>
+      <!-- Edit form -->
+      <div id="dgEditForm" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">Dietary preferences</div>
+        <div class="option-chips" id="dgDietChips"></div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin:.7rem 0 .4rem">Top priorities</div>
+        <div class="option-chips" id="dgGoalChips"></div>
+        <div style="display:flex;gap:.5rem;margin-top:.7rem">
+          <button onclick="dgCancel()" style="flex:.5;padding:.62rem;border:1.5px solid var(--rule);border-radius:10px;background:none;font-family:var(--f-b);font-size:.8rem;color:var(--ink-muted);cursor:pointer">Cancel</button>
+          <button onclick="dgSave()" style="flex:1;padding:.62rem;border:none;border-radius:10px;background:var(--rose);color:white;font-family:var(--f-b);font-weight:700;font-size:.8rem;cursor:pointer">Save & refresh</button>
         </div>
       </div>
     </div>
@@ -1844,104 +1895,172 @@ function finishOnboard() {
   launchApp(obData.name, obData.dueDate);
 }
 
-function launchApp(name, dueDate) {
-  // Baby size lookup by nearest even week
-  const wkSizes = {
-    6:{l:'¼″',w:'<1oz'},8:{l:'0.6″',w:'<1oz'},10:{l:'1.2″',w:'<1oz'},
-    12:{l:'2.1″',w:'0.5oz'},14:{l:'3.4″',w:'1.5oz'},16:{l:'4.6″',w:'3.5oz'},
-    18:{l:'5.6″',w:'6.7oz'},20:{l:'6.5″',w:'10.6oz'},22:{l:'7.6″',w:'15oz'},
-    24:{l:'8.7″',w:'1.3lb'},26:{l:'9.6″',w:'1.7lb'},28:{l:'10.2″',w:'2.2lb'},
-    30:{l:'10.8″',w:'2.9lb'},32:{l:'11.4″',w:'3.9lb'},34:{l:'11.8″',w:'4.7lb'},
-    36:{l:'12.6″',w:'5.8lb'},38:{l:'13.4″',w:'6.8lb'},40:{l:'14.0″',w:'7.5lb'}
-  };
+/* ── Lookup tables ──────────────────────────────── */
+const wkSizes = {
+  6:{l:'¼″',w:'<1oz'},8:{l:'0.6″',w:'<1oz'},10:{l:'1.2″',w:'<1oz'},
+  12:{l:'2.1″',w:'0.5oz'},14:{l:'3.4″',w:'1.5oz'},16:{l:'4.6″',w:'3.5oz'},
+  18:{l:'5.6″',w:'6.7oz'},20:{l:'6.5″',w:'10.6oz'},22:{l:'7.6″',w:'15oz'},
+  24:{l:'8.7″',w:'1.3lb'},26:{l:'9.6″',w:'1.7lb'},28:{l:'10.2″',w:'2.2lb'},
+  30:{l:'10.8″',w:'2.9lb'},32:{l:'11.4″',w:'3.9lb'},34:{l:'11.8″',w:'4.7lb'},
+  36:{l:'12.6″',w:'5.8lb'},38:{l:'13.4″',w:'6.8lb'},40:{l:'14.0″',w:'7.5lb'}
+};
 
-  // Time-aware greeting
+const babyWeekData = {
+  6: {fruit:'sweet pea',        desc:'The neural tube is forming. Heart is starting to beat!'},
+  8: {fruit:'raspberry',        desc:'Major organs are forming. Tiny fingers and toes are appearing!'},
+  10:{fruit:'prune',            desc:'Baby can now swallow! Tooth buds are forming beneath the gums.'},
+  12:{fruit:'lime',             desc:'Reflexes are developing. Fingernails and kidneys are in action!'},
+  14:{fruit:'lemon',            desc:'Baby can squint, frown and grimace. Tiny hairs are appearing!'},
+  16:{fruit:'avocado',          desc:'Baby can now hear! They may respond to your voice and music.'},
+  18:{fruit:'sweet potato',     desc:'Facial muscles developing — your baby can make expressions and suck their thumb.'},
+  20:{fruit:'banana',           desc:'Halfway there! Baby is swallowing and taste buds are fully formed.'},
+  22:{fruit:'papaya',           desc:'Baby has eyebrows and eyelashes now. Grip is developing!'},
+  24:{fruit:'corn cob',         desc:'Lungs are forming air sacs. Brain is developing rapidly this week!'},
+  26:{fruit:'scallion',         desc:'Eyes are opening for the first time! Baby is practising breathing.'},
+  28:{fruit:'eggplant',         desc:'Brain waves are active. Baby can blink and may be dreaming!'},
+  30:{fruit:'cabbage',          desc:'Baby is putting on fat. Movements may feel more rolling than jabbing now.'},
+  32:{fruit:'butternut squash', desc:'Lungs and digestive system are nearly mature. Baby is gaining fast!'},
+  34:{fruit:'cantaloupe',       desc:'Baby sleeps 90% of the time. Immune system is strengthening!'},
+  36:{fruit:'honeydew melon',   desc:'Baby is likely head-down. Almost full term — you\'re nearly there!'},
+  38:{fruit:'pumpkin',          desc:'Baby\'s reflexes are fully coordinated and ready for birth!'},
+  40:{fruit:'watermelon',       desc:'You made it! Baby is full term and ready to meet you!'},
+};
+
+const goalsByPriority = {
+  '🥗 Nutrition': wk => ['Take prenatal vitamin with breakfast','Include an iron-rich food at lunch','Drink 8+ glasses of water today'],
+  '❤️ Symptoms':  wk => ['Log any new symptoms today','Rate your energy level (1–10)', wk>=28?'Track kicks for 2 hours':'Note any changes for next visit'],
+  '👶 Baby dev':  wk => [`Read about Week ${wk} baby development`,'Talk or sing to your bump today','Note any kicks or movements'],
+  '😴 Sleep tips':wk => ['Aim for 8+ hours tonight','Try sleeping on your left side','Wind down 30 min before bed — no screens'],
+  '💬 Doctor prep':wk=>['Add a question to your Doctor Qs list','Review your next appointment details','Note any concerns to raise with your provider'],
+  '🌸 Wellness':  wk => ['5-min breathing or mindfulness exercise','Write 3 things you\'re grateful for today','Connect with someone you love'],
+  '🏃 Fitness':   wk => ['30 min prenatal-safe movement today',wk<28?'Try prenatal yoga':'Gentle walk after meals','Pelvic floor exercises — 10 Kegels'],
+  '💊 Supplements':wk=>['Take DHA / omega-3 supplement','Confirm iron levels are on track','Review supplement list with your provider'],
+};
+
+function refreshDashboard() {
+  const name     = obData.name || 'Customer';
+  const dueDate  = obData.dueDate;
+
+  // Greeting
   const hr = new Date().getHours();
-  const salutation = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
-  document.querySelectorAll('.greeting').forEach(el => {
-    el.innerHTML = `${salutation}, <em>${name||'Customer'}</em>`;
-  });
-  // Personalise profile
-  document.querySelectorAll('.profile-name').forEach(el=>el.textContent=name||'Customer');
+  const sal = hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+  document.querySelectorAll('.greeting').forEach(el=>{el.innerHTML=`${sal}, <em>${name}</em>`;});
 
-  // Calculate week from due date
+  // Name + avatar
+  document.querySelectorAll('.profile-name').forEach(el=>el.textContent=name);
+  const initial = name.charAt(0).toUpperCase();
+  const pa = document.getElementById('profileAvatar');  if(pa) pa.textContent=initial;
+  const ha = document.querySelector('.header-avatar');   if(ha) ha.textContent=initial;
+
+  let wk = 18; // default
   if (dueDate) {
-    const due   = new Date(dueDate);
-    const today = new Date();
-    const daysIn = Math.round((today - (new Date(due.getTime() - 280*24*60*60*1000)))/86400000);
-    const weeksLeft = Math.round((due-today)/(7*24*60*60*1000));
-    const wk = Math.max(1, Math.min(40, 40-weeksLeft));
-    const tri = wk<=13?'First':wk<=26?'Second':'Third';
-    const triKey = tri==='First'?'1':tri==='Second'?'2':'3';
+    const due      = new Date(dueDate);
+    const today    = new Date();
+    const daysIn   = Math.round((today - new Date(due.getTime()-280*24*60*60*1000))/86400000);
+    const weeksLeft= Math.round((due-today)/(7*24*60*60*1000));
+    wk = Math.max(1,Math.min(40,40-weeksLeft));
+    const tri    = wk<=13?'First':wk<=26?'Second':'Third';
+    const triKey = wk<=13?'1':wk<=26?'2':'3';
+
+    // Week chip + header badge
     document.querySelector('.week-chip').textContent = `Week ${wk} · ${tri} Trimester`;
-    badges.today = `Wk ${wk} · T${triKey}`;
-    document.getElementById('headerBadge').textContent = badges.today;
-    // Profile sub-text
-    document.querySelectorAll('.profile-sub').forEach((el,i)=>{ if(i===0) el.textContent=`Due ${due.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · Week ${wk} · T${triKey}`; });
+    if(typeof badges!=='undefined'){badges.today=`Wk ${wk} · T${triKey}`;}
+    const hb=document.getElementById('headerBadge'); if(hb) hb.textContent=`Wk ${wk} · T${triKey}`;
+
+    // Profile sub #0
+    document.querySelectorAll('.profile-sub').forEach((el,i)=>{
+      if(i===0) el.textContent=`Due ${due.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · Week ${wk} · T${triKey}`;
+    });
+
+    // Baby card text
+    const wkKeys = Object.keys(babyWeekData).map(Number);
+    const nwk = wkKeys.reduce((a,b)=>Math.abs(b-wk)<Math.abs(a-wk)?b:a);
+    const bd  = babyWeekData[nwk];
+    const bt  = document.querySelector('.baby-title'); if(bt) bt.textContent=`Your baby is a ${bd.fruit}`;
+    const bs  = document.querySelector('.baby-size');  if(bs) bs.textContent=bd.desc;
+
     // Baby stats
-    const nearest = Object.keys(wkSizes).map(Number).reduce((a,b)=>Math.abs(b-wk)<Math.abs(a-wk)?b:a);
-    const sz = wkSizes[nearest];
-    const lenEl=document.getElementById('babyLen'), wtEl=document.getElementById('babyWt'), daysEl=document.getElementById('babyDays');
-    if(lenEl) lenEl.textContent=sz.l;
-    if(wtEl)  wtEl.textContent=sz.w;
-    if(daysEl) daysEl.textContent=Math.max(0,daysIn);
+    const wkKeys2 = Object.keys(wkSizes).map(Number);
+    const nsz = wkKeys2.reduce((a,b)=>Math.abs(b-wk)<Math.abs(a-wk)?b:a);
+    const sz  = wkSizes[nsz];
+    const le=document.getElementById('babyLen'); if(le) le.textContent=sz.l;
+    const we=document.getElementById('babyWt');  if(we) we.textContent=sz.w;
+    const de=document.getElementById('babyDays');if(de) de.textContent=Math.max(0,daysIn);
+
     // Progress bar
-    const pct = Math.round((wk/40)*100);
-    const pf = document.getElementById('progFill');
-    if(pf) pf.style.width=pct+'%';
-    const pl = document.getElementById('progLabel');
-    if(pl) pl.innerHTML=`<span>Week ${wk} of 40</span><span>${weeksLeft} weeks left</span>`;
-    const pn = document.getElementById('progNote');
-    if(pn) pn.textContent=`Due date: ${due.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`;
+    const pf=document.getElementById('progFill');  if(pf) pf.style.width=Math.round(wk/40*100)+'%';
+    const pl=document.getElementById('progLabel'); if(pl) pl.innerHTML=`<span>Week ${wk} of 40</span><span>${Math.max(0,weeksLeft)} weeks left</span>`;
+    const pn=document.getElementById('progNote');  if(pn) pn.textContent=`Due date: ${due.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`;
+
     // Kick counter
-    const kt = document.getElementById('kickTitle');
-    if(kt) kt.textContent=`Kick Counter · Week ${wk}`;
+    const kt=document.getElementById('kickTitle'); if(kt) kt.textContent=`Kick Counter · Week ${wk}`;
   }
 
-  // Diet on profile
-  const dietEl = document.getElementById('profileDiet');
-  if (dietEl) {
-    const dietLabels = obData.diet.map(d=>d.replace(/^[\S]+\s/,'')); // strip emoji
-    dietEl.textContent = dietLabels.length ? dietLabels.join(' · ') : 'No dietary preferences set';
+  // Diet line on profile card
+  const dietEl=document.getElementById('profileDiet');
+  if(dietEl){
+    const dl=obData.diet.map(d=>d.replace(/^[\S]+\s/,''));
+    dietEl.textContent=dl.length?dl.join(' · '):'No dietary preferences set';
   }
 
-  // Physical stats: calories + profile body line
-  const bodyEl = document.getElementById('profileBody');
-  const kcalEl = document.getElementById('mealKcalSub');
-  if (obData.weightVal && obData.age) {
-    const heightCm = (parseInt(obData.heightFt||5)*12 + parseInt(obData.heightIn||4)) * 2.54;
-    const weightKg = obData.weightUnit === 'kg' ? parseFloat(obData.weightVal) : parseFloat(obData.weightVal) * 0.4536;
-    const age      = parseInt(obData.age);
-    const bmr      = 10 * weightKg + 6.25 * heightCm - 5 * age - 161; // Mifflin-St Jeor women
-    const tdee     = Math.round(bmr * 1.4);
-    const currentWk= parseInt((document.querySelector('.week-chip')||{}).textContent||'18') || 18;
-    const addition = currentWk <= 13 ? 0 : currentWk <= 26 ? 340 : 452;
-    const kcal     = tdee + addition;
-    if (kcalEl) { kcalEl.textContent = `~${kcal.toLocaleString()} kcal target`; kcalEl.hidden = false; }
-    // Profile body line
-    const hStr = `${obData.heightFt}′${obData.heightIn}″`;
-    const wStr = obData.weightVal + ' ' + obData.weightUnit;
-    const parts = [hStr, wStr, obData.bloodType ? `Blood ${obData.bloodType}` : ''].filter(Boolean);
-    if (bodyEl) { bodyEl.textContent = parts.join(' · '); bodyEl.style.display = ''; }
+  // Calorie estimate
+  const bodyEl=document.getElementById('profileBody');
+  const kcalEl=document.getElementById('mealKcalSub');
+  if(obData.weightVal && obData.age){
+    const hcm=(parseInt(obData.heightFt||5)*12+parseInt(obData.heightIn||4))*2.54;
+    const wkg=obData.weightUnit==='kg'?parseFloat(obData.weightVal):parseFloat(obData.weightVal)*0.4536;
+    const age=parseInt(obData.age);
+    const bmr=10*wkg+6.25*hcm-5*age-161;
+    const add=wk<=13?0:wk<=26?340:452;
+    const kcal=Math.round(bmr*1.4)+add;
+    if(kcalEl){kcalEl.textContent=`~${kcal.toLocaleString()} kcal target`;kcalEl.hidden=false;}
+    const hStr=`${obData.heightFt}′${obData.heightIn}″`;
+    const wStr=obData.weightVal+' '+obData.weightUnit;
+    const parts=[hStr,wStr,obData.bloodType?`Blood ${obData.bloodType}`:''].filter(Boolean);
+    if(bodyEl){bodyEl.textContent=parts.join(' · ');bodyEl.style.display='';}
   } else {
-    if (kcalEl) kcalEl.hidden = true;
-    if (bodyEl) bodyEl.style.display = 'none';
+    if(kcalEl) kcalEl.hidden=true;
+    if(bodyEl) bodyEl.style.display='none';
   }
 
-  // Update profile avatar & header avatar with initials
-  const initial = (name||'C').charAt(0).toUpperCase();
-  const pa = document.getElementById('profileAvatar');
-  if (pa) pa.textContent = initial;
-  const ha = document.querySelector('.header-avatar');
-  if (ha) ha.textContent = initial;
+  // Goals list
+  const goalList=document.getElementById('goalList');
+  if(goalList){
+    let items=[];
+    if(obData.goals.length){
+      obData.goals.forEach(g=>{const fn=goalsByPriority[g];if(fn&&items.length<3)items.push(fn(wk)[0]);});
+      if(items.length<3) obData.goals.forEach(g=>{
+        const fn=goalsByPriority[g];
+        if(fn) fn(wk).slice(1).forEach(t=>{if(items.length<3)items.push(t);});
+      });
+    }
+    if(!items.length) items=['Take prenatal vitamin with breakfast','Drink 8 glasses of water today',wk>=28?'Count kicks for 2 hours':'30 min prenatal-safe movement'];
+    goalList.innerHTML=items.slice(0,3).map(t=>`
+      <div class="goal-item" onclick="toggleGoal(this)">
+        <div class="goal-check"></div>
+        <div class="goal-text">${t}</div>
+        <span class="goal-badge">Wk ${wk}</span>
+      </div>`).join('');
+  }
 
-  // Show app, hide login; reveal chat FAB
-  document.getElementById('loginView').hidden = true;
-  document.getElementById('appView').hidden = false;
-  document.getElementById('chat-fab').hidden = false;
-  // Populate body profile panel
+  // Diet & Goals view in Me screen
+  const dgDV=document.getElementById('dgDietView');
+  if(dgDV){const dl=obData.diet.map(d=>d.replace(/^[\S]+\s/,''));dgDV.textContent=dl.length?dl.join(', '):'None set — tap Edit to add preferences.';}
+  const dgGV=document.getElementById('dgGoalsView');
+  if(dgGV){const gl=obData.goals.map(g=>g.replace(/^[\S]+\s/,''));dgGV.textContent=gl.length?gl.join(', '):'None set — tap Edit to set priorities.';}
+
+  // Body profile tiles
   renderBodyView();
+}
 
+function launchApp(name, dueDate) {
+  obData.name    = name    || obData.name;
+  obData.dueDate = dueDate || obData.dueDate;
+  // Show app view
+  document.getElementById('loginView').hidden = true;
+  document.getElementById('appView').hidden   = false;
+  document.getElementById('chat-fab').hidden  = false;
+  refreshDashboard();
   // Wire scroll hint to active screen
   const initScr = document.querySelector('.screen.active');
   if (initScr) {
@@ -1949,6 +2068,55 @@ function launchApp(name, dueDate) {
     updateScrollHint(initScr);
     initScr.onscroll = () => updateScrollHint(initScr);
   }
+}
+
+/* ── Profile edit ───────────────────────────────── */
+function profileEdit() {
+  document.getElementById('pf-name').value = obData.name    || '';
+  document.getElementById('pf-baby').value = obData.babyName|| '';
+  document.getElementById('pf-due').value  = obData.dueDate || '';
+  document.getElementById('profileEditForm').style.display = '';
+  document.getElementById('profileEditBtn').style.display  = 'none';
+}
+function profileCancel() {
+  document.getElementById('profileEditForm').style.display = 'none';
+  document.getElementById('profileEditBtn').style.display  = '';
+}
+function profileSave() {
+  obData.name     = document.getElementById('pf-name').value.trim() || 'Customer';
+  obData.babyName = document.getElementById('pf-baby').value.trim();
+  obData.dueDate  = document.getElementById('pf-due').value;
+  profileCancel();
+  refreshDashboard();
+}
+
+/* ── Diet & Goals edit ──────────────────────────── */
+const dietOpts  = ['🫒 Mediterranean','🥦 Vegetarian','🌱 Vegan','🥩 Omnivore','🥛 Dairy-free','🌾 Gluten-free','🦐 No shellfish','🥜 No nuts'];
+const goalsOpts = ['🥗 Nutrition','❤️ Symptoms','👶 Baby dev','😴 Sleep tips','💬 Doctor prep','🌸 Wellness','🏃 Fitness','💊 Supplements'];
+
+function dgEdit() {
+  const dc = document.getElementById('dgDietChips');
+  const gc = document.getElementById('dgGoalChips');
+  if(dc) dc.innerHTML = dietOpts.map(d=>`<button class="option-chip${obData.diet.includes(d)?' selected':''}" onclick="dgToggle(this,'diet','${d.replace(/'/g,"\\'")}')">${d}</button>`).join('');
+  if(gc) gc.innerHTML = goalsOpts.map(g=>`<button class="option-chip${obData.goals.includes(g)?' selected':''}" onclick="dgToggle(this,'goals','${g.replace(/'/g,"\\'")}')">${g}</button>`).join('');
+  document.getElementById('dgEditForm').style.display = '';
+  document.getElementById('dgView').style.display     = 'none';
+  document.getElementById('dgEditBtn').style.display  = 'none';
+}
+function dgToggle(el, key, val) {
+  el.classList.toggle('selected');
+  const a = obData[key];
+  if(el.classList.contains('selected')){if(!a.includes(val))a.push(val);}
+  else{const i=a.indexOf(val);if(i>-1)a.splice(i,1);}
+}
+function dgCancel() {
+  document.getElementById('dgEditForm').style.display = 'none';
+  document.getElementById('dgView').style.display     = '';
+  document.getElementById('dgEditBtn').style.display  = '';
+}
+function dgSave() {
+  dgCancel();
+  refreshDashboard();
 }
 
 /* ── Goals ─────────────────────────────────────── */
@@ -1986,8 +2154,8 @@ function showMeSection(section) {
 }
 
 const mePillNames = {
-  profile:'Profile', body:'Body', appointments:'Appointments', docqs:'Doctor Qs',
-  vaccines:'Vaccines', recovery:'Recovery', pricing:'Plans'
+  profile:'Profile', body:'Body', dietgoals:'Diet & Goals', appointments:'Appointments',
+  docqs:'Doctor Qs', vaccines:'Vaccines', recovery:'Recovery', pricing:'Plans'
 };
 
 /* ── Body Profile panel ──────────────────────────── */
@@ -2074,15 +2242,7 @@ function bodySave() {
   obData.weightUnit   = document.getElementById('bf-wtunit').value;
   obData.bloodType    = document.getElementById('bf-blood').value;
   bodyCancel();
-  renderBodyView();
-  // Refresh profile body line and calorie estimate
-  const bodyEl = document.getElementById('profileBody');
-  if (bodyEl && obData.weightVal) {
-    const hStr = `${obData.heightFt}′${obData.heightIn}″`;
-    const wStr = obData.weightVal + ' ' + obData.weightUnit;
-    const parts = [hStr, wStr, obData.bloodType ? `Blood ${obData.bloodType}` : ''].filter(Boolean);
-    bodyEl.textContent = parts.join(' · '); bodyEl.style.display = '';
-  }
+  refreshDashboard();
 }
 
 function jumpMe(section, pillEl) {
