@@ -1,8 +1,5 @@
 {
   "name": "bloom-app",
   "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "@anthropic-ai/sdk": "^1.0.0"
-  }
+  "private": true
 }
