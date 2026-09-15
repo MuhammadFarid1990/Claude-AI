@@ -1094,7 +1094,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         <button class="quick-btn" onclick="switchScreen('meals',document.querySelectorAll('.tab')[1])">
           <svg class="qb-svg" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><line x1="7" y1="2" x2="7" y2="11"/><path d="M21 15a4 4 0 01-4 4h0a4 4 0 01-4-4v-3h8v3z"/><line x1="17" y1="2" x2="17" y2="11"/></svg>
           <div class="qb-label">Today's Meals</div>
-          <div class="qb-sub">1,800 kcal planned</div>
+          <div class="qb-sub" id="mealKcalSub" hidden></div>
         </button>
         <button class="quick-btn" onclick="switchScreen('health',document.querySelectorAll('.tab')[2])">
           <svg class="qb-svg" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
@@ -1332,6 +1332,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
           <div class="profile-name">Customer</div>
           <div class="profile-sub">Due Feb 8, 2027 · Week 18 · T2</div>
           <div class="profile-sub" id="profileDiet" style="margin-top:.12rem">Mediterranean · No shellfish · No nuts</div>
+          <div class="profile-sub" id="profileBody" style="margin-top:.12rem;display:none"></div>
           <div class="sub-badge">✓ Pregnancy Pass</div>
         </div>
       </div>
@@ -1587,7 +1588,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
-const obData = { name:'', babyName:'', dueDate:'', firstBaby:'', diet:[], goals:[] };
+const obData = { name:'', babyName:'', dueDate:'', firstBaby:'', heightFt:'5', heightIn:'4', weightVal:'', weightUnit:'lb', age:'', bloodType:'', diet:[], goals:[] };
 
 const obSteps = [
   {
@@ -1634,6 +1635,56 @@ const obSteps = [
     },
     save() {
       obData.babyName = document.getElementById('ob-baby').value.trim();
+    }
+  },
+  {
+    render() {
+      const ftOpts = [4,5,6].map(f=>`<option value="${f}" ${obData.heightFt==f?'selected':''}>${f} ft</option>`).join('');
+      const inOpts = [0,1,2,3,4,5,6,7,8,9,10,11].map(i=>`<option value="${i}" ${obData.heightIn==i?'selected':''}>${i} in</option>`).join('');
+      const bloods = ['','A+','A−','B+','B−','AB+','AB−','O+','O−'];
+      return `
+        <div>
+          <div style="font-size:1.8rem;margin-bottom:.35rem">📏</div>
+          <div class="onboard-title">About your body</div>
+          <div class="onboard-sub">Personalises your calorie targets, weight-gain guidance, and health tips.</div>
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.38rem">Height</div>
+          <div style="display:flex;gap:.4rem">
+            <select class="auth-input" id="ob-hft" style="flex:1">${ftOpts}</select>
+            <select class="auth-input" id="ob-hin" style="flex:1">${inOpts}</select>
+          </div>
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.38rem">Pre-pregnancy weight</div>
+          <div style="display:flex;gap:.4rem">
+            <input class="auth-input" id="ob-wt" type="number" placeholder="e.g. 140" value="${obData.weightVal}" style="flex:1;min-width:0">
+            <select class="auth-input" id="ob-wtunit" style="flex:0 0 56px">
+              <option value="lb" ${obData.weightUnit!=='kg'?'selected':''}>lb</option>
+              <option value="kg" ${obData.weightUnit==='kg'?'selected':''}>kg</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <div style="flex:1">
+            <div class="sec-title" style="margin-bottom:.38rem">Your age</div>
+            <input class="auth-input" id="ob-age" type="number" placeholder="e.g. 28" value="${obData.age}">
+          </div>
+          <div style="flex:1">
+            <div class="sec-title" style="margin-bottom:.38rem">Blood type <span style="font-weight:400;color:var(--ink-muted)">(opt.)</span></div>
+            <select class="auth-input" id="ob-blood">
+              ${bloods.map(t=>`<option value="${t}" ${obData.bloodType===t?'selected':''}>${t||'Unknown'}</option>`).join('')}
+            </select>
+          </div>
+        </div>`;
+    },
+    save() {
+      obData.heightFt  = document.getElementById('ob-hft').value;
+      obData.heightIn  = document.getElementById('ob-hin').value;
+      obData.weightVal = document.getElementById('ob-wt').value;
+      obData.weightUnit= document.getElementById('ob-wtunit').value;
+      obData.age       = document.getElementById('ob-age').value;
+      obData.bloodType = document.getElementById('ob-blood').value;
     }
   },
   {
@@ -1782,6 +1833,29 @@ function launchApp(name, dueDate) {
   if (dietEl) {
     const dietLabels = obData.diet.map(d=>d.replace(/^[\S]+\s/,'')); // strip emoji
     dietEl.textContent = dietLabels.length ? dietLabels.join(' · ') : 'No dietary preferences set';
+  }
+
+  // Physical stats: calories + profile body line
+  const bodyEl = document.getElementById('profileBody');
+  const kcalEl = document.getElementById('mealKcalSub');
+  if (obData.weightVal && obData.age) {
+    const heightCm = (parseInt(obData.heightFt||5)*12 + parseInt(obData.heightIn||4)) * 2.54;
+    const weightKg = obData.weightUnit === 'kg' ? parseFloat(obData.weightVal) : parseFloat(obData.weightVal) * 0.4536;
+    const age      = parseInt(obData.age);
+    const bmr      = 10 * weightKg + 6.25 * heightCm - 5 * age - 161; // Mifflin-St Jeor women
+    const tdee     = Math.round(bmr * 1.4);
+    const currentWk= parseInt((document.querySelector('.week-chip')||{}).textContent||'18') || 18;
+    const addition = currentWk <= 13 ? 0 : currentWk <= 26 ? 340 : 452;
+    const kcal     = tdee + addition;
+    if (kcalEl) { kcalEl.textContent = `~${kcal.toLocaleString()} kcal target`; kcalEl.hidden = false; }
+    // Profile body line
+    const hStr = `${obData.heightFt}′${obData.heightIn}″`;
+    const wStr = obData.weightVal + ' ' + obData.weightUnit;
+    const parts = [hStr, wStr, obData.bloodType ? `Blood ${obData.bloodType}` : ''].filter(Boolean);
+    if (bodyEl) { bodyEl.textContent = parts.join(' · '); bodyEl.style.display = ''; }
+  } else {
+    if (kcalEl) kcalEl.hidden = true;
+    if (bodyEl) bodyEl.style.display = 'none';
   }
 
   // Update profile avatar & header avatar with initials
