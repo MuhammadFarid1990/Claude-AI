@@ -1648,7 +1648,8 @@ function renderObStep() {
   document.getElementById('onboardContent').innerHTML = obSteps[obStep].render();
   document.getElementById('stepDots').innerHTML = obSteps.map((_,i)=>
     `<div class="step-dot${i===obStep?' active':''}"></div>`).join('');
-  document.getElementById('onboardBackBtn').hidden = obStep === 0;
+  document.getElementById('onboardBackBtn').hidden = false;
+  document.getElementById('onboardBackBtn').textContent = obStep === 0 ? '← Back' : '← Back';
   document.getElementById('onboardNextBtn').textContent =
     obStep === obSteps.length-1 ? "Let's go! 🌸" : 'Continue →';
 }
