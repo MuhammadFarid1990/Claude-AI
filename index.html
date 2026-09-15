@@ -1512,7 +1512,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('vaccines',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Vaccine schedule</button>
       <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('recovery',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Recovery plan</button>
       <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('pricing',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Pricing plans</button>
-      <button onclick="document.getElementById('loginView').hidden=false;document.getElementById('appView').hidden=true;toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rose);border-radius:10px;background:var(--rose-bg);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--rose);font-weight:700">Login / Onboard</button>
+      <button onclick="document.getElementById('loginView').hidden=false;document.getElementById('appView').hidden=true;document.getElementById('chat-fab').hidden=true;closeChat();toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rose);border-radius:10px;background:var(--rose-bg);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--rose);font-weight:700">Login / Onboard</button>
     </div>
   </div>
 
@@ -1542,8 +1542,8 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 
   </div><!-- /appView -->
 
-  <!-- Bloom Chat FAB -->
-  <button id="chat-fab" onclick="openChat()" aria-label="Open Bloom AI chat">🌸</button>
+  <!-- Bloom Chat FAB (hidden until user is logged in) -->
+  <button id="chat-fab" onclick="openChat()" aria-label="Open Bloom AI chat" hidden>🌸</button>
 
   <!-- Bloom Chat Panel -->
   <div id="chat-panel" role="dialog" aria-modal="true" aria-label="Bloom AI Chat">
@@ -1706,9 +1706,10 @@ function launchApp(name, dueDate) {
   const ha = document.querySelector('.header-avatar');
   if (ha) ha.textContent = initial;
 
-  // Show app, hide login
+  // Show app, hide login; reveal chat FAB
   document.getElementById('loginView').hidden = true;
   document.getElementById('appView').hidden = false;
+  document.getElementById('chat-fab').hidden = false;
   // Wire scroll hint to active screen
   const initScr = document.querySelector('.screen.active');
   if (initScr) {
