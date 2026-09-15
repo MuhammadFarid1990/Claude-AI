@@ -45,7 +45,7 @@ For medical decisions always recommend consulting a healthcare provider. Never d
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'mixtral-8x7b-32768',
         messages,
         max_tokens: 1500,
         temperature: 0.65,
