@@ -1,5 +1,8 @@
 {
   "name": "bloom-app",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
 }
