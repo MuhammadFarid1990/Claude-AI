@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Bloom</title>
+<style>
+  :root {
+    --rose: #E0377A;
+    --bg: #fff8fc;
+    --ink: #1a1a1a;
+    --muted: #666;
+    --rule: #f0d2e4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #18091010;
+      --ink: #f0e8ed;
+      --muted: #aaa;
+      --rule: #3a1a2a;
+    }
+    body { background: #180910; }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px; line-height: 1.7;
+    color: var(--ink); background: var(--bg);
+    max-width: 720px; margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+  header {
+    display: flex; align-items: center; gap: .75rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1.5px solid var(--rule);
+    padding-bottom: 1.25rem;
+  }
+  .logo { font-size: 1.6rem; font-weight: 800; color: var(--rose); letter-spacing: -.04em; }
+  h1 { font-size: 1.55rem; font-weight: 700; margin: 0 0 .25rem; }
+  .updated { font-size: .85rem; color: var(--muted); }
+  h2 { font-size: 1.05rem; font-weight: 700; color: var(--rose); margin: 2rem 0 .5rem; }
+  p, li { color: var(--ink); margin: 0 0 .75rem; }
+  ul { padding-left: 1.4rem; }
+  a { color: var(--rose); }
+  .highlight {
+    background: rgba(224,55,122,.07); border-left: 3px solid var(--rose);
+    padding: .75rem 1rem; border-radius: 0 8px 8px 0; margin: 1rem 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">bloom</div>
+</header>
+
+<h1>Privacy Policy</h1>
+<p class="updated">Last updated: September 17, 2026</p>
+
+<div class="highlight">
+  <strong>Short version:</strong> Bloom stores all your data on your own device. We do not collect, sell, or share your personal health information. The AI chat sends your messages to our server to generate a response and does not store them.
+</div>
+
+<h2>1. What data Bloom collects</h2>
+<p>Bloom is designed with privacy first. All data you enter — your name, due date, pregnancy details, meal logs, symptoms, mood entries, kick counts, and goals — is stored locally on your device using <code>localStorage</code>. This data never leaves your device unless you explicitly choose to share it.</p>
+
+<h2>2. AI chat</h2>
+<p>When you use the Bloom AI chat, your message and recent conversation history are sent to our secure API endpoint to generate a response. Specifically:</p>
+<ul>
+  <li>Your message and up to 12 previous messages are sent to generate a contextual reply.</li>
+  <li>We do not store chat messages on our servers after the response is generated.</li>
+  <li>Chat responses are powered by Groq's language model API. Groq's own privacy policy applies to data processed through their service.</li>
+</ul>
+
+<h2>3. Data we do not collect</h2>
+<p>We do not collect, transmit, or store:</p>
+<ul>
+  <li>Your name, pregnancy details, or health data</li>
+  <li>Location data</li>
+  <li>Device identifiers</li>
+  <li>Analytics or usage telemetry</li>
+  <li>Cookies or tracking pixels</li>
+</ul>
+
+<h2>4. Children's privacy</h2>
+<p>Bloom is designed for expectant and new parents. It is not directed at children under 13. We do not knowingly collect any information from children under 13.</p>
+
+<h2>5. Health information disclaimer</h2>
+<p>Bloom provides general information and AI-generated content for informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider for medical decisions.</p>
+
+<h2>6. Third-party services</h2>
+<p>Bloom uses the following third-party services:</p>
+<ul>
+  <li><strong>Groq API</strong> — powers the AI chat feature. Chat messages are processed by Groq to generate responses.</li>
+  <li><strong>Vercel</strong> — hosts the API endpoint that proxies AI chat requests. Vercel may log request metadata (IP address, timestamp) per their standard logging.</li>
+  <li><strong>Google Fonts</strong> — loads typeface files for the app interface.</li>
+</ul>
+
+<h2>7. Data retention and deletion</h2>
+<p>Since all app data is stored on your device, you can delete it at any time by clearing your browser's site data or uninstalling the app. We have no server-side copy to delete.</p>
+
+<h2>8. Changes to this policy</h2>
+<p>We may update this Privacy Policy from time to time. We will post the updated policy at this URL with a new "Last updated" date. Continued use of Bloom after changes constitutes acceptance of the updated policy.</p>
+
+<h2>9. Contact</h2>
+<p>Questions about this Privacy Policy? Contact us at <a href="mailto:muhammadfarid3872@gmail.com">muhammadfarid3872@gmail.com</a>.</p>
+
+</body>
+</html>
