@@ -1,0 +1,13 @@
+node_modules/
+www/
+
+# iOS
+ios/App/Pods/
+ios/.DS_Store
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+*.ipa

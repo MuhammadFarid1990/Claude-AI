@@ -2985,7 +2985,9 @@ async function doSend() {
   const context = searchKb(msg);
 
   try {
-    const res = await fetch('/api/chat', {
+    const apiBase = (window.Capacitor?.isNativePlatform?.() || location.protocol === 'file:')
+      ? 'https://bloomai-sandy.vercel.app' : '';
+    const res = await fetch(apiBase + '/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: msg, context, history: chatHistory })
