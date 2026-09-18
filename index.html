@@ -3011,4 +3011,8 @@ async function doSend() {
     addBubble('bot', 'Network error. Please check your connection and try again.');
   }
 }
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
 </script>
