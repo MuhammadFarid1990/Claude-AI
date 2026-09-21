@@ -1,10 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "",
-  "installCommand": "",
-  "functions": {
-    "api/chat.js": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  "builds": [
+    { "src": "api/chat.js", "use": "@vercel/node" }
+  ]
 }
