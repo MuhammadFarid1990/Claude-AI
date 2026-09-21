@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "mkdir -p www && cp index.html www/index.html",
+    "build": "mkdir -p www && cp index.html www/index.html && cp sw.js www/sw.js && cp privacy.html www/privacy.html",
     "sync": "npm run build && npx cap sync",
     "open:ios": "npm run sync && npx cap open ios",
     "open:android": "npm run sync && npx cap open android"
