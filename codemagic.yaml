@@ -1,7 +1,7 @@
 workflows:
 
   # ─────────────────────────────────────────────────────────────────
-  # iOS — builds a signed IPA and submits to App Store Connect
+  # iOS — builds signed IPA and submits to TestFlight
   # ─────────────────────────────────────────────────────────────────
   ios-release:
     name: Bloom iOS Release
@@ -13,7 +13,8 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.bloomapp.mobile
       vars:
-        APP_STORE_APPLE_ID: $APP_STORE_APPLE_ID   # set in Codemagic UI
+        BUNDLE_ID: com.bloomapp.mobile
+        APP_NAME: Bloom
       node: 20.x
       xcode: latest
       cocoapods: default
@@ -35,7 +36,7 @@ workflows:
       - name: Capacitor sync
         script: npx cap sync ios
 
-      - name: Set bundle version from build number
+      - name: Set build number
         script: |
           cd ios/App
           agvtool new-version -all $CM_BUILD_NUMBER
@@ -54,11 +55,11 @@ workflows:
 
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY      # set in Codemagic UI
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER    # set in Codemagic UI
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID      # set in Codemagic UI
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
-        submit_to_app_store: false   # flip to true when ready for production
+        submit_to_app_store: false
       email:
         recipients:
           - muhammadfarid3872@gmail.com
@@ -67,7 +68,7 @@ workflows:
           failure: true
 
   # ─────────────────────────────────────────────────────────────────
-  # Android — builds a signed AAB and uploads to Play Store (internal)
+  # Android — builds signed AAB and uploads to Play Store (internal)
   # ─────────────────────────────────────────────────────────────────
   android-release:
     name: Bloom Android Release
@@ -75,10 +76,13 @@ workflows:
     instance_type: linux_x2
 
     environment:
-      android_signing:
-        - bloom_keystore               # set up in Codemagic UI → Code Signing
       vars:
         PACKAGE_NAME: com.bloomapp.mobile
+        # Keystore values — add these in Codemagic UI → Environment Variables
+        # CM_KEYSTORE:          (paste contents of bloom-release.keystore.b64)
+        # CM_KEYSTORE_PASSWORD: (your keystore password)
+        # CM_KEY_ALIAS:         bloom
+        # CM_KEY_PASSWORD:      (your key password)
       node: 20.x
       java: 17
 
@@ -99,34 +103,33 @@ workflows:
       - name: Capacitor sync
         script: npx cap sync android
 
+      - name: Write keystore from env
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > android/bloom-release.keystore
+          cat > android/app/key.properties <<EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=../bloom-release.keystore
+          EOF
+
       - name: Set version code
         script: |
           cd android
           sed -i "s/versionCode .*/versionCode $CM_BUILD_NUMBER/" app/build.gradle
 
-      - name: Build AAB
+      - name: Build signed AAB
         script: |
           cd android
           ./gradlew bundleRelease
 
-      - name: Sign AAB
-        script: |
-          android-app-signer \
-            --input android/app/build/outputs/bundle/release/app-release.aab \
-            --output bloom-signed.aab \
-            --ks $CM_KEYSTORE_PATH \
-            --ks-alias $CM_KEY_ALIAS \
-            --ks-pass $CM_KEYSTORE_PASSWORD \
-            --key-pass $CM_KEY_PASSWORD
-
     artifacts:
-      - bloom-signed.aab
-      - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/bundle/release/app-release.aab
 
     publishing:
       google_play:
-        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS  # set in Codemagic UI
-        track: internal   # internal → alpha → beta → production
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
         submit_as_draft: false
       email:
         recipients:

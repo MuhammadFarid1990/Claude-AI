@@ -11,3 +11,9 @@ android/app/build/
 android/build/
 *.apk
 *.ipa
+
+# Keystore — keep out of git, upload to Codemagic Code Signing
+*.keystore
+*.jks
+android/app/key.properties
+bloom-release.keystore.b64
