@@ -1,0 +1,136 @@
+workflows:
+
+  # ─────────────────────────────────────────────────────────────────
+  # iOS — builds a signed IPA and submits to App Store Connect
+  # ─────────────────────────────────────────────────────────────────
+  ios-release:
+    name: Bloom iOS Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.bloomapp.mobile
+      vars:
+        APP_STORE_APPLE_ID: $APP_STORE_APPLE_ID   # set in Codemagic UI
+      node: 20.x
+      xcode: latest
+      cocoapods: default
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: claude/build-new-app-mBkiR
+          include: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Build web assets
+        script: npm run build
+
+      - name: Capacitor sync
+        script: npx cap sync ios
+
+      - name: Set bundle version from build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $CM_BUILD_NUMBER
+          agvtool new-marketing-version 1.0.$CM_BUILD_NUMBER
+
+      - name: Build IPA
+        script: |
+          xcode-project use-profiles
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY      # set in Codemagic UI
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER    # set in Codemagic UI
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID      # set in Codemagic UI
+        submit_to_testflight: true
+        submit_to_app_store: false   # flip to true when ready for production
+      email:
+        recipients:
+          - muhammadfarid3872@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ─────────────────────────────────────────────────────────────────
+  # Android — builds a signed AAB and uploads to Play Store (internal)
+  # ─────────────────────────────────────────────────────────────────
+  android-release:
+    name: Bloom Android Release
+    max_build_duration: 60
+    instance_type: linux_x2
+
+    environment:
+      android_signing:
+        - bloom_keystore               # set up in Codemagic UI → Code Signing
+      vars:
+        PACKAGE_NAME: com.bloomapp.mobile
+      node: 20.x
+      java: 17
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: claude/build-new-app-mBkiR
+          include: true
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Build web assets
+        script: npm run build
+
+      - name: Capacitor sync
+        script: npx cap sync android
+
+      - name: Set version code
+        script: |
+          cd android
+          sed -i "s/versionCode .*/versionCode $CM_BUILD_NUMBER/" app/build.gradle
+
+      - name: Build AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+
+      - name: Sign AAB
+        script: |
+          android-app-signer \
+            --input android/app/build/outputs/bundle/release/app-release.aab \
+            --output bloom-signed.aab \
+            --ks $CM_KEYSTORE_PATH \
+            --ks-alias $CM_KEY_ALIAS \
+            --ks-pass $CM_KEYSTORE_PASSWORD \
+            --key-pass $CM_KEY_PASSWORD
+
+    artifacts:
+      - bloom-signed.aab
+      - android/app/build/outputs/bundle/release/*.aab
+
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS  # set in Codemagic UI
+        track: internal   # internal → alpha → beta → production
+        submit_as_draft: false
+      email:
+        recipients:
+          - muhammadfarid3872@gmail.com
+        notify:
+          success: true
+          failure: true
