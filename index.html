@@ -2215,10 +2215,15 @@ function dgSave() {
 }
 
 /* ── Goals ─────────────────────────────────────── */
+function haptic(type='LIGHT') {
+  try { if (window.Capacitor) Capacitor.Plugins.Haptics.impact({ style: type }); } catch(e) {}
+}
+
 function toggleGoal(el) {
   el.classList.toggle('done');
   const check = el.querySelector('.goal-check');
   check.textContent = el.classList.contains('done') ? '✓' : '';
+  haptic('MEDIUM');
 }
 
 /* ── Navigation ────────────────────────────────── */
@@ -2769,7 +2774,7 @@ function addDocQ() {
   if (!val) return;
   docQs.push(val); inp.value=''; renderDocQs();
   document.getElementById('docSummary').style.display='none';
-  saveState();
+  saveState(); haptic();
 }
 
 function delDocQ(i) {
@@ -2859,7 +2864,7 @@ function addAppt() {
   appts.push({ name:n.value.trim(), date:d.value, dr:'Dr. Rivera' });
   appts.sort((a,b)=>new Date(a.date)-new Date(b.date));
   n.value=''; d.value=''; renderAppts();
-  saveState();
+  saveState(); haptic();
 }
 
 function delAppt(i) { appts.splice(i,1); renderAppts(); saveState(); }
@@ -3110,4 +3115,43 @@ if (localStorage.getItem('bloom_launched') && obData.name) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
+
+/* ── Capacitor native plugin init ──────────────────── */
+window.addEventListener('load', async () => {
+  if (!window.Capacitor) return; // web browser — skip
+
+  try {
+    const { SplashScreen } = Capacitor.Plugins;
+    const { StatusBar, Style } = Capacitor.Plugins;
+    const { App }        = Capacitor.Plugins;
+    const { Keyboard }   = Capacitor.Plugins;
+
+    // Hide splash after app is ready
+    if (SplashScreen) await SplashScreen.hide({ fadeOutDuration: 300 });
+
+    // Status bar: dark background, light icons (matches Bloom's dark header)
+    if (StatusBar) {
+      await StatusBar.setStyle({ style: 'LIGHT' });
+      await StatusBar.setBackgroundColor({ color: '#8A0040' });
+    }
+
+    // Android back button — exit app or go back a screen
+    if (App) {
+      App.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) window.history.back();
+        else App.exitApp();
+      });
+    }
+
+    // Keyboard — scroll body up when keyboard opens so inputs stay visible
+    if (Keyboard) {
+      Keyboard.addListener('keyboardWillShow', info => {
+        document.body.style.paddingBottom = info.keyboardHeight + 'px';
+      });
+      Keyboard.addListener('keyboardWillHide', () => {
+        document.body.style.paddingBottom = '';
+      });
+    }
+  } catch (e) {}
+});
 </script>
