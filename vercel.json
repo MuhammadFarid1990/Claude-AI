@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "api/chat.js", "use": "@vercel/node" }
-  ]
+  "framework": null,
+  "buildCommand": null,
+  "installCommand": null,
+  "outputDirectory": "."
 }

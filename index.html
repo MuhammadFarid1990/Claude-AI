@@ -1030,14 +1030,10 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       </div>
       <div>
         <div class="sec-title" style="margin-bottom:.38rem">Email address</div>
-        <input class="auth-input" id="loginEmail" type="email" placeholder="hello@example.com">
+        <input class="auth-input" id="loginEmail" type="email" placeholder="hello@example.com" autocomplete="email">
       </div>
-      <div>
-        <div class="sec-title" style="margin-bottom:.38rem">Password</div>
-        <input class="auth-input" id="loginPassword" type="password" placeholder="••••••••">
-      </div>
-      <button class="auth-btn" onclick="handleSignIn()">Sign In →</button>
-      <div class="auth-link" onclick="alert('Password reset link sent!')">Forgot password? <em>Reset it →</em></div>
+      <button class="auth-btn" onclick="handleSignIn()">Continue →</button>
+      <div style="font-size:.72rem;color:var(--ink-muted);text-align:center;line-height:1.5">Your data is stored securely on this device.<br>No password needed — just your email to identify your profile.</div>
     </div>
 
     <!-- ③ Onboard screen (3 steps) -->
@@ -1930,7 +1926,10 @@ function onboardNext() {
 function handleSignIn() {
   const email = document.getElementById('loginEmail').value.trim();
   if (!email) { alert('Please enter your email address.'); return; }
-  launchApp('Customer', '');
+  const name = obData.name && obData.name !== 'Customer'
+    ? obData.name
+    : (email.split('@')[0].replace(/[._-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) || 'Customer');
+  launchApp(name, obData.dueDate || '');
 }
 
 function finishOnboard() {
@@ -2099,6 +2098,7 @@ function refreshDashboard() {
 function launchApp(name, dueDate) {
   obData.name    = name    || obData.name;
   obData.dueDate = dueDate || obData.dueDate;
+  saveState();
   // Show app view
   document.getElementById('loginView').hidden = true;
   document.getElementById('appView').hidden   = false;
@@ -2131,6 +2131,7 @@ function profileSave() {
   obData.dueDate  = document.getElementById('pf-due').value;
   profileCancel();
   refreshDashboard();
+  saveState();
 }
 
 /* ── Diet & Goals edit ──────────────────────────── */
@@ -2160,6 +2161,7 @@ function dgCancel() {
 function dgSave() {
   dgCancel();
   refreshDashboard();
+  saveState();
 }
 
 /* ── Goals ─────────────────────────────────────── */
@@ -2286,6 +2288,7 @@ function bodySave() {
   obData.bloodType    = document.getElementById('bf-blood').value;
   bodyCancel();
   refreshDashboard();
+  saveState();
 }
 
 function jumpMe(section, pillEl) {
@@ -2434,9 +2437,10 @@ function setStore(btn, store) {
 }
 
 function handleOrder() {
-  const btn = document.getElementById('orderBtn');
-  btn.textContent = '✓  Added to cart!';
-  setTimeout(()=>{ btn.textContent = activeStore==='instacart'?'Order via Instacart':'Order via Walmart Grocery'; },2200);
+  const url = activeStore === 'instacart'
+    ? 'https://www.instacart.com'
+    : 'https://www.walmart.com/grocery';
+  window.open(url, '_blank');
 }
 
 /* ── Symptoms ──────────────────────────────────── */
@@ -2710,11 +2714,13 @@ function addDocQ() {
   if (!val) return;
   docQs.push(val); inp.value=''; renderDocQs();
   document.getElementById('docSummary').style.display='none';
+  saveState();
 }
 
 function delDocQ(i) {
   docQs.splice(i,1); renderDocQs();
   document.getElementById('docSummary').style.display='none';
+  saveState();
 }
 
 const suggestedQs = [
@@ -2792,9 +2798,10 @@ function addAppt() {
   appts.push({ name:n.value.trim(), date:d.value, dr:'Dr. Rivera' });
   appts.sort((a,b)=>new Date(a.date)-new Date(b.date));
   n.value=''; d.value=''; renderAppts();
+  saveState();
 }
 
-function delAppt(i) { appts.splice(i,1); renderAppts(); }
+function delAppt(i) { appts.splice(i,1); renderAppts(); saveState(); }
 
 function apptPrepQs(i) {
   const a = appts[i];
@@ -2985,7 +2992,9 @@ async function doSend() {
   const context = searchKb(msg);
 
   try {
-    const res = await fetch('/api/chat', {
+    const apiBase = (window.Capacitor?.isNativePlatform?.() || location.protocol === 'file:')
+      ? 'https://bloomai-sandy.vercel.app' : '';
+    const res = await fetch(apiBase + '/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: msg, context, history: chatHistory })
@@ -3008,5 +3017,36 @@ async function doSend() {
     thinking.remove();
     addBubble('bot', 'Network error. Please check your connection and try again.');
   }
+}
+
+/* ── Persistence ─────────────────────────────────── */
+function saveState() {
+  try {
+    localStorage.setItem('bloom_ob',       JSON.stringify(obData));
+    localStorage.setItem('bloom_docqs',    JSON.stringify(docQs));
+    localStorage.setItem('bloom_appts',    JSON.stringify(appts));
+    localStorage.setItem('bloom_launched', '1');
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const ob = localStorage.getItem('bloom_ob');
+    if (ob) Object.assign(obData, JSON.parse(ob));
+    const dq = localStorage.getItem('bloom_docqs');
+    if (dq) docQs = JSON.parse(dq);
+    const ap = localStorage.getItem('bloom_appts');
+    if (ap) appts = JSON.parse(ap);
+  } catch(e) {}
+}
+
+// Restore state and auto-launch returning users
+loadState();
+if (localStorage.getItem('bloom_launched') && obData.name) {
+  launchApp(obData.name, obData.dueDate);
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
 </script>
