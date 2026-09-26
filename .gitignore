@@ -4,6 +4,7 @@ www/
 # iOS
 ios/App/Pods/
 ios/.DS_Store
+# ios/App/App/public/ — intentionally tracked (native web assets)
 
 # Android
 android/.gradle/

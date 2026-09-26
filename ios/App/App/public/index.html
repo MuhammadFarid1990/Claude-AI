@@ -1,0 +1,3157 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#8C1A52">
+<title>Bloom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+
+:root {
+  --rose:      #E0377A;
+  --rose-dark: #AF1F59;
+  --rose-pale: #FFD0E8;
+  --rose-bg:   #FFF5FB;
+  --lime:      #AADF2F;
+  --lime-dark: #78A400;
+  --lime-bg:   #EEF9C8;
+  --coral:     #FF6B4A;
+  --surface:   #FFFFFF;
+  --surface-2: #FFF8FC;
+  --ink:       #1A0814;
+  --ink-2:     #4A1C38;
+  --ink-muted: #9A6080;
+  --rule:      #F0D0E4;
+  --green:     #22C55E;
+  --amber:     #F59E0B;
+  --red:       #EF4444;
+  --purple:    #8B5CF6;
+  --teal:      #14B8A6;
+  --f-d: 'Bricolage Grotesque','Arial Black',sans-serif;
+  --f-b: 'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 8%,   rgba(255,180,210,0.38) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 55% at 88% 18%,  rgba(210,90,150,0.28)  0%, transparent 55%),
+    radial-gradient(ellipse 70% 55% at 50% 100%, rgba(120,10,65,0.72)   0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 8%  88%,  rgba(95,5,55,0.55)     0%, transparent 55%),
+    linear-gradient(160deg, #2E0035 0%, #580040 30%, #8C1A52 58%, #C03A6A 82%, #D95A80 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem 1rem;
+  font-family: var(--f-b);
+  position: relative; overflow: hidden;
+}
+/* Soft static light pools */
+.orb { position:fixed; border-radius:50%; pointer-events:none; z-index:0; }
+.orb-1 { width:520px;height:520px;top:-160px;left:-160px;
+  background:radial-gradient(circle at 38% 38%, rgba(255,160,210,0.45), rgba(210,70,140,0.22) 50%, transparent 72%);
+  filter:blur(55px); }
+.orb-2 { width:380px;height:380px;top:10%;right:-120px;
+  background:radial-gradient(circle at 42% 42%, rgba(245,100,165,0.38), rgba(170,20,100,0.18) 52%, transparent 75%);
+  filter:blur(60px); }
+.orb-3 { width:460px;height:460px;bottom:-130px;left:5%;
+  background:radial-gradient(circle at 45% 45%, rgba(155,10,80,0.48), rgba(90,0,45,0.22) 52%, transparent 72%);
+  filter:blur(50px); }
+.orb-4 { width:300px;height:300px;top:calc(50% - 150px);left:calc(50% - 150px);
+  background:radial-gradient(circle at 42% 32%, rgba(255,190,225,0.15), transparent 65%);
+  filter:blur(35px); }
+/* Film grain overlay for physical texture */
+body::after {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  opacity:.035; mix-blend-mode:overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+/* Scene vignette — darkens edges for photographic depth */
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background: radial-gradient(ellipse 80% 80% at 50% 48%, transparent 40%, rgba(0,0,0,0.55) 100%);
+}
+/* Top-left light ray across the scene */
+.light-ray {
+  position:fixed; top:-10%; left:-5%; width:70vw; height:70vh;
+  background: linear-gradient(130deg, rgba(255,210,230,0.07) 0%, transparent 55%);
+  pointer-events:none; z-index:0;
+  transform-origin: top left;
+}
+
+/* ── Phone ────────────────────────────────────── */
+.phone-wrap {
+  position:relative; z-index:1;
+  /* No transform/filter here — they break inner scroll */
+}
+/* Floor reflection */
+.phone-wrap::after {
+  content:''; position:absolute; bottom:-50px; left:8%; right:8%; height:50px;
+  background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(180,30,80,0.32), transparent 80%);
+  filter: blur(16px); pointer-events:none;
+}
+.phone {
+  width:390px; height:min(820px,calc(100vh - 3rem));
+  background: linear-gradient(170deg, #fff8fc 0%, #fff3f8 100%);
+  border-radius:52px;
+  box-shadow:
+    /* contact shadow */
+    0 2px 4px rgba(0,0,0,0.6),
+    /* mid depth */
+    0 16px 40px rgba(0,0,0,0.45),
+    /* ambient bloom */
+    0 60px 140px rgba(100,0,50,0.55),
+    /* far floor shadow */
+    0 100px 220px rgba(0,0,0,0.65),
+    /* bezel ring */
+    0 0 0 1px rgba(255,255,255,0.28),
+    0 0 0 3px rgba(0,0,0,0.44),
+    0 0 0 5px rgba(255,255,255,0.07),
+    inset 0 1px 0 rgba(255,255,255,0.85),
+    inset 0 -1px 0 rgba(0,0,0,0.08);
+  overflow:hidden; display:flex; flex-direction:column;
+  position:relative;
+}
+/* Screen sheen — top-left specular highlight */
+.phone::before {
+  content:''; position:absolute;inset:0;z-index:999;pointer-events:none;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 20%, transparent 38%),
+    linear-gradient(to bottom, rgba(255,255,255,0.04) 0%, transparent 28%);
+  border-radius:inherit;
+}
+.status-bar {
+  background:linear-gradient(90deg,#8A0040 0%,#B01858 50%,#8A0040 100%);
+  color:white;
+  display:flex; justify-content:space-between; align-items:center;
+  padding:.4rem 1.5rem; font-size:.68rem; font-weight:700;
+  flex-shrink:0; letter-spacing:.01em;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.1),0 2px 8px rgba(0,0,0,0.2);
+}
+.app-header {
+  background:linear-gradient(135deg,#E8407E 0%,#CC2060 40%,#A01048 80%,#8A0040 100%);
+  color:white;
+  padding:.85rem 1.25rem .95rem;
+  flex-shrink:0; display:flex; align-items:center; gap:.75rem;
+  box-shadow:0 4px 20px rgba(100,0,50,0.35),0 1px 0 rgba(255,255,255,0.12) inset;
+}
+.header-logo { font-family:var(--f-d);font-size:1.35rem;font-weight:800;letter-spacing:-.03em;line-height:1; }
+.header-badge {
+  background:rgba(255,255,255,.2); border-radius:20px;
+  padding:.22rem .6rem; font-size:.65rem; font-weight:700;
+  backdrop-filter:blur(4px); letter-spacing:.02em;
+}
+.header-avatar {
+  margin-left:auto; width:32px;height:32px;
+  background:rgba(255,255,255,.25); border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem; flex-shrink:0; cursor:pointer;
+}
+
+/* ── Screens ──────────────────────────────────── */
+.screen {
+  flex:1; overflow-y:scroll; overflow-x:hidden;
+  padding:1.1rem 1.2rem 1.8rem; display:none; flex-direction:column;
+  gap:1rem; min-height:0;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scroll-behavior: smooth;
+}
+.screen.active { display:flex; }
+/* Visible scrollbar */
+.screen::-webkit-scrollbar { width:5px; }
+.screen::-webkit-scrollbar-track { background:rgba(240,210,228,0.3); border-radius:4px; }
+.screen::-webkit-scrollbar-thumb { background:var(--rose); border-radius:4px; opacity:.7; }
+/* Fade + scroll hint at bottom of phone */
+.scroll-hint {
+  position:absolute; bottom:56px; left:0; right:0; height:48px; pointer-events:none; z-index:10;
+  background: linear-gradient(to bottom, transparent, rgba(255,248,252,0.92));
+  display:flex; align-items:flex-end; justify-content:center; padding-bottom:6px;
+}
+.scroll-hint::after {
+  content:'⌄'; font-size:1.1rem; color:var(--rose); font-weight:900;
+  opacity:.7; animation: bounceDown 1.4s ease-in-out infinite;
+}
+@keyframes bounceDown {
+  0%,100%{transform:translateY(0);opacity:.5}
+  50%{transform:translateY(4px);opacity:1}
+}
+
+/* ── SVG icon system ──────────────────────────── */
+.ti-svg { width:24px;height:24px;display:block;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s; }
+.tab.active .ti-svg { stroke:var(--rose); }
+.tab:not(.active) .ti-svg { stroke:var(--ink-muted); }
+.qb-svg { width:26px;height:26px;display:block;stroke:var(--rose);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
+.item-svg { width:18px;height:18px;display:block;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
+
+/* ── Tab bar (5 tabs) ─────────────────────────── */
+.tab-bar {
+  display:flex;
+  background:rgba(255,248,252,0.88);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border-top:1px solid rgba(255,210,230,0.6);
+  padding:.5rem 0 .7rem; flex-shrink:0;
+  box-shadow:0 -4px 20px rgba(180,0,80,0.07),0 -1px 0 rgba(255,255,255,0.8) inset;
+}
+.tab {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; gap:.22rem; padding:.2rem;
+  border:none; background:transparent; cursor:pointer;
+  color:var(--ink-muted); font-family:var(--f-b);
+  transition:color .15s;
+}
+.tab.active { color:var(--rose); }
+.tab .ti { font-size:1.15rem; line-height:1; }
+.tab .tl { font-size:.68rem; font-weight:700; letter-spacing:.02em; }
+.tab.active::after {
+  content:''; display:block; width:20px; height:3px; background:var(--rose);
+  border-radius:2px; position:absolute; bottom:.1rem; left:50%; transform:translateX(-50%);
+}
+.tab { position:relative; }
+
+/* ── Cards ────────────────────────────────────── */
+.card {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-radius:22px;
+  padding:1.15rem 1.2rem;
+  box-shadow:
+    0 8px 32px rgba(180,0,80,0.09),
+    0 2px 8px rgba(0,0,0,0.05),
+    0 0 0 1px rgba(255,255,255,0.8),
+    inset 0 1px 0 rgba(255,255,255,0.95);
+  flex-shrink:0;
+  border:1px solid rgba(240,210,228,0.6);
+}
+.card.rose {
+  background:linear-gradient(145deg,#FF5595 0%,#D92065 35%,#A01050 65%,#7A0038 100%);
+  color:white;
+  border:none;
+  box-shadow:
+    0 16px 48px rgba(170,0,70,0.5),
+    0 6px 20px rgba(0,0,0,0.2),
+    0 0 0 1px rgba(255,255,255,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    inset 0 -2px 0 rgba(0,0,0,0.15);
+}
+.card.lime {
+  background:linear-gradient(145deg,#D4F55A 0%,#AADF2F 45%,#88C010 100%);
+  color:var(--ink);
+  border:none;
+  box-shadow:
+    0 12px 36px rgba(100,160,0,0.35),
+    0 4px 12px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.5),
+    inset 0 -2px 0 rgba(0,0,0,0.08);
+}
+.card.soft { background:rgba(255,208,232,0.6);backdrop-filter:blur(16px);border:1px solid rgba(255,180,210,0.5); }
+.card.teal-soft { background:rgba(224,250,247,0.85);backdrop-filter:blur(16px); }
+.card.purple-soft { background:rgba(237,233,255,0.85);backdrop-filter:blur(16px); }
+
+/* ── Common components ────────────────────────── */
+.sec-title {
+  font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--ink-muted); margin-bottom:.55rem;
+  display:flex; align-items:center; gap:.42rem;
+}
+.sec-title::before {
+  content:''; display:inline-block; width:3px; height:13px;
+  background:var(--rose); border-radius:2px; flex-shrink:0;
+}
+.fw-800 { font-weight:800;font-family:var(--f-d);letter-spacing:-.02em; }
+.fs-xs { font-size:.75rem;color:var(--ink-muted);line-height:1.55; }
+.row { display:flex;align-items:center; }
+.ml-auto { margin-left:auto; }
+.divider { height:1px;background:var(--rule);margin:.55rem 0; }
+
+.item-row { display:flex;align-items:center;gap:.75rem;padding:.82rem 0;border-bottom:1px solid var(--rule); }
+.item-row:last-child { border-bottom:none; }
+.item-icon { width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0; }
+.ir  { background:var(--rose-pale); }
+.ig  { background:var(--lime-bg); }
+.ico { background:#FFE8E2; }
+.ipu { background:#EDE9FF; }
+.ite { background:#E0FAF7; }
+.it  { font-size:.9rem;font-weight:700;color:var(--ink);line-height:1.3; }
+.is  { font-size:.75rem;color:var(--ink-muted);margin-top:.1rem;line-height:1.4; }
+.ia  { margin-left:auto;font-size:.8rem;color:var(--ink-muted); }
+
+/* ── TODAY ────────────────────────────────────── */
+.greeting { font-family:var(--f-d);font-size:1.55rem;font-weight:800;color:var(--ink);letter-spacing:-.03em;line-height:1.15; }
+.greeting em { color:var(--rose);font-style:normal; }
+.week-chip { display:inline-flex;align-items:center;gap:.3rem;background:var(--lime-bg);color:var(--lime-dark);font-size:.7rem;font-weight:800;padding:.3rem .75rem;border-radius:20px;margin-top:.3rem;letter-spacing:.01em; }
+
+.baby-title { font-family:var(--f-d);font-size:1.1rem;font-weight:800;margin-bottom:.28rem;letter-spacing:-.025em; }
+.baby-size  { font-size:.8rem;opacity:.9;margin-bottom:.9rem;line-height:1.55; }
+.baby-stats { display:flex;gap:.5rem; }
+.b-stat { flex:1;background:rgba(255,255,255,.18);border-radius:13px;padding:.55rem .5rem;text-align:center;border:1px solid rgba(255,255,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 8px rgba(0,0,0,.12); }
+.b-stat .bv { font-family:var(--f-d);font-size:1.15rem;font-weight:800;display:block;line-height:1; }
+.b-stat .bl { font-size:.65rem;opacity:.8;display:block;margin-top:.15rem;font-weight:600; }
+
+.prog-wrap { margin:.15rem 0; }
+.prog-label { display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink-muted);margin-bottom:.38rem;font-weight:700; }
+.prog-track { height:10px;background:rgba(224,55,122,0.12);border-radius:10px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,0.08); }
+.prog-fill  { height:100%;background:linear-gradient(90deg,#FFAAD4,#E0377A,#A01050);border-radius:10px;width:45%;box-shadow:0 2px 6px rgba(200,0,80,0.4),inset 0 1px 0 rgba(255,255,255,0.3);transition:width .6s cubic-bezier(.4,0,.2,1); }
+
+.quick-grid { display:grid;grid-template-columns:1fr 1fr;gap:.6rem; }
+.quick-btn {
+  background:rgba(255,255,255,0.92);
+  backdrop-filter:blur(16px);
+  border:none;
+  border-radius:18px;
+  padding:1rem .85rem; display:flex;flex-direction:column;
+  align-items:flex-start;gap:.28rem;cursor:pointer;
+  box-shadow:
+    0 8px 28px rgba(180,0,80,0.1),
+    0 2px 6px rgba(0,0,0,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.95);
+  font-family:var(--f-b); text-align:left;
+  transition:transform .14s,box-shadow .14s;
+  position:relative; overflow:hidden;
+}
+.quick-btn::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg,var(--rose),var(--rose-dark));
+  border-radius:18px 18px 0 0;
+}
+.quick-btn:active { transform:scale(.96) translateY(1px);box-shadow:0 4px 12px rgba(180,0,80,0.08); }
+.quick-btn .qb-icon { font-size:1.3rem;line-height:1;margin-top:.1rem; }
+.quick-btn .qb-label { font-size:.84rem;font-weight:800;color:var(--ink);font-family:var(--f-d);letter-spacing:-.01em; }
+.quick-btn .qb-sub   { font-size:.7rem;color:var(--ink-muted);line-height:1.4; }
+
+.appt { display:flex;align-items:center;gap:.65rem; }
+.appt-icon { font-size:1.4rem; }
+.appt-t { font-size:.85rem;font-weight:700;color:var(--ink); }
+.appt-s { font-size:.7rem;color:#5A7A00;margin-top:.05rem; }
+.appt-btn {
+  margin-left:auto;background:var(--lime);color:var(--ink);border:none;
+  border-radius:20px;padding:.28rem .65rem;font-size:.62rem;font-weight:800;
+  cursor:pointer;font-family:var(--f-b);white-space:nowrap;flex-shrink:0;
+}
+
+/* ── MEALS ────────────────────────────────────── */
+.day-strip { display:flex;gap:.38rem;overflow-x:auto;scrollbar-width:none;padding-bottom:2px; }
+.day-strip::-webkit-scrollbar { display:none; }
+.day-chip {
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;
+  gap:.08rem;padding:.45rem .45rem;border-radius:13px;
+  border:2px solid transparent;background:var(--surface);
+  cursor:pointer;transition:all .15s;min-width:44px;
+  box-shadow:0 1px 6px rgba(180,0,80,.07);
+}
+.day-chip.active { background:var(--rose);color:white;border-color:var(--rose); }
+.day-chip .dn { font-size:.62rem;font-weight:700;text-transform:uppercase;color:inherit;opacity:.7; }
+.day-chip .dd { font-size:1.05rem;font-weight:800;font-family:var(--f-d);color:inherit;line-height:1.1; }
+.day-chip:not(.active) .dn { color:var(--ink-muted); }
+.day-chip:not(.active) .dd { color:var(--ink); }
+
+.meal-block { margin-bottom:.65rem; }
+.meal-block:last-child { margin-bottom:0; }
+.meal-type { font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--rose);margin-bottom:.22rem; }
+.meal-name { font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:.12rem;line-height:1.35; }
+.meal-macros { font-size:.72rem;color:var(--ink-muted);line-height:1.4; }
+
+.macro-row { display:flex;gap:.45rem;margin-top:.25rem; }
+.macro-pill { flex:1;background:var(--rose-bg);border-radius:9px;padding:.45rem .35rem;text-align:center; }
+.mp-val { font-family:var(--f-d);font-size:1rem;font-weight:800;color:var(--rose);display:block; }
+.mp-lbl { font-size:.65rem;color:var(--ink-muted);font-weight:700;display:block;margin-top:.12rem; }
+
+.store-toggle { display:flex;background:var(--rose-bg);border-radius:12px;padding:.25rem;gap:.25rem;margin-bottom:.25rem; }
+.store-btn {
+  flex:1;border:none;border-radius:9px;padding:.35rem .4rem;
+  font-size:.68rem;font-weight:700;cursor:pointer;
+  font-family:var(--f-b);color:var(--ink-muted);background:transparent;
+  transition:all .15s;text-align:center;
+}
+.store-btn.active { background:var(--rose);color:white; }
+
+.order-btn {
+  background:linear-gradient(135deg,var(--lime) 0%,#8CC41A 100%);
+  color:var(--ink);border:none;border-radius:16px;padding:.8rem 1rem;
+  font-family:var(--f-d);font-size:.9rem;font-weight:800;
+  cursor:pointer;width:100%;letter-spacing:-.01em;
+  display:flex;align-items:center;justify-content:center;gap:.45rem;
+  box-shadow:0 4px 14px rgba(100,170,0,.28);
+  transition:transform .1s;
+}
+.order-btn:active { transform:scale(.98); }
+
+/* ── HEALTH ───────────────────────────────────── */
+.sub-nav { display:flex;background:var(--surface);border-radius:14px;padding:.25rem;gap:.18rem;box-shadow:0 1px 8px rgba(180,0,80,.07); }
+.sub-nav-btn {
+  flex:1;border:none;border-radius:10px;padding:.45rem .2rem;
+  font-size:.68rem;font-weight:700;cursor:pointer;
+  font-family:var(--f-b);color:var(--ink-muted);background:transparent;
+  transition:all .15s;text-align:center;white-space:nowrap;
+}
+.sub-nav-btn.active { background:var(--rose);color:white; }
+
+.health-panel { display:none;flex-direction:column;gap:.75rem; }
+.health-panel.active { display:flex; }
+
+/* Symptoms */
+.q-text { font-family:var(--f-d);font-size:1.05rem;font-weight:800;color:var(--ink);letter-spacing:-.025em;line-height:1.25; }
+.sym-grid { display:grid;grid-template-columns:1fr 1fr;gap:.4rem; }
+.sym-chip {
+  background:var(--surface);border:2px solid var(--rule);border-radius:11px;
+  padding:.5rem .6rem;font-size:.72rem;font-weight:600;color:var(--ink-2);
+  cursor:pointer;transition:all .15s;font-family:var(--f-b);
+  text-align:left;display:flex;align-items:center;gap:.38rem;line-height:1.25;
+}
+.sym-chip .se { font-size:.9rem;flex-shrink:0; }
+.sym-chip.ok     { background:#DCFCE7;border-color:#22C55E;color:#166534; }
+.sym-chip.warn   { background:#FEF9C3;border-color:#EAB308;color:#713F12; }
+.sym-chip.urgent { background:#FEE2E2;border-color:#EF4444;color:#991B1B; }
+
+.check-btn {
+  background:var(--rose);color:white;border:none;border-radius:16px;
+  padding:.8rem;font-family:var(--f-d);font-size:.9rem;font-weight:800;
+  cursor:pointer;width:100%;letter-spacing:-.01em;
+  box-shadow:0 4px 14px rgba(200,0,80,.28);
+  transition:opacity .15s,transform .1s;
+}
+.check-btn:disabled { opacity:.35;cursor:default;box-shadow:none; }
+.check-btn:not(:disabled):active { transform:scale(.98); }
+
+.result-card { border-radius:16px;padding:1rem;display:none; }
+.result-card.visible { display:block; }
+.result-card.ok     { background:#DCFCE7;border:2px solid #22C55E; }
+.result-card.warn   { background:#FEF9C3;border:2px solid #EAB308; }
+.result-card.urgent { background:#FEE2E2;border:2px solid #EF4444; }
+.result-head { display:flex;align-items:center;gap:.55rem;margin-bottom:.45rem; }
+.result-dot  { width:11px;height:11px;border-radius:50%;flex-shrink:0; }
+.ok .result-dot { background:#22C55E; } .warn .result-dot { background:#EAB308; } .urgent .result-dot { background:#EF4444; }
+.result-title { font-family:var(--f-d);font-size:.95rem;font-weight:800;letter-spacing:-.02em; }
+.ok .result-title { color:#166534; } .warn .result-title { color:#713F12; } .urgent .result-title { color:#991B1B; }
+.result-body { font-size:.8rem;line-height:1.55; }
+.ok .result-body { color:#166534; } .warn .result-body { color:#713F12; } .urgent .result-body { color:#991B1B; }
+.result-action {
+  margin-top:.7rem;padding:.55rem;border-radius:11px;
+  font-size:.72rem;font-weight:700;border:none;cursor:pointer;
+  font-family:var(--f-b);width:100%;
+}
+.ok .result-action { background:#22C55E;color:white; }
+.warn .result-action { background:#EAB308;color:white; }
+.urgent .result-action { background:#EF4444;color:white; }
+.reset-link { font-size:.7rem;color:var(--ink-muted);text-align:center;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:var(--f-b);width:100%;display:none; }
+
+/* Kick counter */
+.kick-display {
+  text-align:center;padding:1.5rem 1rem 1rem;
+}
+.kick-num {
+  font-family:var(--f-d);font-size:5rem;font-weight:800;
+  color:var(--rose);line-height:1;letter-spacing:-.04em;
+}
+.kick-target { font-size:.75rem;color:var(--ink-muted);margin-top:.3rem;font-weight:600; }
+.kick-timer  { font-family:var(--f-d);font-size:1.4rem;font-weight:700;color:var(--ink);margin:.5rem 0 0; }
+.kick-tap-btn {
+  width:130px;height:130px;border-radius:50%;
+  background:linear-gradient(145deg,var(--rose) 0%,#B82060 100%);
+  color:white;border:none;cursor:pointer;
+  font-family:var(--f-d);font-size:1rem;font-weight:800;
+  letter-spacing:-.01em;margin:0 auto;display:block;
+  box-shadow:0 8px 24px rgba(200,0,80,.35);
+  transition:transform .1s,box-shadow .1s;
+  line-height:1.2;
+}
+.kick-tap-btn:active { transform:scale(.93);box-shadow:0 4px 12px rgba(200,0,80,.25); }
+.kick-tap-btn:disabled { opacity:.35;cursor:default; }
+.kick-controls { display:flex;gap:.5rem; }
+.kick-ctrl-btn {
+  flex:1;padding:.65rem;border:2px solid var(--rule);border-radius:12px;
+  background:var(--surface);color:var(--ink);font-size:.75rem;font-weight:700;
+  cursor:pointer;font-family:var(--f-b);transition:all .15s;
+}
+.kick-ctrl-btn:hover { border-color:var(--rose);color:var(--rose); }
+.kick-success {
+  text-align:center;background:var(--lime-bg);border-radius:16px;
+  padding:1.1rem;display:none;
+}
+.kick-success.visible { display:block; }
+.kick-success-icon { font-size:2rem; }
+.kick-success-title { font-family:var(--f-d);font-size:1.05rem;font-weight:800;color:var(--lime-dark);margin:.3rem 0 .2rem; }
+.kick-success-sub   { font-size:.75rem;color:#5A7A00;line-height:1.4; }
+
+/* Mood check */
+.mood-q { margin-bottom:.75rem; }
+.mood-q-text { font-size:.82rem;font-weight:700;color:var(--ink);margin-bottom:.4rem;line-height:1.3; }
+.mood-opts { display:flex;gap:.35rem; }
+.mood-opt {
+  flex:1;padding:.45rem .3rem;border:2px solid var(--rule);border-radius:10px;
+  font-size:.68rem;font-weight:700;cursor:pointer;text-align:center;
+  font-family:var(--f-b);color:var(--ink-muted);background:var(--surface);
+  transition:all .15s;line-height:1.3;
+}
+.mood-opt.selected { background:var(--rose);border-color:var(--rose);color:white; }
+
+.mood-submit {
+  background:var(--purple);color:white;border:none;border-radius:16px;
+  padding:.8rem;font-family:var(--f-d);font-size:.9rem;font-weight:800;
+  cursor:pointer;width:100%;letter-spacing:-.01em;
+  box-shadow:0 4px 14px rgba(139,92,246,.3);
+  transition:opacity .15s; opacity:.4;
+}
+.mood-submit.ready { opacity:1; }
+
+.ppd-result { border-radius:16px;padding:1rem;display:none;flex-direction:column;gap:.5rem; }
+.ppd-result.visible { display:flex; }
+.ppd-result.good    { background:#DCFCE7;border:2px solid #22C55E; }
+.ppd-result.check   { background:#FEF9C3;border:2px solid #EAB308; }
+.ppd-result.concern { background:#EDE9FF;border:2px solid #8B5CF6; }
+.ppd-title { font-family:var(--f-d);font-size:.95rem;font-weight:800;letter-spacing:-.02em; }
+.good .ppd-title    { color:#166534; }
+.check .ppd-title   { color:#713F12; }
+.concern .ppd-title { color:#4C1D95; }
+.ppd-body  { font-size:.8rem;line-height:1.55; }
+.good .ppd-body    { color:#166534; }
+.check .ppd-body   { color:#713F12; }
+.concern .ppd-body { color:#4C1D95; }
+.ppd-action { padding:.55rem;border-radius:11px;font-size:.72rem;font-weight:700;border:none;cursor:pointer;font-family:var(--f-b); }
+.good .ppd-action    { background:#22C55E;color:white; }
+.check .ppd-action   { background:#EAB308;color:white; }
+.concern .ppd-action { background:#8B5CF6;color:white; }
+
+/* ── SCHEDULE ─────────────────────────────────── */
+.stage-bar { display:flex;background:var(--surface);border-radius:13px;padding:.25rem;gap:.15rem;box-shadow:0 1px 8px rgba(180,0,80,.07); }
+.stage-btn { flex:1;border:none;border-radius:9px;padding:.35rem .2rem;font-size:.58rem;font-weight:700;cursor:pointer;font-family:var(--f-b);color:var(--ink-muted);background:transparent;transition:all .15s;text-align:center;white-space:nowrap; }
+.stage-btn.active { background:var(--rose);color:white; }
+.timeline-wrap { display:flex;flex-direction:column; }
+.tl-row { display:flex;gap:.55rem;align-items:flex-start;padding:.5rem 0;position:relative; }
+.tl-row + .tl-row::before { content:'';position:absolute;left:calc(40px + .55rem + 4px);top:0;bottom:50%;width:2px;background:var(--rose-pale);z-index:0; }
+.tl-row::after { content:'';position:absolute;left:calc(40px + .55rem + 4px);top:50%;bottom:0;width:2px;background:var(--rose-pale);z-index:0; }
+.tl-row:first-child::after,.tl-row:last-child::before { display:none; }
+.tl-time { font-size:.62rem;font-weight:700;color:var(--ink-muted);width:40px;flex-shrink:0;text-align:right;padding-top:.15rem; }
+.tl-dot { width:10px;height:10px;border-radius:50%;background:var(--surface);border:2.5px solid var(--rose-pale);flex-shrink:0;margin-top:.2rem;z-index:1; }
+.tl-dot.on  { border-color:var(--rose);background:var(--rose); }
+.tl-dot.now { border-color:var(--rose);background:var(--rose-pale);box-shadow:0 0 0 3px rgba(224,55,122,.2); }
+.tl-body { flex:1; }
+.tl-title { font-size:.83rem;font-weight:700;color:var(--ink); }
+.tl-sub   { font-size:.7rem;color:var(--ink-muted);margin-top:.06rem;line-height:1.4; }
+.tl-dur   { margin-left:auto;background:var(--surface);border:1px solid var(--rule);border-radius:7px;padding:.16rem .42rem;font-size:.6rem;font-weight:700;color:var(--rose);flex-shrink:0; }
+
+/* ── ME ───────────────────────────────────────── */
+.profile-card { display:flex;align-items:center;gap:.85rem; }
+.body-stat-tile {
+  background:var(--rose-bg);border-radius:13px;padding:.6rem .75rem;
+  border:1.5px solid rgba(224,55,122,0.1);
+  box-shadow:0 2px 8px rgba(224,55,122,0.06),inset 0 1px 0 rgba(255,255,255,0.85);
+}
+.bst-label { font-size:.68rem;color:var(--ink-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em; }
+.bst-val { font-size:1.05rem;font-weight:800;color:var(--ink);font-family:var(--f-d);margin-top:.12rem; }
+.profile-avatar {
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,#FF5595 0%,#B82060 50%,#8A0040 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;font-weight:800;color:white;font-family:var(--f-d);
+  flex-shrink:0;letter-spacing:-.01em;
+  box-shadow:0 4px 14px rgba(184,32,96,.38),0 0 0 3px rgba(255,85,149,.22);
+}
+.profile-name { font-family:var(--f-d);font-size:1.1rem;font-weight:800;color:var(--ink);letter-spacing:-.02em; }
+.profile-sub  { font-size:.74rem;color:var(--ink-muted);margin-top:.1rem;line-height:1.4; }
+.sub-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--rose);color:white;font-size:.6rem;font-weight:800;padding:.22rem .6rem;border-radius:20px;margin-top:.4rem;letter-spacing:.02em; }
+
+.doc-list { display:flex;flex-direction:column;gap:.45rem; }
+.doc-q-item { display:flex;align-items:flex-start;gap:.55rem;padding:.55rem .6rem;background:var(--rose-bg);border-radius:11px; }
+.doc-q-num { width:20px;height:20px;border-radius:50%;background:var(--rose);color:white;font-size:.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.05rem; }
+.doc-q-text { font-size:.83rem;color:var(--ink);line-height:1.5;flex:1; }
+.doc-q-del { font-size:.75rem;color:var(--ink-muted);cursor:pointer;padding:.1rem;flex-shrink:0; }
+
+.add-q-row { display:flex;gap:.45rem; }
+.add-q-input {
+  flex:1;border:2px solid var(--rule);border-radius:11px;
+  padding:.55rem .7rem;font-size:.75rem;font-family:var(--f-b);
+  color:var(--ink);background:var(--surface);outline:none;
+}
+.add-q-input:focus { border-color:var(--rose); }
+.add-q-btn {
+  background:var(--rose);color:white;border:none;border-radius:11px;
+  padding:.55rem .75rem;font-size:.75rem;font-weight:700;
+  cursor:pointer;font-family:var(--f-b);white-space:nowrap;
+  transition:opacity .15s;
+}
+
+.share-q-btn {
+  background:var(--lime-bg);color:var(--lime-dark);border:2px solid var(--lime);
+  border-radius:12px;padding:.55rem;font-size:.75rem;font-weight:700;
+  cursor:pointer;font-family:var(--f-b);width:100%;
+  display:flex;align-items:center;justify-content:center;gap:.4rem;
+}
+
+.vacc-card {
+  display:flex;align-items:flex-start;gap:.65rem;
+  padding:.65rem .7rem;border-radius:12px;background:var(--surface);
+  border-left:3px solid var(--green);
+  box-shadow:0 1px 6px rgba(180,0,80,.05);
+}
+.vacc-card.upcoming { border-color:var(--amber); }
+.vacc-card.future   { border-color:var(--rule); }
+.vacc-icon { font-size:1.05rem;flex-shrink:0;margin-top:.05rem; }
+.vacc-name { font-size:.83rem;font-weight:700;color:var(--ink); }
+.vacc-when { font-size:.7rem;color:var(--ink-muted);margin-top:.05rem;line-height:1.4; }
+.vacc-pill { display:inline-block;font-size:.58rem;font-weight:700;border-radius:20px;padding:.12rem .45rem;margin-top:.25rem; }
+.vacc-card:not(.upcoming):not(.future) .vacc-pill { background:#DCFCE7;color:#166534; }
+.vacc-card.upcoming .vacc-pill { background:#FEF9C3;color:#713F12; }
+.vacc-card.future .vacc-pill   { background:var(--rule);color:var(--ink-muted); }
+
+.delivery-toggle { display:flex;background:var(--surface);border-radius:13px;padding:.25rem;gap:.2rem;box-shadow:0 1px 8px rgba(180,0,80,.07); }
+.delivery-btn { flex:1;border:none;border-radius:9px;padding:.4rem .3rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:var(--f-b);color:var(--ink-muted);background:transparent;transition:all .15s;text-align:center; }
+.delivery-btn.active { background:var(--rose);color:white; }
+
+/* ── New utility components ───────────────────── */
+.goal-list { display:flex;flex-direction:column;gap:.5rem; }
+.goal-item {
+  display:flex;align-items:center;gap:.75rem;cursor:pointer;
+  padding:.7rem .85rem;border-radius:14px;
+  background:var(--rose-bg);border:1.5px solid rgba(224,55,122,0.12);
+  transition:background .15s;
+}
+.goal-item.done { background:rgba(34,197,94,0.08);border-color:rgba(34,197,94,0.2); }
+.goal-check {
+  width:24px;height:24px;border-radius:50%;border:2.5px solid var(--rose);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;background:white;
+}
+.goal-item.done .goal-check { background:var(--green);border-color:var(--green);color:white;font-size:.72rem; }
+.goal-text { font-size:.86rem;font-weight:600;color:var(--ink);flex:1;line-height:1.45; }
+.goal-item.done .goal-text { text-decoration:line-through;color:var(--ink-muted); }
+.goal-badge { font-size:.65rem;background:white;color:var(--rose);border-radius:8px;padding:.18rem .45rem;font-weight:800;white-space:nowrap;box-shadow:0 1px 4px rgba(224,55,122,0.15); }
+
+.tip-strip { display:flex;gap:.55rem;align-items:flex-start; }
+.tip-icon { font-size:1.2rem;flex-shrink:0; }
+.tip-label { font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--lime-dark);margin-bottom:.15rem; }
+.tip-text { font-size:.8rem;color:var(--ink);line-height:1.5; }
+
+.nutrient-strip { display:flex;gap:.35rem;overflow-x:auto;scrollbar-width:none;padding-bottom:2px; }
+.nutrient-strip::-webkit-scrollbar{display:none}
+.nutrient-pill { flex-shrink:0;background:var(--surface);border-radius:11px;padding:.45rem .5rem;min-width:68px;text-align:center;box-shadow:0 1px 6px rgba(180,0,80,.07); }
+.np-icon { font-size:.85rem; }
+.np-name { font-size:.55rem;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em;margin:.08rem 0; }
+.np-bar-track { height:5px;background:var(--rule);border-radius:10px;margin:.12rem 0; }
+.np-bar-fill  { height:100%;border-radius:10px;transition:width .4s; }
+.np-pct { font-size:.62rem;font-weight:800;color:var(--ink); }
+
+.sym-group-label { font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:.25rem .5rem;border-radius:7px;margin-bottom:.3rem;margin-top:.2rem; }
+.sym-group-label.ok-label     { background:#DCFCE7;color:#166534; }
+.sym-group-label.warn-label   { background:#FEF9C3;color:#713F12; }
+.sym-group-label.urgent-label { background:#FEE2E2;color:#991B1B; }
+
+.suggest-q-btn { background:var(--purple);color:white;border:none;border-radius:12px;padding:.55rem;font-size:.73rem;font-weight:700;cursor:pointer;font-family:var(--f-b);width:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;transition:opacity .15s; }
+.suggest-q-btn:active{opacity:.8}
+
+/* ── Auth / Onboard ───────────────────────────── */
+.auth-logo { font-family:var(--f-d);font-size:3.2rem;font-weight:800;color:var(--rose);letter-spacing:-.05em;line-height:1; }
+.auth-tagline { font-size:.78rem;color:var(--ink-muted);margin-top:.3rem;line-height:1.45;font-weight:500; }
+.auth-input {
+  width:100%;border:2px solid var(--rule);border-radius:14px;
+  padding:.75rem .95rem;font-size:.88rem;font-family:var(--f-b);
+  color:var(--ink);background:var(--surface);outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.auth-input:focus { border-color:var(--rose);box-shadow:0 0 0 3px rgba(224,55,122,.12); }
+.auth-input::placeholder { color:var(--ink-muted);opacity:.7; }
+.auth-btn {
+  width:100%;background:var(--rose);color:white;border:none;
+  border-radius:15px;padding:.9rem;font-family:var(--f-d);
+  font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:-.01em;
+  box-shadow:0 6px 20px rgba(200,0,80,.32);transition:opacity .15s,transform .1s;
+}
+.auth-btn:active { transform:scale(.98); }
+.auth-btn:active{opacity:.85}
+.auth-btn.secondary { background:var(--surface);color:var(--ink);border:2px solid var(--rule);box-shadow:none; }
+.auth-btn.lime-btn  { background:var(--lime-bg);color:var(--lime-dark);border:2px solid var(--lime);box-shadow:none; }
+.auth-link { text-align:center;font-size:.75rem;color:var(--ink-muted);cursor:pointer; }
+.auth-link em { color:var(--rose);font-style:normal;font-weight:700; }
+.auth-divider { display:flex;align-items:center;gap:.55rem;margin:.1rem 0; }
+.auth-divider::before,.auth-divider::after { content:'';flex:1;height:1px;background:var(--rule); }
+.auth-divider span { font-size:.65rem;color:var(--ink-muted); }
+.step-dots { display:flex;gap:.38rem;justify-content:center;margin-top:.4rem; }
+.step-dot { width:8px;height:8px;border-radius:50%;background:var(--rule);transition:all .25s; }
+.step-dot.active { background:var(--rose);width:24px;border-radius:4px; }
+.onboard-title { font-family:var(--f-d);font-size:1.45rem;font-weight:800;color:var(--ink);letter-spacing:-.03em;line-height:1.2; }
+.onboard-sub { font-size:.8rem;color:var(--ink-muted);margin-top:.35rem;line-height:1.55; }
+.option-chips { display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.15rem; }
+.option-chip {
+  border:2px solid var(--rule);border-radius:20px;padding:.38rem .75rem;
+  font-size:.72rem;font-weight:700;cursor:pointer;font-family:var(--f-b);
+  color:var(--ink-muted);background:var(--surface);transition:all .15s;
+}
+.option-chip.selected { background:var(--rose);border-color:var(--rose);color:white; }
+
+/* ── Me section nav ──────────────────────────── */
+.me-sec-nav { display:flex;gap:.35rem;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;flex-shrink:0; }
+.me-sec-nav::-webkit-scrollbar{display:none}
+.me-sec-pill {
+  flex-shrink:0;border:2px solid var(--rule);border-radius:20px;
+  padding:.38rem .8rem;font-size:.68rem;font-weight:700;cursor:pointer;
+  font-family:var(--f-b);color:var(--ink-muted);background:var(--surface);
+  transition:all .15s;white-space:nowrap;
+}
+.me-sec-pill.active,.me-sec-pill:active { background:var(--rose);border-color:var(--rose);color:white; }
+
+/* ── Appointments ─────────────────────────────── */
+.appt-row { display:flex;align-items:center;gap:.55rem;padding:.55rem 0;border-bottom:1px solid var(--rule); }
+.appt-row:last-child { border-bottom:none; }
+.appt-date-badge { min-width:38px;text-align:center;background:var(--rose-pale);border-radius:8px;padding:.3rem .25rem;font-size:.58rem;font-weight:800;color:var(--rose);flex-shrink:0;line-height:1.3; }
+.appt-mini-btn { border:none;border-radius:8px;padding:.28rem .55rem;font-size:.62rem;font-weight:700;cursor:pointer;font-family:var(--f-b);background:var(--rose);color:white;white-space:nowrap;flex-shrink:0; }
+
+/* ── Pricing tiers ────────────────────────────── */
+.price-tier { border:2px solid var(--rule);border-radius:14px;padding:.75rem .85rem;display:flex;flex-direction:column;gap:.3rem;position:relative; }
+.price-tier.active-plan { border-color:var(--rose);background:var(--rose-bg); }
+.price-tier.future-plan { opacity:.7; }
+.pt-name { font-size:.7rem;font-weight:800;color:var(--ink-2);letter-spacing:.01em; }
+.pt-price { font-family:var(--f-d);font-size:1.5rem;font-weight:800;color:var(--rose);letter-spacing:-.04em;line-height:1; }
+.pt-price span { font-size:.68rem;font-weight:600;color:var(--ink-muted);font-family:var(--f-b);letter-spacing:0; }
+.pt-desc { font-size:.65rem;color:var(--ink-muted);line-height:1.4; }
+.pt-badge { position:absolute;top:.6rem;right:.75rem;background:var(--lime);color:var(--ink);font-size:.56rem;font-weight:800;padding:.12rem .4rem;border-radius:6px; }
+.pt-btn { margin-top:.2rem;border:none;border-radius:10px;padding:.45rem;font-size:.7rem;font-weight:800;cursor:pointer;font-family:var(--f-b); }
+.active-plan .pt-btn { background:var(--green);color:white; }
+.future-plan .pt-btn { background:var(--rose-pale);color:var(--rose); }
+.price-tier:not(.active-plan):not(.future-plan) .pt-btn { background:var(--rose);color:white; }
+
+/* ── Clinical + privacy badges ───────────────── */
+.trust-badge { display:inline-flex;align-items:center;gap:.3rem;font-size:.6rem;font-weight:700;padding:.18rem .5rem;border-radius:6px;background:#DCFCE7;color:#166534; }
+.privacy-badge { display:inline-flex;align-items:center;gap:.3rem;font-size:.6rem;font-weight:700;padding:.18rem .5rem;border-radius:6px;background:#EDE9FF;color:#4C1D95; }
+
+.recovery-plan { display:none;flex-direction:column;gap:.55rem; }
+.recovery-plan.active { display:flex; }
+.recovery-week { display:flex;gap:.65rem;align-items:flex-start; }
+.rw-badge { min-width:40px;text-align:center;background:var(--rose-pale);border-radius:8px;padding:.3rem .2rem;font-size:.58rem;font-weight:800;color:var(--rose);flex-shrink:0; }
+.rw-body .rw-title { font-size:.83rem;font-weight:700;color:var(--ink); }
+.rw-body .rw-sub   { font-size:.7rem;color:var(--ink-muted);margin-top:.08rem;line-height:1.45; }
+
+/* ── Touch / Tap fixes ───────────────────────── */
+button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-pill, .store-btn, .sub-nav-btn, .stage-btn, .delivery-btn, .quick-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Mobile full-screen ───────────────────────── */
+@media (max-width: 480px) {
+  body {
+    padding: 0;
+    min-height: 100dvh;
+    align-items: stretch;
+    justify-content: stretch;
+    overflow: hidden;
+  }
+  .orb, .light-ray { display: none; }
+  .phone-wrap { width: 100%; height: 100dvh; }
+  .phone-wrap::after { display: none; }
+  .phone {
+    width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .phone::before { display: none; }
+  .status-bar { padding-top: max(.4rem, env(safe-area-inset-top, 0px)); }
+  .tab-bar { padding-bottom: calc(.7rem + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ── Bloom Chat ──────────────────────────────────── */
+#chat-fab {
+  position: absolute;
+  bottom: calc(5.2rem + env(safe-area-inset-bottom, 0px));
+  left: 1rem;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E0377A 0%, #AF1F59 100%);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 6px 20px rgba(224,55,122,.5);
+  z-index: 200;
+  transition: transform .15s, box-shadow .15s;
+}
+#chat-fab:active { transform: scale(.9); box-shadow: 0 3px 10px rgba(224,55,122,.4); }
+
+#chat-panel {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  z-index: 300;
+  border-radius: inherit;
+  transform: translateY(100%);
+  transition: transform .32s cubic-bezier(.4,0,.2,1);
+}
+#chat-panel.open { transform: translateY(0); }
+
+/* minimal top bar — drag handle + name + close */
+#chat-header {
+  display: flex;
+  align-items: center;
+  padding: calc(.7rem + env(safe-area-inset-top, 0px)) .9rem .7rem;
+  background: #fff;
+  border-bottom: 1px solid #ffe0ee;
+  flex-shrink: 0;
+  gap: .6rem;
+}
+#chat-header .ch-handle-wrap {
+  position: absolute;
+  top: calc(.35rem + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+}
+#chat-header .ch-handle {
+  width: 2.4rem;
+  height: .28rem;
+  background: #ffd0e8;
+  border-radius: 99px;
+}
+#chat-header .ch-dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E0377A, #AF1F59);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .9rem;
+  flex-shrink: 0;
+}
+#chat-header .ch-name {
+  flex: 1;
+  font-weight: 800;
+  font-size: .92rem;
+  color: #1A0814;
+  font-family: 'Bricolage Grotesque','Arial Black',sans-serif;
+  letter-spacing: -.02em;
+}
+#chat-header .ch-name span {
+  display: block;
+  font-weight: 400;
+  font-size: .65rem;
+  color: #9A6080;
+  letter-spacing: 0;
+  font-family: inherit;
+  margin-top: .05rem;
+}
+#chat-close {
+  background: #fff0f6;
+  border: none;
+  font-size: .8rem;
+  cursor: pointer;
+  color: #AF1F59;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+#chat-close:active { background: #ffd0e8; }
+
+#chat-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: .75rem .85rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  background: #fdf5f9;
+}
+.chat-bubble {
+  max-width: 84%;
+  padding: .6rem .9rem;
+  border-radius: 1.2rem;
+  font-size: .85rem;
+  line-height: 1.55;
+  word-break: break-word;
+}
+.bubble-user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #E0377A, #AF1F59);
+  color: #fff;
+  border-bottom-right-radius: .25rem;
+  box-shadow: 0 2px 8px rgba(224,55,122,.25);
+}
+.bubble-bot {
+  align-self: flex-start;
+  background: #fff;
+  color: #1A0814;
+  border: 1px solid #ffe0ee;
+  border-bottom-left-radius: .25rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.bubble-bot.thinking { color: #E0377A; font-style: italic; background: #fff5f9; }
+.cb-li {
+  display: block;
+  padding-left: .85rem;
+  position: relative;
+  margin-top: .22rem;
+}
+.cb-li::before {
+  content: '•';
+  position: absolute;
+  left: .15rem;
+  color: #E0377A;
+  font-weight: 700;
+}
+
+.chat-suggestions {
+  display: flex;
+  overflow-x: auto;
+  gap: .4rem;
+  padding: .5rem .85rem;
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #ffe0ee;
+  scrollbar-width: none;
+}
+.chat-suggestions::-webkit-scrollbar { display: none; }
+.sug-chip {
+  background: #fff0f6;
+  color: #AF1F59;
+  border: 1px solid #ffd0e8;
+  border-radius: 1rem;
+  padding: .32rem .75rem;
+  font-size: .72rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sug-chip:active { background: #ffd0e8; }
+
+#chat-input-row {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .55rem .75rem calc(.55rem + env(safe-area-inset-bottom, 0px));
+  background: #fff;
+  border-top: 1px solid #ffe0ee;
+  flex-shrink: 0;
+}
+#chat-input {
+  flex: 1;
+  border: 1.5px solid #ffd0e8;
+  border-radius: 1.5rem;
+  padding: .5rem 1rem;
+  font-size: .81rem;
+  outline: none;
+  color: #1A0814;
+  background: #fff8fb;
+  min-height: 2.1rem;
+}
+#chat-input:focus { border-color: #E0377A; background: #fff; }
+#chat-send {
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E0377A, #AF1F59);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(224,55,122,.35);
+}
+#chat-send:active { opacity: .8; }
+</style>
+
+<!-- Atmospheric floating orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div class="orb orb-4"></div>
+<!-- Top-left light ray -->
+<div class="light-ray"></div>
+
+<div class="phone-wrap">
+<div class="phone">
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span style="display:flex;align-items:center;gap:.3rem">
+      <svg width="11" height="11" viewBox="0 0 52 52" fill="none"><ellipse cx="26" cy="12" rx="6" ry="10" fill="#FFAAD4" transform="rotate(0 26 26)"/><ellipse cx="26" cy="12" rx="6" ry="10" fill="#fff" opacity=".55" transform="rotate(60 26 26)"/><ellipse cx="26" cy="12" rx="6" ry="10" fill="#FFAAD4" transform="rotate(120 26 26)"/><ellipse cx="26" cy="12" rx="6" ry="10" fill="#fff" opacity=".55" transform="rotate(180 26 26)"/><ellipse cx="26" cy="12" rx="6" ry="10" fill="#FFAAD4" transform="rotate(240 26 26)"/><ellipse cx="26" cy="12" rx="6" ry="10" fill="#fff" opacity=".55" transform="rotate(300 26 26)"/><circle cx="26" cy="26" r="7" fill="#fff" opacity=".9"/></svg>
+      bloom
+    </span>
+    <span>●●● 🔋</span>
+  </div>
+
+  <!-- ════ LOGIN / ONBOARD VIEW ════════════════ -->
+  <div id="loginView" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--rose-bg)">
+
+    <!-- ① Welcome screen — only Sign In / Sign Up / Demo -->
+    <div id="screen-welcome" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;gap:0">
+      <!-- logo -->
+      <div style="margin-bottom:.5rem">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" width="72" height="72">
+          <ellipse cx="32" cy="14" rx="7" ry="12" fill="#FF9EC8" opacity=".9" transform="rotate(0 32 32)"/>
+          <ellipse cx="32" cy="14" rx="7" ry="12" fill="#E0377A" opacity=".75" transform="rotate(60 32 32)"/>
+          <ellipse cx="32" cy="14" rx="7" ry="12" fill="#FF9EC8" opacity=".9" transform="rotate(120 32 32)"/>
+          <ellipse cx="32" cy="14" rx="7" ry="12" fill="#E0377A" opacity=".75" transform="rotate(180 32 32)"/>
+          <ellipse cx="32" cy="14" rx="7" ry="12" fill="#FF9EC8" opacity=".9" transform="rotate(240 32 32)"/>
+          <ellipse cx="32" cy="14" rx="7" ry="12" fill="#E0377A" opacity=".75" transform="rotate(300 32 32)"/>
+          <circle cx="32" cy="32" r="10" fill="#FFAAD4"/>
+          <circle cx="32" cy="32" r="6.5" fill="#E0377A"/>
+          <circle cx="32" cy="32" r="3" fill="#fff" opacity=".75"/>
+        </svg>
+      </div>
+      <div class="auth-logo" style="margin-bottom:.3rem">bloom</div>
+      <div style="font-size:.82rem;color:var(--ink-muted);margin-bottom:2.2rem;text-align:center;line-height:1.4">Your pregnancy to toddler companion</div>
+
+      <div style="width:100%;display:flex;flex-direction:column;gap:.75rem">
+        <button class="auth-btn" onclick="showScreen('signin')" style="font-size:.95rem;padding:.85rem">Sign In</button>
+        <button class="auth-btn lime-btn" onclick="showScreen('onboard')" style="font-size:.95rem;padding:.85rem">Create Account ✨</button>
+        <div style="display:flex;align-items:center;gap:.6rem;margin:.1rem 0">
+          <div style="flex:1;height:1px;background:var(--rule)"></div>
+          <span style="font-size:.72rem;color:var(--ink-muted)">or</span>
+          <div style="flex:1;height:1px;background:var(--rule)"></div>
+        </div>
+        <button class="auth-btn secondary" onclick="launchApp('Customer','2027-02-08')" style="border-color:var(--rose);color:var(--rose);font-size:.9rem;padding:.8rem">⚡ Try Demo</button>
+      </div>
+    </div>
+
+    <!-- ② Sign In screen -->
+    <div id="screen-login" hidden style="flex:1;display:flex;flex-direction:column;padding:1.5rem 1.25rem;gap:.85rem;justify-content:center">
+      <button onclick="showScreen('welcome')" style="align-self:flex-start;background:none;border:none;color:var(--ink-muted);font-size:.82rem;cursor:pointer;padding:0;margin-bottom:.2rem">← Back</button>
+      <div style="text-align:center;margin-bottom:.2rem">
+        <div class="auth-logo">bloom</div>
+        <div style="font-size:.78rem;color:var(--ink-muted);margin-top:.2rem">Welcome back</div>
+      </div>
+      <div>
+        <div class="sec-title" style="margin-bottom:.38rem">Email address</div>
+        <input class="auth-input" id="loginEmail" type="email" placeholder="hello@example.com" autocomplete="email">
+      </div>
+      <button class="auth-btn" onclick="handleSignIn()">Continue →</button>
+      <div style="font-size:.72rem;color:var(--ink-muted);text-align:center;line-height:1.5">Your data is stored securely on this device.<br>No password needed — just your email to identify your profile.</div>
+    </div>
+
+    <!-- ③ Onboard screen (3 steps) -->
+    <div id="screen-onboard" hidden style="flex:1;display:flex;flex-direction:column;padding:1.25rem 1.25rem 1rem">
+      <div style="font-family:var(--f-d);font-size:1.1rem;font-weight:800;color:var(--rose);margin-bottom:.85rem">bloom</div>
+      <div id="onboardContent" style="flex:1;display:flex;flex-direction:column;gap:.75rem;justify-content:center"></div>
+      <div style="margin-top:1rem;display:flex;gap:.5rem">
+        <button class="auth-btn secondary" id="onboardBackBtn" onclick="onboardBack()" style="flex:.45;padding:.7rem">← Back</button>
+        <button class="auth-btn" id="onboardNextBtn" onclick="onboardNext()" style="flex:1;padding:.7rem">Continue →</button>
+      </div>
+      <div class="step-dots" id="stepDots" style="margin-top:.7rem"></div>
+    </div>
+
+  </div><!-- /loginView -->
+
+  <!-- ════ APP VIEW ═════════════════════════════ -->
+  <div id="appView" hidden style="flex:1;min-height:0;display:flex;flex-direction:column">
+
+  <!-- App header -->
+  <div class="app-header">
+    <div class="header-logo">bloom</div>
+    <div class="header-badge" id="headerBadge">Wk 18 · T2</div>
+    <div class="header-avatar" onclick="switchScreen('me',document.querySelectorAll('.tab')[4])" style="font-family:var(--f-d);font-size:.85rem;font-weight:800;letter-spacing:-.01em">C</div>
+  </div>
+
+  <!-- ════ TODAY ════════════════════════════════ -->
+  <div class="screen active" id="screen-today">
+
+    <div>
+      <div class="greeting">Good morning, <em>Customer</em></div>
+      <div class="week-chip">Week 18 · Second Trimester</div>
+    </div>
+
+    <!-- Baby card -->
+    <div class="card rose">
+      <div style="display:flex;align-items:flex-start;gap:.75rem">
+        <div style="flex:1">
+          <div class="baby-title">Your baby is a sweet potato</div>
+          <div class="baby-size">Facial muscles developing — your baby can make expressions and suck their thumb.</div>
+        </div>
+        <!-- Sweet potato character illustration -->
+        <div style="flex-shrink:0;width:64px;height:72px">
+          <svg viewBox="0 0 64 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Leafy top -->
+            <path d="M28 16 C26 8, 18 6, 20 14" stroke="#AADF2F" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M32 14 C32 4, 24 2, 24 12" stroke="#AADF2F" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M36 16 C38 8, 46 6, 44 14" stroke="#AADF2F" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M28 16 C29 12, 35 12, 36 16" stroke="#AADF2F" stroke-width="1.5" fill="none"/>
+            <!-- Body -->
+            <ellipse cx="32" cy="42" rx="20" ry="24" fill="#FF9A57"/>
+            <ellipse cx="32" cy="42" rx="20" ry="24" fill="url(#spGrad)"/>
+            <!-- Highlight -->
+            <ellipse cx="24" cy="32" rx="6" ry="8" fill="rgba(255,255,255,0.18)" transform="rotate(-15 24 32)"/>
+            <!-- Face -->
+            <ellipse cx="26" cy="42" rx="3" ry="3.5" fill="rgba(0,0,0,0.12)"/>
+            <ellipse cx="38" cy="42" rx="3" ry="3.5" fill="rgba(0,0,0,0.12)"/>
+            <!-- Eyes -->
+            <circle cx="26" cy="41" r="1.8" fill="#fff"/>
+            <circle cx="38" cy="41" r="1.8" fill="#fff"/>
+            <circle cx="26.6" cy="41.4" r="1" fill="#3D1A00"/>
+            <circle cx="38.6" cy="41.4" r="1" fill="#3D1A00"/>
+            <!-- Smile -->
+            <path d="M27 47 Q32 52 37 47" stroke="#3D1A00" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            <!-- Rosy cheeks -->
+            <ellipse cx="21" cy="46" rx="3" ry="2" fill="#FF6B8A" opacity=".4"/>
+            <ellipse cx="43" cy="46" rx="3" ry="2" fill="#FF6B8A" opacity=".4"/>
+            <!-- Tiny arms -->
+            <path d="M12 44 Q10 40 14 37" stroke="#FF9A57" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <path d="M52 44 Q54 40 50 37" stroke="#FF9A57" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <defs>
+              <radialGradient id="spGrad" cx="35%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#FFBF7A"/>
+                <stop offset="100%" stop-color="#D4601A"/>
+              </radialGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+      <div class="baby-stats" style="margin-top:.65rem">
+        <div class="b-stat"><span class="bv" id="babyLen">5.6″</span><span class="bl">Length</span></div>
+        <div class="b-stat"><span class="bv" id="babyWt">6.7oz</span><span class="bl">Weight</span></div>
+        <div class="b-stat"><span class="bv" id="babyDays">127</span><span class="bl">Days in</span></div>
+      </div>
+    </div>
+
+    <!-- Pregnancy progress -->
+    <div class="card">
+      <div class="sec-title">Pregnancy Progress</div>
+      <div class="prog-wrap">
+        <div class="prog-label" id="progLabel"><span>Week 18 of 40</span><span>22 weeks left</span></div>
+        <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      </div>
+      <div id="progNote" style="font-size:.65rem;color:var(--ink-muted);margin-top:.4rem">Due date: February 8, 2027 · Anatomy scan in 5 days</div>
+    </div>
+
+    <!-- Quick actions -->
+    <div>
+      <div class="sec-title">Quick Access</div>
+      <div class="quick-grid">
+        <button class="quick-btn" onclick="switchScreen('meals',document.querySelectorAll('.tab')[1])">
+          <svg class="qb-svg" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><line x1="7" y1="2" x2="7" y2="11"/><path d="M21 15a4 4 0 01-4 4h0a4 4 0 01-4-4v-3h8v3z"/><line x1="17" y1="2" x2="17" y2="11"/></svg>
+          <div class="qb-label">Today's Meals</div>
+          <div class="qb-sub" id="mealKcalSub" hidden></div>
+        </button>
+        <button class="quick-btn" onclick="switchScreen('health',document.querySelectorAll('.tab')[2])">
+          <svg class="qb-svg" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          <div class="qb-label">Health Check</div>
+          <div class="qb-sub">Symptoms · Kicks · Mood</div>
+        </button>
+        <button class="quick-btn" onclick="switchScreen('schedule',document.querySelectorAll('.tab')[3])">
+          <svg class="qb-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <div class="qb-label">My Schedule</div>
+          <div class="qb-sub">Next: Prenatal yoga</div>
+        </button>
+        <button class="quick-btn" onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);showMeSection('docqs')">
+          <svg class="qb-svg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <div class="qb-label">Doctor Qs</div>
+          <div class="qb-sub" id="docQsChip">0 questions saved</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Today's highlights -->
+    <div class="card">
+      <div class="sec-title">Today's Highlights</div>
+      <div class="item-row" style="cursor:pointer" onclick="switchScreen('meals',document.querySelectorAll('.tab')[1])">
+        <div class="item-icon ir"><svg class="item-svg" style="stroke:#E0377A" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><line x1="7" y1="2" x2="7" y2="11"/><path d="M21 15a4 4 0 01-4 4h0a4 4 0 01-4-4v-3h8v3z"/><line x1="17" y1="2" x2="17" y2="11"/></svg></div>
+        <div><div class="it">Spinach &amp; lentil soup</div><div class="is">Lunch · 512 kcal · 22g protein</div></div>
+        <div class="ia" style="color:var(--rose)">›</div>
+      </div>
+      <div class="item-row" style="cursor:pointer" onclick="alert('Prenatal vitamin reminder set for 8:00 PM tonight ✓')">
+        <div class="item-icon ig"><svg class="item-svg" style="stroke:#78A400" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div><div class="it">Prenatal vitamin</div><div class="is">Reminder set · 8:00 PM</div></div>
+        <div class="ia" style="color:var(--rose)">›</div>
+      </div>
+      <div class="item-row" style="cursor:pointer" onclick="switchScreen('schedule',document.querySelectorAll('.tab')[3])">
+        <div class="item-icon ico"><svg class="item-svg" style="stroke:#FF6B4A" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+        <div><div class="it">Prenatal yoga</div><div class="is">30 min · Breathing &amp; stretching</div></div>
+        <div class="ia" style="color:var(--rose)">›</div>
+      </div>
+      <div class="item-row" style="cursor:pointer" onclick="switchScreen('schedule',document.querySelectorAll('.tab')[3])">
+        <div class="item-icon ipu"><svg class="item-svg" style="stroke:#8B5CF6" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+        <div><div class="it">Afternoon rest</div><div class="is">Left-side rest recommended</div></div>
+        <div class="ia" style="color:var(--rose)">›</div>
+      </div>
+    </div>
+
+    <!-- Daily goals -->
+    <div class="card">
+      <div class="sec-title">Today's 3 Goals</div>
+      <div class="goal-list" id="goalList">
+        <div class="goal-item" onclick="toggleGoal(this)">
+          <div class="goal-check"></div>
+          <div class="goal-text">Take prenatal vitamin with breakfast</div>
+          <span class="goal-badge">Daily</span>
+        </div>
+        <div class="goal-item" onclick="toggleGoal(this)">
+          <div class="goal-check"></div>
+          <div class="goal-text">Drink 8 glasses of water (stay hydrated!)</div>
+          <span class="goal-badge">Daily</span>
+        </div>
+        <div class="goal-item" onclick="toggleGoal(this)">
+          <div class="goal-check"></div>
+          <div class="goal-text">30 min light movement — walk or prenatal yoga</div>
+          <span class="goal-badge">Wk 18</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Appointment -->
+    <div id="todayApptCard"></div>
+
+    <!-- Daily tip -->
+    <div class="card lime" id="todayTipCard">
+      <div class="tip-strip">
+        <div class="tip-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--lime-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M12 2a7 7 0 017 7c0 2.38-1.19 4.47-3 5.74V17H8v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 017-7z"/></svg></div>
+        <div>
+          <div class="tip-label" id="todayTipLabel">Pregnancy tip</div>
+          <div class="tip-text" id="todayTipText">Stay hydrated, rest when you need to, and remember to take your prenatal vitamin each day.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mood prompt -->
+    <div class="card soft" style="cursor:pointer" onclick="switchScreen('health',document.querySelectorAll('.tab')[2]);switchHealth('mood',document.querySelectorAll('.sub-nav-btn')[2])">
+      <div class="row" style="gap:.65rem">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        <div><div class="it">Daily mood check-in</div><div class="is">How are you feeling today? · Tap to check in</div></div>
+        <div class="ml-auto" style="font-size:.8rem;color:var(--rose);font-weight:700">→</div>
+      </div>
+    </div>
+
+  </div><!-- /today -->
+
+  <!-- ════ MEALS ════════════════════════════════ -->
+  <div class="screen" id="screen-meals">
+
+    <div class="day-strip" id="dayStrip"></div>
+
+    <div id="storeToggleWrap">
+      <div class="sec-title">Order via</div>
+      <div class="store-toggle">
+        <button class="store-btn active" onclick="setStore(this,'instacart')">Instacart</button>
+        <button class="store-btn" onclick="setStore(this,'walmart')">Walmart</button>
+      </div>
+    </div>
+
+    <div class="card" style="padding:.7rem .9rem">
+      <div class="sec-title" style="margin-bottom:.5rem">Key Nutrients Today</div>
+      <div class="nutrient-strip" id="nutrientStrip"></div>
+    </div>
+    <div class="card" id="mealsCard"></div>
+    <div class="card" id="macrosCard"></div>
+
+    <button class="order-btn" id="orderBtn" onclick="handleOrder()">
+      Order via Instacart
+    </button>
+
+  </div><!-- /meals -->
+
+  <!-- ════ HEALTH ═══════════════════════════════ -->
+  <div class="screen" id="screen-health">
+
+    <div class="sub-nav">
+      <button class="sub-nav-btn active" onclick="switchHealth('symptoms',this)">Symptoms</button>
+      <button class="sub-nav-btn" onclick="switchHealth('kicks',this)">Kick Counter</button>
+      <button class="sub-nav-btn" onclick="switchHealth('mood',this)">Mood Check</button>
+    </div>
+
+    <!-- Symptoms panel -->
+    <div class="health-panel active" id="hp-symptoms">
+      <div class="q-text">How are you feeling?</div>
+      <div style="font-size:.72rem;color:var(--ink-muted);margin-bottom:.35rem">Tap everything you're experiencing right now.</div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.1rem">
+        <span class="trust-badge">✓ Rules reviewed by licensed OB-GYN</span>
+        <span class="trust-badge">✓ Conservative — biased toward "seek care"</span>
+      </div>
+      <div id="symGrid"></div>
+      <button class="check-btn" id="checkBtn" onclick="runTriage()" disabled>Check My Symptoms</button>
+      <div class="result-card" id="resultCard">
+        <div class="result-head"><div class="result-dot"></div><div class="result-title" id="resultTitle"></div></div>
+        <div class="result-body" id="resultBody"></div>
+        <button class="result-action" id="resultAction"></button>
+      </div>
+      <button class="reset-link" id="resetBtn" onclick="resetTriage()">Clear &amp; start over</button>
+    </div>
+
+    <!-- Kick counter panel -->
+    <div class="health-panel" id="hp-kicks">
+      <div class="card">
+        <div class="sec-title" id="kickTitle">Kick Counter · Week 18</div>
+        <div style="font-size:.75rem;color:var(--ink-muted);line-height:1.45">Count 10 kicks. Most healthy babies reach 10 in under 2 hours. Start after a meal for best results.</div>
+      </div>
+
+      <div class="card">
+        <div class="kick-display">
+          <div class="kick-num" id="kickNum">0</div>
+          <div class="kick-target">of 10 kicks · <span id="kickPercent">0%</span></div>
+          <div class="kick-timer" id="kickTimer">0:00</div>
+        </div>
+        <button class="kick-tap-btn" id="kickTapBtn" onclick="countKick()" disabled>
+          Tap for<br>a kick
+        </button>
+        <div style="height:.85rem"></div>
+        <div class="kick-controls">
+          <button class="kick-ctrl-btn" id="kickStartBtn" onclick="startKick()">▶ Start Session</button>
+          <button class="kick-ctrl-btn" onclick="resetKick()">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="kick-success" id="kickSuccess">
+        <div class="kick-success-icon">🎉</div>
+        <div class="kick-success-title" id="kickSuccessTitle">10 kicks — great activity!</div>
+        <div class="kick-success-sub" id="kickSuccessBody"></div>
+      </div>
+    </div>
+
+    <!-- Mood check panel -->
+    <div class="health-panel" id="hp-mood">
+      <div>
+        <div class="fw-800" style="font-size:1rem;color:var(--ink)">Daily mood check-in</div>
+        <div class="fs-xs" style="margin-top:.15rem">Takes 60 seconds · Results stay private to you</div>
+      </div>
+      <div class="card" id="moodQsCard"></div>
+      <button class="mood-submit" id="moodSubmitBtn" onclick="submitMood()">See My Results</button>
+      <div class="ppd-result" id="ppdResult">
+        <div class="ppd-title" id="ppdTitle"></div>
+        <div class="ppd-body"  id="ppdBody"></div>
+        <button class="ppd-action" id="ppdAction"></button>
+      </div>
+      <button class="reset-link" id="moodRetakeBtn" style="display:none" onclick="resetMood()">↺ Retake mood check</button>
+    </div>
+
+  </div><!-- /health -->
+
+  <!-- ════ SCHEDULE ═════════════════════════════ -->
+  <div class="screen" id="screen-schedule">
+    <div>
+      <div class="fw-800" style="font-size:1.05rem;color:var(--ink)">Daily Schedule</div>
+      <div class="fs-xs" style="margin-top:.12rem">Auto-adapts as you and baby grow</div>
+    </div>
+    <div class="stage-bar">
+      <button class="stage-btn active" onclick="setStage(0,this)">Prenatal</button>
+      <button class="stage-btn" onclick="setStage(1,this)">Newborn</button>
+      <button class="stage-btn" onclick="setStage(2,this)">3 Months</button>
+      <button class="stage-btn" onclick="setStage(3,this)">6 Months</button>
+      <button class="stage-btn" onclick="setStage(4,this)">1 Year</button>
+    </div>
+    <div class="card" id="scheduleCard"></div>
+  </div>
+
+  <!-- ════ ME ═══════════════════════════════════ -->
+  <div class="screen" id="screen-me">
+
+    <!-- Section nav -->
+    <div class="me-sec-nav">
+      <button class="me-sec-pill active" onclick="jumpMe('profile',this)">Profile</button>
+      <button class="me-sec-pill" onclick="jumpMe('body',this)">Body</button>
+      <button class="me-sec-pill" onclick="jumpMe('dietgoals',this)">Diet & Goals</button>
+      <button class="me-sec-pill" onclick="jumpMe('appointments',this)">Appointments</button>
+      <button class="me-sec-pill" onclick="jumpMe('docqs',this)">Doctor Qs</button>
+      <button class="me-sec-pill" onclick="jumpMe('vaccines',this)">Vaccines</button>
+      <button class="me-sec-pill" onclick="jumpMe('recovery',this)">Recovery</button>
+      <button class="me-sec-pill" onclick="jumpMe('pricing',this)">Plans</button>
+    </div>
+
+    <!-- Profile -->
+    <div class="card" id="me-profile">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div class="profile-card" style="flex:1">
+          <div class="profile-avatar" id="profileAvatar">C</div>
+          <div>
+            <div class="profile-name">Customer</div>
+            <div class="profile-sub">Due Feb 8, 2027 · Week 18 · T2</div>
+            <div class="profile-sub" id="profileDiet" style="margin-top:.12rem">Mediterranean · No shellfish · No nuts</div>
+            <div class="profile-sub" id="profileBody" style="margin-top:.12rem;display:none"></div>
+            <div class="sub-badge">✓ Pregnancy Pass</div>
+          </div>
+        </div>
+        <button id="profileEditBtn" onclick="profileEdit()" style="font-size:.72rem;font-family:var(--f-b);font-weight:600;color:var(--rose);background:none;border:none;cursor:pointer;padding:.2rem .4rem;flex-shrink:0">Edit ✏️</button>
+      </div>
+      <!-- Profile inline edit form -->
+      <div id="profileEditForm" style="display:none;margin-top:.75rem;display:none">
+        <div style="display:grid;gap:.5rem">
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Your first name</div>
+            <input class="auth-input" id="pf-name" placeholder="e.g. Jessica" style="padding:.55rem .7rem;font-size:.85rem">
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Baby's name / nickname <span style="font-weight:400;color:var(--ink-muted)">(opt.)</span></div>
+            <input class="auth-input" id="pf-baby" placeholder="e.g. Sprout, Lily…" style="padding:.55rem .7rem;font-size:.85rem">
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Due date</div>
+            <input class="auth-input" id="pf-due" type="date" style="padding:.55rem .7rem;font-size:.85rem">
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.65rem">
+          <button onclick="profileCancel()" style="flex:.5;padding:.62rem;border:1.5px solid var(--rule);border-radius:10px;background:none;font-family:var(--f-b);font-size:.8rem;color:var(--ink-muted);cursor:pointer">Cancel</button>
+          <button onclick="profileSave()" style="flex:1;padding:.62rem;border:none;border-radius:10px;background:var(--rose);color:white;font-family:var(--f-b);font-weight:700;font-size:.8rem;cursor:pointer">Save changes</button>
+        </div>
+      </div>
+      <div style="height:.65rem"></div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+        <span class="privacy-badge">🔒 No ads</span>
+        <span class="privacy-badge">🔒 No data selling</span>
+        <span class="trust-badge">✓ Dietitian-reviewed meals</span>
+        <span class="trust-badge">✓ OB-GYN reviewed triage</span>
+      </div>
+    </div>
+
+    <!-- Body Profile -->
+    <div class="card" id="me-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem">
+        <div class="sec-title" style="margin-bottom:0">Body Profile</div>
+        <button id="bodyEditBtn" onclick="bodyEdit()" style="font-size:.72rem;font-family:var(--f-b);font-weight:600;color:var(--rose);background:none;border:none;cursor:pointer;padding:.2rem .4rem">Edit ✏️</button>
+      </div>
+
+      <!-- View mode -->
+      <div id="bodyView">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem">
+          <div class="body-stat-tile"><div class="bst-label">Height</div><div class="bst-val" id="bsHeight">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Pre-preg weight</div><div class="bst-val" id="bsPreWt">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Current weight</div><div class="bst-val" id="bsCurrWt">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Weight gained</div><div class="bst-val" id="bsGain">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Age</div><div class="bst-val" id="bsAge">—</div></div>
+          <div class="body-stat-tile"><div class="bst-label">Blood type</div><div class="bst-val" id="bsBlood">—</div></div>
+          <div class="body-stat-tile" style="grid-column:1/-1"><div class="bst-label">Pre-preg BMI</div><div class="bst-val" id="bsBmi">—</div></div>
+        </div>
+        <div id="bsGainNote" style="font-size:.68rem;color:var(--ink-muted);margin-top:.55rem;line-height:1.45;display:none"></div>
+      </div>
+
+      <!-- Edit mode -->
+      <div id="bodyEditForm" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Height</div>
+            <div style="display:flex;gap:.3rem">
+              <select class="auth-input" id="bf-hft" style="flex:1;padding:.55rem .4rem;font-size:.8rem">
+                ${[4,5,6].map(f=>`<option value="${f}">${f} ft</option>`).join('')}
+              </select>
+              <select class="auth-input" id="bf-hin" style="flex:1;padding:.55rem .4rem;font-size:.8rem">
+                ${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>`<option value="${i}">${i} in</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Age</div>
+            <input class="auth-input" id="bf-age" type="number" placeholder="e.g. 28" style="padding:.55rem .7rem;font-size:.8rem">
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Pre-preg weight</div>
+            <div style="display:flex;gap:.3rem">
+              <input class="auth-input" id="bf-prewt" type="number" placeholder="e.g. 140" style="flex:1;padding:.55rem .5rem;font-size:.8rem;min-width:0">
+              <select class="auth-input" id="bf-wtunit" style="flex:0 0 50px;padding:.55rem .3rem;font-size:.8rem">
+                <option value="lb">lb</option><option value="kg">kg</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Current weight</div>
+            <input class="auth-input" id="bf-currwt" type="number" placeholder="e.g. 148" style="padding:.55rem .7rem;font-size:.8rem">
+          </div>
+          <div style="grid-column:1/-1">
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Blood type <span style="font-weight:400;color:var(--ink-muted)">(optional)</span></div>
+            <select class="auth-input" id="bf-blood" style="padding:.55rem .7rem;font-size:.8rem">
+              ${['','A+','A−','B+','B−','AB+','AB−','O+','O−'].map(t=>`<option value="${t}">${t||'Unknown'}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.65rem">
+          <button onclick="bodyCancel()" style="flex:.5;padding:.62rem;border:1.5px solid var(--rule);border-radius:10px;background:none;font-family:var(--f-b);font-size:.8rem;color:var(--ink-muted);cursor:pointer">Cancel</button>
+          <button onclick="bodySave()" style="flex:1;padding:.62rem;border:none;border-radius:10px;background:var(--rose);color:white;font-family:var(--f-b);font-weight:700;font-size:.8rem;cursor:pointer">Save changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diet & Goals -->
+    <div class="card" id="me-dietgoals">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem">
+        <div class="sec-title" style="margin-bottom:0">Diet & Goals</div>
+        <button id="dgEditBtn" onclick="dgEdit()" style="font-size:.72rem;font-family:var(--f-b);font-weight:600;color:var(--rose);background:none;border:none;cursor:pointer;padding:.2rem .4rem">Edit ✏️</button>
+      </div>
+      <!-- View -->
+      <div id="dgView">
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">Dietary preferences</div>
+        <div id="dgDietView" style="font-size:.8rem;color:var(--ink);line-height:1.5;margin-bottom:.65rem">None set</div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem">Top priorities</div>
+        <div id="dgGoalsView" style="font-size:.8rem;color:var(--ink);line-height:1.5">None set</div>
+      </div>
+      <!-- Edit form -->
+      <div id="dgEditForm" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">Dietary preferences</div>
+        <div class="option-chips" id="dgDietChips"></div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin:.7rem 0 .4rem">Top priorities</div>
+        <div class="option-chips" id="dgGoalChips"></div>
+        <div style="display:flex;gap:.5rem;margin-top:.7rem">
+          <button onclick="dgCancel()" style="flex:.5;padding:.62rem;border:1.5px solid var(--rule);border-radius:10px;background:none;font-family:var(--f-b);font-size:.8rem;color:var(--ink-muted);cursor:pointer">Cancel</button>
+          <button onclick="dgSave()" style="flex:1;padding:.62rem;border:none;border-radius:10px;background:var(--rose);color:white;font-family:var(--f-b);font-weight:700;font-size:.8rem;cursor:pointer">Save & refresh</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming appointments -->
+    <div class="card" id="me-appointments">
+      <div class="sec-title">Upcoming Appointments</div>
+      <div id="apptList"></div>
+      <div style="height:.55rem"></div>
+      <div style="display:flex;gap:.4rem">
+        <input class="add-q-input" id="apptName" placeholder="Appointment type…" style="flex:1.2">
+        <input class="add-q-input" id="apptDate" type="date" style="flex:.9;font-size:.7rem">
+        <button class="add-q-btn" onclick="addAppt()">Add</button>
+      </div>
+    </div>
+
+    <!-- Doctor's questions -->
+    <div class="card" id="me-docqs">
+      <div class="sec-title">Questions for Dr. Rivera</div>
+      <div class="doc-list" id="docList"></div>
+      <div style="height:.5rem"></div>
+      <button class="suggest-q-btn" id="suggestQBtn" onclick="addSuggestedQs()">✨ Suggest Questions</button>
+      <div style="height:.45rem"></div>
+      <div class="add-q-row">
+        <input class="add-q-input" id="docQInput" placeholder="Add a question…" onkeydown="if(event.key==='Enter')addDocQ()">
+        <button class="add-q-btn" onclick="addDocQ()">Add</button>
+      </div>
+      <div style="height:.5rem"></div>
+      <button class="share-q-btn" onclick="shareDocQs()">📋 Generate Appointment Summary</button>
+      <div id="docSummary" style="display:none;margin-top:.6rem;background:var(--rose-bg);border-radius:10px;padding:.7rem;font-size:.72rem;color:var(--ink-2);line-height:1.6"></div>
+    </div>
+
+    <!-- Vaccine reminders -->
+    <div class="card" id="me-vaccines">
+      <div class="sec-title">Vaccine Reminders · CDC Schedule</div>
+      <div style="display:flex;flex-direction:column;gap:.45rem;margin-top:.2rem">
+        <div class="vacc-card">
+          <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
+          <div>
+            <div class="vacc-name">Flu Shot</div>
+            <div class="vacc-when">Recommended at any point in pregnancy</div>
+            <span class="vacc-pill">Due now</span>
+          </div>
+        </div>
+        <div class="vacc-card upcoming">
+          <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
+          <div>
+            <div class="vacc-name">Tdap (whooping cough)</div>
+            <div class="vacc-when">Recommended at weeks 27–36 · You're at week 18</div>
+            <span class="vacc-pill">Upcoming · 9 weeks away</span>
+          </div>
+        </div>
+        <div class="vacc-card upcoming">
+          <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
+          <div>
+            <div class="vacc-name">COVID-19 Booster</div>
+            <div class="vacc-when">Recommended any trimester</div>
+            <span class="vacc-pill">Discuss at next visit</span>
+          </div>
+        </div>
+        <div class="vacc-card future">
+          <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
+          <div>
+            <div class="vacc-name">RSV Vaccine</div>
+            <div class="vacc-when">After delivery — protects newborn via antibodies</div>
+            <span class="vacc-pill">Postpartum</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Postpartum recovery plan -->
+    <div class="card" id="me-recovery">
+      <div class="sec-title">Postpartum Recovery Plan</div>
+      <div style="font-size:.72rem;color:var(--ink-muted);margin-bottom:.55rem">Set your delivery type so we can personalise your recovery path.</div>
+      <div class="delivery-toggle">
+        <button class="delivery-btn active" onclick="setDelivery('vaginal',this)">Vaginal Birth</button>
+        <button class="delivery-btn" onclick="setDelivery('csection',this)">C-Section</button>
+      </div>
+      <div style="height:.65rem"></div>
+      <div class="recovery-plan active" id="rp-vaginal">
+        <div class="recovery-week">
+          <div class="rw-badge">Wk 1–2</div>
+          <div class="rw-body"><div class="rw-title">Rest &amp; perineal care</div><div class="rw-sub">Ice packs, sitz baths, no lifting above 10 lb. Lochia (bleeding) expected.</div></div>
+        </div>
+        <div class="recovery-week">
+          <div class="rw-badge">Wk 3–4</div>
+          <div class="rw-body"><div class="rw-title">Gentle movement</div><div class="rw-sub">Short walks OK. Continue pelvic floor exercises. Watch for postpartum depression signs.</div></div>
+        </div>
+        <div class="recovery-week">
+          <div class="rw-badge">Wk 5–6</div>
+          <div class="rw-body"><div class="rw-title">OB clearance visit</div><div class="rw-sub">6-week check-up with Dr. Rivera. Cleared for exercise and intimacy.</div></div>
+        </div>
+      </div>
+      <div class="recovery-plan" id="rp-csection">
+        <div class="recovery-week">
+          <div class="rw-badge">Wk 1–2</div>
+          <div class="rw-body"><div class="rw-title">Limited mobility</div><div class="rw-sub">No driving or lifting. Keep incision dry. Pain management with approved meds.</div></div>
+        </div>
+        <div class="recovery-week">
+          <div class="rw-badge">Wk 3–4</div>
+          <div class="rw-body"><div class="rw-title">Incision healing</div><div class="rw-sub">Short walks increasing gradually. Watch for infection signs: redness, fever, discharge.</div></div>
+        </div>
+        <div class="recovery-week">
+          <div class="rw-badge">Wk 6–8</div>
+          <div class="rw-body"><div class="rw-title">OB clearance visit</div><div class="rw-sub">Full clearance typically at 8 weeks for C-section. Discuss scar massage with Dr. Rivera.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing & Plans -->
+    <div class="card" id="me-pricing">
+      <div class="sec-title">Plans &amp; Pricing</div>
+      <div style="display:flex;flex-direction:column;gap:.55rem;margin-top:.3rem">
+
+        <!-- Pregnancy Pass (active) -->
+        <div class="price-tier active-plan">
+          <div class="pt-badge">LAUNCH PRICE</div>
+          <div class="pt-name">Pregnancy Pass</div>
+          <div class="pt-price">$99 <span>one-time · reg. $149</span></div>
+          <div class="pt-desc">Full access: pregnancy, postpartum &amp; first 6 weeks. No subscription — priced for pregnancy's natural fixed duration.</div>
+          <button class="pt-btn" disabled>✓ Active on your account</button>
+        </div>
+
+        <!-- Monthly fallback -->
+        <div class="price-tier">
+          <div class="pt-name">Monthly Plan</div>
+          <div class="pt-price">$19.99 <span>/month · no commitment</span></div>
+          <div class="pt-desc">All features, cancel any time. Switch to the Pass and save $141.</div>
+          <button class="pt-btn" onclick="alert('You already have the Pregnancy Pass — the better deal! 🌸')">Switch to Monthly</button>
+        </div>
+
+        <!-- Infant & Toddler (upcoming) -->
+        <div class="price-tier future-plan">
+          <div class="pt-name">Infant &amp; Toddler Continuity</div>
+          <div class="pt-price">$9.99 <span>/month · Pass alumni rate</span></div>
+          <div class="pt-desc">Adaptive scheduling from newborn → toddler. Unlocks after your delivery date. Regular price $12.99/mo or $99/yr.</div>
+          <button class="pt-btn" onclick="alert('Infant & Toddler plan unlocks automatically after your due date. 👶')">Unlocks after delivery</button>
+        </div>
+
+      </div>
+      <div style="margin-top:.75rem;font-size:.65rem;color:var(--ink-muted);line-height:1.5;text-align:center">
+        All plans include full feature access · Secure checkout · Cancel monthly at any time
+      </div>
+    </div>
+
+  </div><!-- /me -->
+
+  <!-- Scroll hint -->
+  <div class="scroll-hint" id="scrollHint"></div>
+
+  <!-- Floating feature-map button -->
+  <button id="fmapBtn" onclick="toggleFmap()" style="
+    position:absolute;bottom:72px;right:12px;z-index:500;
+    width:36px;height:36px;border-radius:50%;border:none;
+    background:rgba(224,55,122,0.92);color:white;font-size:.85rem;font-weight:800;
+    cursor:pointer;box-shadow:0 4px 14px rgba(180,0,80,.4);
+    display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(8px);
+  "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+
+  <!-- Feature map drawer -->
+  <div id="fmapDrawer" hidden style="
+    position:absolute;bottom:68px;right:0;left:0;z-index:499;
+    background:rgba(255,248,252,0.97);backdrop-filter:blur(20px);
+    border-top:1px solid var(--rule);padding:.75rem .9rem;
+    max-height:62%;overflow-y:auto;
+  ">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem">
+      <div style="font-family:var(--f-d);font-size:.88rem;font-weight:800;color:var(--ink)">Jump to</div>
+      <button onclick="toggleFmap()" style="border:none;background:none;color:var(--ink-muted);font-size:.75rem;cursor:pointer;padding:.2rem .4rem;border-radius:6px">✕ Close</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.38rem">
+      <button onclick="switchScreen('today',document.querySelectorAll('.tab')[0]);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Today overview</button>
+      <button onclick="toggleGoalDemo();toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Goal checkboxes</button>
+      <button onclick="switchScreen('meals',document.querySelectorAll('.tab')[1]);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Meals + nutrients</button>
+      <button onclick="switchScreen('meals',document.querySelectorAll('.tab')[1]);document.getElementById('orderBtn').click();toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Order groceries</button>
+      <button onclick="switchScreen('health',document.querySelectorAll('.tab')[2]);switchHealth('symptoms',document.querySelectorAll('.sub-nav-btn')[0]);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Symptom triage</button>
+      <button onclick="switchScreen('health',document.querySelectorAll('.tab')[2]);switchHealth('kicks',document.querySelectorAll('.sub-nav-btn')[1]);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Kick counter</button>
+      <button onclick="switchScreen('health',document.querySelectorAll('.tab')[2]);switchHealth('mood',document.querySelectorAll('.sub-nav-btn')[2]);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Mood check-in</button>
+      <button onclick="switchScreen('schedule',document.querySelectorAll('.tab')[3]);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Daily schedule</button>
+      <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('appointments',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Appointments</button>
+      <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('docqs',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Doctor questions</button>
+      <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('vaccines',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Vaccine schedule</button>
+      <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('recovery',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Recovery plan</button>
+      <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('pricing',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Pricing plans</button>
+      <button onclick="document.getElementById('loginView').hidden=false;document.getElementById('appView').hidden=true;document.getElementById('chat-fab').hidden=true;closeChat();showScreen('welcome');toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rose);border-radius:10px;background:var(--rose-bg);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--rose);font-weight:700">Login / Onboard</button>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchScreen('today',this)">
+      <svg class="ti-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <span class="tl">Today</span>
+    </button>
+    <button class="tab" onclick="switchScreen('meals',this)">
+      <svg class="ti-svg" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><line x1="7" y1="2" x2="7" y2="11"/><path d="M21 15a4 4 0 01-4 4h0a4 4 0 01-4-4v-3h8v3z"/><line x1="17" y1="2" x2="17" y2="11"/></svg>
+      <span class="tl">Meals</span>
+    </button>
+    <button class="tab" onclick="switchScreen('health',this)">
+      <svg class="ti-svg" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      <span class="tl">Health</span>
+    </button>
+    <button class="tab" onclick="switchScreen('schedule',this)">
+      <svg class="ti-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="tl">Schedule</span>
+    </button>
+    <button class="tab" onclick="switchScreen('me',this)">
+      <svg class="ti-svg" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="tl">Me</span>
+    </button>
+  </div>
+
+  </div><!-- /appView -->
+
+  <!-- Bloom Chat FAB (hidden until user is logged in) -->
+  <button id="chat-fab" onclick="openChat()" aria-label="Open Bloom AI chat" hidden>🌸</button>
+
+  <!-- Bloom Chat Panel -->
+  <div id="chat-panel" role="dialog" aria-modal="true" aria-label="Bloom AI Chat">
+    <div id="chat-header">
+      <div class="ch-handle-wrap"><div class="ch-handle"></div></div>
+      <div class="ch-dot">🌸</div>
+      <div class="ch-name">bloom AI <span>Pregnancy &amp; parenting companion</span></div>
+      <button id="chat-close" onclick="closeChat()" aria-label="Close chat">✕</button>
+    </div>
+    <div id="chat-msgs"></div>
+    <div class="chat-suggestions" id="chat-sugs">
+      <button class="sug-chip" onclick="useSug(this)">What to eat in first trimester?</button>
+      <button class="sug-chip" onclick="useSug(this)">When does morning sickness end?</button>
+      <button class="sug-chip" onclick="useSug(this)">How often should newborn feed?</button>
+      <button class="sug-chip" onclick="useSug(this)">Safe exercises while pregnant?</button>
+    </div>
+    <div id="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Ask Bloom anything…" autocomplete="off"
+        onkeydown="if(event.key==='Enter')doSend()">
+      <button id="chat-send" onclick="doSend()" aria-label="Send">➤</button>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /phone-wrap -->
+
+<script>
+/* ── Login / Onboard ───────────────────────────── */
+let obStep = 0;
+const obData = { name:'', babyName:'', dueDate:'', firstBaby:'', heightFt:'5', heightIn:'4', weightVal:'', weightUnit:'lb', currentWeight:'', age:'', bloodType:'', diet:[], goals:[] };
+
+const obSteps = [
+  {
+    render() {
+      return `
+        <div>
+          <div style="font-size:1.8rem;margin-bottom:.35rem">👋</div>
+          <div class="onboard-title">Let's get to know you</div>
+          <div class="onboard-sub">We'll personalise Bloom for your journey. Takes 30 seconds.</div>
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.38rem">Your first name</div>
+          <input class="auth-input" id="ob-name" placeholder="e.g. Jessica" value="${obData.name}">
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.38rem">Baby's due date</div>
+          <input class="auth-input" id="ob-due" type="date" value="${obData.dueDate}">
+        </div>`;
+    },
+    save() {
+      obData.name    = document.getElementById('ob-name').value.trim() || 'Customer';
+      obData.dueDate = document.getElementById('ob-due').value;
+    }
+  },
+  {
+    render() {
+      const opts = ["👶 Yes, first baby!","🤱 No, I've done this before"];
+      return `
+        <div>
+          <div style="font-size:1.8rem;margin-bottom:.35rem">✨</div>
+          <div class="onboard-title">Tell us about your baby</div>
+          <div class="onboard-sub">This helps us tailor tips and support for where you are.</div>
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.38rem">Baby's nickname / name <span style="font-weight:400;color:var(--ink-muted)">(optional)</span></div>
+          <input class="auth-input" id="ob-baby" placeholder="e.g. Sprout, Lily, or leave blank" value="${obData.babyName}">
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.5rem">Is this your first baby?</div>
+          <div class="option-chips">
+            ${opts.map(o=>`<button class="option-chip${obData.firstBaby===o?' selected':''}" onclick="pickFirst(this,'${o}')">${o}</button>`).join('')}
+          </div>
+        </div>`;
+    },
+    save() {
+      obData.babyName = document.getElementById('ob-baby').value.trim();
+    }
+  },
+  {
+    render() {
+      const ftOpts = [4,5,6].map(f=>`<option value="${f}" ${obData.heightFt==f?'selected':''}>${f} ft</option>`).join('');
+      const inOpts = [0,1,2,3,4,5,6,7,8,9,10,11].map(i=>`<option value="${i}" ${obData.heightIn==i?'selected':''}>${i} in</option>`).join('');
+      const bloods = ['','A+','A−','B+','B−','AB+','AB−','O+','O−'];
+      return `
+        <div>
+          <div style="font-size:1.8rem;margin-bottom:.35rem">📏</div>
+          <div class="onboard-title">About your body</div>
+          <div class="onboard-sub">Personalises your calorie targets, weight-gain guidance, and health tips.</div>
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.38rem">Height</div>
+          <div style="display:flex;gap:.4rem">
+            <select class="auth-input" id="ob-hft" style="flex:1">${ftOpts}</select>
+            <select class="auth-input" id="ob-hin" style="flex:1">${inOpts}</select>
+          </div>
+        </div>
+        <div>
+          <div class="sec-title" style="margin-bottom:.38rem">Pre-pregnancy weight</div>
+          <div style="display:flex;gap:.4rem">
+            <input class="auth-input" id="ob-wt" type="number" placeholder="e.g. 140" value="${obData.weightVal}" style="flex:1;min-width:0">
+            <select class="auth-input" id="ob-wtunit" style="flex:0 0 56px">
+              <option value="lb" ${obData.weightUnit!=='kg'?'selected':''}>lb</option>
+              <option value="kg" ${obData.weightUnit==='kg'?'selected':''}>kg</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <div style="flex:1">
+            <div class="sec-title" style="margin-bottom:.38rem">Your age</div>
+            <input class="auth-input" id="ob-age" type="number" placeholder="e.g. 28" value="${obData.age}">
+          </div>
+          <div style="flex:1">
+            <div class="sec-title" style="margin-bottom:.38rem">Blood type <span style="font-weight:400;color:var(--ink-muted)">(opt.)</span></div>
+            <select class="auth-input" id="ob-blood">
+              ${bloods.map(t=>`<option value="${t}" ${obData.bloodType===t?'selected':''}>${t||'Unknown'}</option>`).join('')}
+            </select>
+          </div>
+        </div>`;
+    },
+    save() {
+      obData.heightFt  = document.getElementById('ob-hft').value;
+      obData.heightIn  = document.getElementById('ob-hin').value;
+      obData.weightVal = document.getElementById('ob-wt').value;
+      obData.weightUnit= document.getElementById('ob-wtunit').value;
+      obData.age       = document.getElementById('ob-age').value;
+      obData.bloodType = document.getElementById('ob-blood').value;
+    }
+  },
+  {
+    render() {
+      const opts = ['🫒 Mediterranean','🥦 Vegetarian','🌱 Vegan','🥩 Omnivore','🥛 Dairy-free','🌾 Gluten-free','🦐 No shellfish','🥜 No nuts'];
+      return `
+        <div>
+          <div style="font-size:1.8rem;margin-bottom:.35rem">🥗</div>
+          <div class="onboard-title">Dietary preferences?</div>
+          <div class="onboard-sub">Select all that apply — we'll build your meal plan around these.</div>
+        </div>
+        <div class="option-chips">
+          ${opts.map(d=>`<button class="option-chip${obData.diet.includes(d)?' selected':''}" onclick="toggleOpt(this,'diet','${d}')">${d}</button>`).join('')}
+        </div>`;
+    },
+    save() {}
+  },
+  {
+    render() {
+      const opts = ['🥗 Nutrition','❤️ Symptoms','👶 Baby dev','😴 Sleep tips','💬 Doctor prep','🌸 Wellness','🏃 Fitness','💊 Supplements'];
+      return `
+        <div>
+          <div style="font-size:1.8rem;margin-bottom:.35rem">🎯</div>
+          <div class="onboard-title">What matters most?</div>
+          <div class="onboard-sub">Pick your top priorities — we'll highlight these throughout the app.</div>
+        </div>
+        <div class="option-chips">
+          ${opts.map(g=>`<button class="option-chip${obData.goals.includes(g)?' selected':''}" onclick="toggleOpt(this,'goals','${g}')">${g}</button>`).join('')}
+        </div>`;
+    },
+    save() {}
+  }
+];
+
+function pickFirst(el, val) {
+  document.querySelectorAll('#onboardContent .option-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  obData.firstBaby = val;
+}
+
+function renderObStep() {
+  document.getElementById('onboardContent').innerHTML = obSteps[obStep].render();
+  document.getElementById('stepDots').innerHTML = obSteps.map((_,i)=>
+    `<div class="step-dot${i===obStep?' active':''}"></div>`).join('');
+  document.getElementById('onboardBackBtn').hidden = false;
+  document.getElementById('onboardBackBtn').textContent = obStep === 0 ? '← Back' : '← Back';
+  document.getElementById('onboardNextBtn').textContent =
+    obStep === obSteps.length-1 ? "Let's go! 🌸" : 'Continue →';
+}
+
+function toggleOpt(el, key, val) {
+  el.classList.toggle('selected');
+  const a = obData[key];
+  if (el.classList.contains('selected')) { if (!a.includes(val)) a.push(val); }
+  else { const i=a.indexOf(val); if(i>-1) a.splice(i,1); }
+}
+
+function showScreen(name) {
+  ['welcome','login','onboard'].forEach(id => {
+    const el = document.getElementById('screen-' + id);
+    if (el) el.hidden = (id !== name);
+  });
+  if (name === 'onboard') { obStep = 0; renderObStep(); }
+}
+
+function goToOnboard() { showScreen('onboard'); }
+
+function onboardBack() {
+  if (obStep > 0) { obStep--; renderObStep(); }
+  else { showScreen('welcome'); }
+}
+
+function onboardNext() {
+  obSteps[obStep].save();
+  if (obStep < obSteps.length-1) { obStep++; renderObStep(); }
+  else finishOnboard();
+}
+
+function handleSignIn() {
+  const email = document.getElementById('loginEmail').value.trim();
+  if (!email) { alert('Please enter your email address.'); return; }
+  const name = obData.name && obData.name !== 'Customer'
+    ? obData.name
+    : (email.split('@')[0].replace(/[._-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) || 'Customer');
+  launchApp(name, obData.dueDate || '');
+}
+
+function finishOnboard() {
+  obSteps[obStep].save();
+  launchApp(obData.name, obData.dueDate);
+}
+
+/* ── Lookup tables ──────────────────────────────── */
+const wkSizes = {
+  6:{l:'¼″',w:'<1oz'},8:{l:'0.6″',w:'<1oz'},10:{l:'1.2″',w:'<1oz'},
+  12:{l:'2.1″',w:'0.5oz'},14:{l:'3.4″',w:'1.5oz'},16:{l:'4.6″',w:'3.5oz'},
+  18:{l:'5.6″',w:'6.7oz'},20:{l:'6.5″',w:'10.6oz'},22:{l:'7.6″',w:'15oz'},
+  24:{l:'8.7″',w:'1.3lb'},26:{l:'9.6″',w:'1.7lb'},28:{l:'10.2″',w:'2.2lb'},
+  30:{l:'10.8″',w:'2.9lb'},32:{l:'11.4″',w:'3.9lb'},34:{l:'11.8″',w:'4.7lb'},
+  36:{l:'12.6″',w:'5.8lb'},38:{l:'13.4″',w:'6.8lb'},40:{l:'14.0″',w:'7.5lb'}
+};
+
+const babyWeekData = {
+  6: {fruit:'sweet pea',        desc:'The neural tube is forming. Heart is starting to beat!'},
+  8: {fruit:'raspberry',        desc:'Major organs are forming. Tiny fingers and toes are appearing!'},
+  10:{fruit:'prune',            desc:'Baby can now swallow! Tooth buds are forming beneath the gums.'},
+  12:{fruit:'lime',             desc:'Reflexes are developing. Fingernails and kidneys are in action!'},
+  14:{fruit:'lemon',            desc:'Baby can squint, frown and grimace. Tiny hairs are appearing!'},
+  16:{fruit:'avocado',          desc:'Baby can now hear! They may respond to your voice and music.'},
+  18:{fruit:'sweet potato',     desc:'Facial muscles developing — your baby can make expressions and suck their thumb.'},
+  20:{fruit:'banana',           desc:'Halfway there! Baby is swallowing and taste buds are fully formed.'},
+  22:{fruit:'papaya',           desc:'Baby has eyebrows and eyelashes now. Grip is developing!'},
+  24:{fruit:'corn cob',         desc:'Lungs are forming air sacs. Brain is developing rapidly this week!'},
+  26:{fruit:'scallion',         desc:'Eyes are opening for the first time! Baby is practising breathing.'},
+  28:{fruit:'eggplant',         desc:'Brain waves are active. Baby can blink and may be dreaming!'},
+  30:{fruit:'cabbage',          desc:'Baby is putting on fat. Movements may feel more rolling than jabbing now.'},
+  32:{fruit:'butternut squash', desc:'Lungs and digestive system are nearly mature. Baby is gaining fast!'},
+  34:{fruit:'cantaloupe',       desc:'Baby sleeps 90% of the time. Immune system is strengthening!'},
+  36:{fruit:'honeydew melon',   desc:'Baby is likely head-down. Almost full term — you\'re nearly there!'},
+  38:{fruit:'pumpkin',          desc:'Baby\'s reflexes are fully coordinated and ready for birth!'},
+  40:{fruit:'watermelon',       desc:'You made it! Baby is full term and ready to meet you!'},
+};
+
+const goalsByPriority = {
+  '🥗 Nutrition': wk => ['Take prenatal vitamin with breakfast','Include an iron-rich food at lunch','Drink 8+ glasses of water today'],
+  '❤️ Symptoms':  wk => ['Log any new symptoms today','Rate your energy level (1–10)', wk>=28?'Track kicks for 2 hours':'Note any changes for next visit'],
+  '👶 Baby dev':  wk => [`Read about Week ${wk} baby development`,'Talk or sing to your bump today','Note any kicks or movements'],
+  '😴 Sleep tips':wk => ['Aim for 8+ hours tonight','Try sleeping on your left side','Wind down 30 min before bed — no screens'],
+  '💬 Doctor prep':wk=>['Add a question to your Doctor Qs list','Review your next appointment details','Note any concerns to raise with your provider'],
+  '🌸 Wellness':  wk => ['5-min breathing or mindfulness exercise','Write 3 things you\'re grateful for today','Connect with someone you love'],
+  '🏃 Fitness':   wk => ['30 min prenatal-safe movement today',wk<28?'Try prenatal yoga':'Gentle walk after meals','Pelvic floor exercises — 10 Kegels'],
+  '💊 Supplements':wk=>['Take DHA / omega-3 supplement','Confirm iron levels are on track','Review supplement list with your provider'],
+};
+
+const weekTips = {
+  default: 'Stay hydrated, rest when you need to, and remember to take your prenatal vitamin each day.',
+  4:  'Your baby is now the size of a poppy seed. Folic acid is crucial right now — keep taking your prenatal vitamin daily.',
+  8:  'Morning sickness may peak around now. Small, frequent meals and ginger tea can help ease nausea.',
+  10: 'Your baby's vital organs are forming. Avoid alcohol, smoking, and unnecessary medications.',
+  12: 'End of the first trimester! Risk of miscarriage drops significantly after this week.',
+  13: 'You may feel your energy returning. Gentle prenatal exercise is safe and beneficial.',
+  16: 'Some people feel first movements around now — like a gentle flutter. Every pregnancy is different.',
+  18: 'Sleep on your left side to improve blood flow to your baby and reduce pressure on your organs. A pillow between your knees helps.',
+  20: 'You\'re halfway there! Your anatomy scan around this time checks growth and development.',
+  24: 'Your baby can now hear your voice. Talk, sing, and read aloud — they recognize familiar sounds at birth.',
+  28: 'Third trimester begins! Start counting kick counts — 10 movements in 2 hours is a reassuring sign.',
+  30: 'You may notice Braxton Hicks contractions — practice contractions that are irregular and don\'t intensify.',
+  32: 'Your baby is gaining about half a pound a week now. Make sure you\'re getting enough iron and protein.',
+  36: 'Your baby is considered full-term at 37 weeks. Pack your hospital bag and review your birth plan.',
+  38: 'You could meet your baby any day now. Rest as much as you can and watch for labor signs.',
+  40: 'Your due date is here! If labor hasn\'t started, your provider may discuss induction options.',
+};
+
+function renderTodayTip(wk) {
+  const label = document.getElementById('todayTipLabel');
+  const text  = document.getElementById('todayTipText');
+  if (!label || !text) return;
+  const keys = Object.keys(weekTips).map(Number).filter(k=>k!==0&&!isNaN(k)).sort((a,b)=>a-b);
+  let tip = weekTips.default;
+  for (const k of keys) { if (wk >= k) tip = weekTips[k]; }
+  label.textContent = `Week ${wk} tip`;
+  text.textContent  = tip;
+}
+
+function renderTodayAppt() {
+  const el = document.getElementById('todayApptCard');
+  if (!el) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const upcoming = appts
+    .map(a=>({ ...a, d: new Date(a.date+'T00:00:00') }))
+    .filter(a=>a.d >= today)
+    .sort((a,b)=>a.d-b.d)[0];
+  if (!upcoming) { el.innerHTML=''; return; }
+  const diff = Math.round((upcoming.d - today)/(24*60*60*1000));
+  const when = diff===0?'Today':diff===1?'Tomorrow':`${diff} days`;
+  el.innerHTML = `<div class="card lime">
+    <div class="appt">
+      <div class="appt-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--lime-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div><div class="appt-t">${upcoming.name} · ${when}</div><div class="appt-s">${upcoming.dr||'Doctor'}</div></div>
+      <button class="appt-btn" onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);showMeSection('docqs')">Prep Qs →</button>
+    </div>
+  </div>`;
+}
+
+function refreshDashboard() {
+  const name     = obData.name || 'Customer';
+  const dueDate  = obData.dueDate;
+
+  // Greeting
+  const hr = new Date().getHours();
+  const sal = hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+  document.querySelectorAll('.greeting').forEach(el=>{el.innerHTML=`${sal}, <em>${name}</em>`;});
+
+  // Name + avatar
+  document.querySelectorAll('.profile-name').forEach(el=>el.textContent=name);
+  const initial = name.charAt(0).toUpperCase();
+  const pa = document.getElementById('profileAvatar');  if(pa) pa.textContent=initial;
+  const ha = document.querySelector('.header-avatar');   if(ha) ha.textContent=initial;
+
+  let wk = 18; // default
+  if (dueDate) {
+    const due      = new Date(dueDate);
+    const today    = new Date();
+    const daysIn   = Math.round((today - new Date(due.getTime()-280*24*60*60*1000))/86400000);
+    const weeksLeft= Math.round((due-today)/(7*24*60*60*1000));
+    wk = Math.max(1,Math.min(40,40-weeksLeft));
+    const tri    = wk<=13?'First':wk<=26?'Second':'Third';
+    const triKey = wk<=13?'1':wk<=26?'2':'3';
+
+    // Week chip + header badge
+    document.querySelector('.week-chip').textContent = `Week ${wk} · ${tri} Trimester`;
+    if(typeof badges!=='undefined'){badges.today=`Wk ${wk} · T${triKey}`;}
+    const hb=document.getElementById('headerBadge'); if(hb) hb.textContent=`Wk ${wk} · T${triKey}`;
+
+    // Profile sub #0
+    document.querySelectorAll('.profile-sub').forEach((el,i)=>{
+      if(i===0) el.textContent=`Due ${due.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · Week ${wk} · T${triKey}`;
+    });
+
+    // Baby card text
+    const wkKeys = Object.keys(babyWeekData).map(Number);
+    const nwk = wkKeys.reduce((a,b)=>Math.abs(b-wk)<Math.abs(a-wk)?b:a);
+    const bd  = babyWeekData[nwk];
+    const bt  = document.querySelector('.baby-title'); if(bt) bt.textContent=`Your baby is a ${bd.fruit}`;
+    const bs  = document.querySelector('.baby-size');  if(bs) bs.textContent=bd.desc;
+
+    // Baby stats
+    const wkKeys2 = Object.keys(wkSizes).map(Number);
+    const nsz = wkKeys2.reduce((a,b)=>Math.abs(b-wk)<Math.abs(a-wk)?b:a);
+    const sz  = wkSizes[nsz];
+    const le=document.getElementById('babyLen'); if(le) le.textContent=sz.l;
+    const we=document.getElementById('babyWt');  if(we) we.textContent=sz.w;
+    const de=document.getElementById('babyDays');if(de) de.textContent=Math.max(0,daysIn);
+
+    // Progress bar
+    const pf=document.getElementById('progFill');  if(pf) pf.style.width=Math.round(wk/40*100)+'%';
+    const pl=document.getElementById('progLabel'); if(pl) pl.innerHTML=`<span>Week ${wk} of 40</span><span>${Math.max(0,weeksLeft)} weeks left</span>`;
+    const pn=document.getElementById('progNote');  if(pn) pn.textContent=`Due date: ${due.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`;
+
+    // Kick counter
+    const kt=document.getElementById('kickTitle'); if(kt) kt.textContent=`Kick Counter · Week ${wk}`;
+  }
+
+  // Diet line on profile card
+  const dietEl=document.getElementById('profileDiet');
+  if(dietEl){
+    const dl=obData.diet.map(d=>d.replace(/^[\S]+\s/,''));
+    dietEl.textContent=dl.length?dl.join(' · '):'No dietary preferences set';
+  }
+
+  // Calorie estimate
+  const bodyEl=document.getElementById('profileBody');
+  const kcalEl=document.getElementById('mealKcalSub');
+  if(obData.weightVal && obData.age){
+    const hcm=(parseInt(obData.heightFt||5)*12+parseInt(obData.heightIn||4))*2.54;
+    const wkg=obData.weightUnit==='kg'?parseFloat(obData.weightVal):parseFloat(obData.weightVal)*0.4536;
+    const age=parseInt(obData.age);
+    const bmr=10*wkg+6.25*hcm-5*age-161;
+    const add=wk<=13?0:wk<=26?340:452;
+    const kcal=Math.round(bmr*1.4)+add;
+    if(kcalEl){kcalEl.textContent=`~${kcal.toLocaleString()} kcal target`;kcalEl.hidden=false;}
+    const hStr=`${obData.heightFt}′${obData.heightIn}″`;
+    const wStr=obData.weightVal+' '+obData.weightUnit;
+    const parts=[hStr,wStr,obData.bloodType?`Blood ${obData.bloodType}`:''].filter(Boolean);
+    if(bodyEl){bodyEl.textContent=parts.join(' · ');bodyEl.style.display='';}
+  } else {
+    if(kcalEl) kcalEl.hidden=true;
+    if(bodyEl) bodyEl.style.display='none';
+  }
+
+  // Goals list
+  const goalList=document.getElementById('goalList');
+  if(goalList){
+    let items=[];
+    if(obData.goals.length){
+      obData.goals.forEach(g=>{const fn=goalsByPriority[g];if(fn&&items.length<3)items.push(fn(wk)[0]);});
+      if(items.length<3) obData.goals.forEach(g=>{
+        const fn=goalsByPriority[g];
+        if(fn) fn(wk).slice(1).forEach(t=>{if(items.length<3)items.push(t);});
+      });
+    }
+    if(!items.length) items=['Take prenatal vitamin with breakfast','Drink 8 glasses of water today',wk>=28?'Count kicks for 2 hours':'30 min prenatal-safe movement'];
+    goalList.innerHTML=items.slice(0,3).map(t=>`
+      <div class="goal-item" onclick="toggleGoal(this)">
+        <div class="goal-check"></div>
+        <div class="goal-text">${t}</div>
+        <span class="goal-badge">Wk ${wk}</span>
+      </div>`).join('');
+  }
+
+  // Diet & Goals view in Me screen
+  const dgDV=document.getElementById('dgDietView');
+  if(dgDV){const dl=obData.diet.map(d=>d.replace(/^[\S]+\s/,''));dgDV.textContent=dl.length?dl.join(', '):'None set — tap Edit to add preferences.';}
+  const dgGV=document.getElementById('dgGoalsView');
+  if(dgGV){const gl=obData.goals.map(g=>g.replace(/^[\S]+\s/,''));dgGV.textContent=gl.length?gl.join(', '):'None set — tap Edit to set priorities.';}
+
+  // Body profile tiles
+  renderBodyView();
+
+  // Today screen dynamic sections
+  renderTodayAppt();
+  renderTodayTip(wk);
+}
+
+function launchApp(name, dueDate) {
+  obData.name    = name    || obData.name;
+  obData.dueDate = dueDate || obData.dueDate;
+  saveState();
+  // Show app view
+  document.getElementById('loginView').hidden = true;
+  document.getElementById('appView').hidden   = false;
+  document.getElementById('chat-fab').hidden  = false;
+  refreshDashboard();
+  renderDocQs();
+  renderAppts();
+  // Wire scroll hint to active screen
+  const initScr = document.querySelector('.screen.active');
+  if (initScr) {
+    initScr.scrollTop = 0;
+    updateScrollHint(initScr);
+    initScr.onscroll = () => updateScrollHint(initScr);
+  }
+}
+
+/* ── Profile edit ───────────────────────────────── */
+function profileEdit() {
+  document.getElementById('pf-name').value = obData.name    || '';
+  document.getElementById('pf-baby').value = obData.babyName|| '';
+  document.getElementById('pf-due').value  = obData.dueDate || '';
+  document.getElementById('profileEditForm').style.display = '';
+  document.getElementById('profileEditBtn').style.display  = 'none';
+}
+function profileCancel() {
+  document.getElementById('profileEditForm').style.display = 'none';
+  document.getElementById('profileEditBtn').style.display  = '';
+}
+function profileSave() {
+  obData.name     = document.getElementById('pf-name').value.trim() || 'Customer';
+  obData.babyName = document.getElementById('pf-baby').value.trim();
+  obData.dueDate  = document.getElementById('pf-due').value;
+  profileCancel();
+  refreshDashboard();
+  saveState();
+}
+
+/* ── Diet & Goals edit ──────────────────────────── */
+const dietOpts  = ['🫒 Mediterranean','🥦 Vegetarian','🌱 Vegan','🥩 Omnivore','🥛 Dairy-free','🌾 Gluten-free','🦐 No shellfish','🥜 No nuts'];
+const goalsOpts = ['🥗 Nutrition','❤️ Symptoms','👶 Baby dev','😴 Sleep tips','💬 Doctor prep','🌸 Wellness','🏃 Fitness','💊 Supplements'];
+
+function dgEdit() {
+  const dc = document.getElementById('dgDietChips');
+  const gc = document.getElementById('dgGoalChips');
+  if(dc) dc.innerHTML = dietOpts.map(d=>`<button class="option-chip${obData.diet.includes(d)?' selected':''}" onclick="dgToggle(this,'diet','${d.replace(/'/g,"\\'")}')">${d}</button>`).join('');
+  if(gc) gc.innerHTML = goalsOpts.map(g=>`<button class="option-chip${obData.goals.includes(g)?' selected':''}" onclick="dgToggle(this,'goals','${g.replace(/'/g,"\\'")}')">${g}</button>`).join('');
+  document.getElementById('dgEditForm').style.display = '';
+  document.getElementById('dgView').style.display     = 'none';
+  document.getElementById('dgEditBtn').style.display  = 'none';
+}
+function dgToggle(el, key, val) {
+  el.classList.toggle('selected');
+  const a = obData[key];
+  if(el.classList.contains('selected')){if(!a.includes(val))a.push(val);}
+  else{const i=a.indexOf(val);if(i>-1)a.splice(i,1);}
+}
+function dgCancel() {
+  document.getElementById('dgEditForm').style.display = 'none';
+  document.getElementById('dgView').style.display     = '';
+  document.getElementById('dgEditBtn').style.display  = '';
+}
+function dgSave() {
+  dgCancel();
+  refreshDashboard();
+  saveState();
+}
+
+/* ── Goals ─────────────────────────────────────── */
+function haptic(type='LIGHT') {
+  try { if (window.Capacitor) Capacitor.Plugins.Haptics.impact({ style: type }); } catch(e) {}
+}
+
+function toggleGoal(el) {
+  el.classList.toggle('done');
+  const check = el.querySelector('.goal-check');
+  check.textContent = el.classList.contains('done') ? '✓' : '';
+  haptic('MEDIUM');
+}
+
+/* ── Navigation ────────────────────────────────── */
+const badges = { today:'Wk 18 · T2', meals:'Meal Plan', health:'Health Check', schedule:'Schedule', me:'My Profile' };
+
+function switchScreen(id, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const scr = document.getElementById('screen-'+id);
+  scr.classList.add('active');
+  scr.scrollTop = 0;
+  if (btn) btn.classList.add('active');
+  document.getElementById('headerBadge').textContent = badges[id];
+  document.getElementById('fmapDrawer').hidden = true;
+  updateScrollHint(scr);
+  scr.onscroll = () => updateScrollHint(scr);
+}
+
+function updateScrollHint(scr) {
+  const hint = document.getElementById('scrollHint');
+  if (!hint) return;
+  const atBottom = scr.scrollTop + scr.clientHeight >= scr.scrollHeight - 20;
+  hint.hidden = atBottom;
+}
+
+function showMeSection(section) {
+  jumpMe(section, null);
+}
+
+const mePillNames = {
+  profile:'Profile', body:'Body', dietgoals:'Diet & Goals', appointments:'Appointments',
+  docqs:'Doctor Qs', vaccines:'Vaccines', recovery:'Recovery', pricing:'Plans'
+};
+
+/* ── Body Profile panel ──────────────────────────── */
+// Recommended weight gain ranges by pre-preg BMI (IOM guidelines, lb)
+const gainRanges = [
+  { max:18.5, label:'Underweight', range:'28–40 lb' },
+  { max:24.9, label:'Normal weight', range:'25–35 lb' },
+  { max:29.9, label:'Overweight', range:'15–25 lb' },
+  { max:999,  label:'Obese', range:'11–20 lb' },
+];
+
+function renderBodyView() {
+  const hFt = parseInt(obData.heightFt||5), hIn = parseInt(obData.heightIn||4);
+  const hStr = hFt && hIn !== undefined ? `${hFt}′ ${hIn}″` : '—';
+  const preWt = parseFloat(obData.weightVal);
+  const currWt = parseFloat(obData.currentWeight||0);
+  const unit = obData.weightUnit || 'lb';
+
+  document.getElementById('bsHeight').textContent = hFt ? hStr : '—';
+  document.getElementById('bsPreWt').textContent  = preWt ? `${preWt} ${unit}` : '—';
+  document.getElementById('bsAge').textContent    = obData.age ? `${obData.age} yrs` : '—';
+  document.getElementById('bsBlood').textContent  = obData.bloodType || '—';
+
+  if (obData.currentWeight) {
+    document.getElementById('bsCurrWt').textContent = `${obData.currentWeight} ${unit}`;
+    const gain = (parseFloat(obData.currentWeight) - preWt);
+    const gainStr = gain >= 0 ? `+${gain.toFixed(1)} ${unit}` : `${gain.toFixed(1)} ${unit}`;
+    document.getElementById('bsGain').textContent = preWt ? gainStr : '—';
+  } else {
+    document.getElementById('bsCurrWt').textContent = '—';
+    document.getElementById('bsGain').textContent = '—';
+  }
+
+  // BMI from pre-pregnancy weight
+  const noteEl = document.getElementById('bsGainNote');
+  if (preWt && hFt) {
+    const heightCm = (hFt*12 + (parseInt(obData.heightIn)||0)) * 2.54;
+    const wtKg = unit === 'kg' ? preWt : preWt * 0.4536;
+    const bmi = wtKg / ((heightCm/100)**2);
+    const cat = gainRanges.find(r => bmi < r.max);
+    document.getElementById('bsBmi').textContent = `${bmi.toFixed(1)} (${cat.label})`;
+    noteEl.textContent = `Recommended weight gain: ${cat.range} total. You're currently ${obData.currentWeight ? document.getElementById('bsGain').textContent : 'not yet tracked'}.`;
+    noteEl.style.display = '';
+  } else {
+    document.getElementById('bsBmi').textContent = '—';
+    noteEl.style.display = 'none';
+  }
+}
+
+function bodyEdit() {
+  const form = document.getElementById('bodyEditForm');
+  const view = document.getElementById('bodyView');
+  // Populate form from obData
+  const hftEl = document.getElementById('bf-hft');
+  const hinEl = document.getElementById('bf-hin');
+  if (hftEl) hftEl.value = obData.heightFt || '5';
+  if (hinEl) hinEl.value = obData.heightIn  || '4';
+  const ageEl = document.getElementById('bf-age');
+  if (ageEl) ageEl.value = obData.age || '';
+  const preEl = document.getElementById('bf-prewt');
+  if (preEl) preEl.value = obData.weightVal || '';
+  const curEl = document.getElementById('bf-currwt');
+  if (curEl) curEl.value = obData.currentWeight || '';
+  const wuEl = document.getElementById('bf-wtunit');
+  if (wuEl) wuEl.value = obData.weightUnit || 'lb';
+  const blEl = document.getElementById('bf-blood');
+  if (blEl) blEl.value = obData.bloodType || '';
+  form.style.display = ''; view.style.display = 'none';
+  document.getElementById('bodyEditBtn').style.display = 'none';
+}
+
+function bodyCancel() {
+  document.getElementById('bodyEditForm').style.display = 'none';
+  document.getElementById('bodyView').style.display = '';
+  document.getElementById('bodyEditBtn').style.display = '';
+}
+
+function bodySave() {
+  obData.heightFt     = document.getElementById('bf-hft').value;
+  obData.heightIn     = document.getElementById('bf-hin').value;
+  obData.age          = document.getElementById('bf-age').value;
+  obData.weightVal    = document.getElementById('bf-prewt').value;
+  obData.currentWeight= document.getElementById('bf-currwt').value;
+  obData.weightUnit   = document.getElementById('bf-wtunit').value;
+  obData.bloodType    = document.getElementById('bf-blood').value;
+  bodyCancel();
+  refreshDashboard();
+  saveState();
+}
+
+function jumpMe(section, pillEl) {
+  document.querySelectorAll('.me-sec-pill').forEach(p => p.classList.remove('active'));
+  if (pillEl) {
+    pillEl.classList.add('active');
+  } else {
+    const name = mePillNames[section];
+    if (name) document.querySelectorAll('.me-sec-pill').forEach(p => {
+      if (p.textContent.trim() === name) p.classList.add('active');
+    });
+  }
+  const el = document.getElementById('me-'+section);
+  if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function toggleFmap() {
+  const d = document.getElementById('fmapDrawer');
+  d.hidden = !d.hidden;
+}
+
+function toggleGoalDemo() {
+  switchScreen('today', document.querySelectorAll('.tab')[0]);
+  // Toggle first unchecked goal
+  const items = document.querySelectorAll('.goal-item:not(.done)');
+  if (items.length) toggleGoal(items[0]);
+  else document.querySelectorAll('.goal-item').forEach(el => {
+    el.classList.remove('done');
+    el.querySelector('.goal-check').textContent = '';
+  });
+}
+
+/* ── Health sub-nav ────────────────────────────── */
+function switchHealth(panel, btn) {
+  document.querySelectorAll('.health-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sub-nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('hp-'+panel).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+/* ── Meals ─────────────────────────────────────── */
+const days = [
+  { name:'Mon',date:8,
+    b:{n:'Oatmeal with berries & flax',k:380,p:14},
+    l:{n:'Chickpea & vegetable soup',k:490,p:18},
+    d:{n:'Herb chicken, quinoa & greens',k:620,p:42},
+    s:{n:'Apple with almond butter',k:210,p:5} },
+  { name:'Tue',date:9,
+    b:{n:'Avocado toast & soft-boiled eggs',k:430,p:22},
+    l:{n:'Quinoa & roasted veg salad',k:470,p:16},
+    d:{n:'Baked cod with sweet potato',k:580,p:38},
+    s:{n:'Greek yogurt with walnuts',k:200,p:12} },
+  { name:'Wed',date:10,
+    b:{n:'Smoothie bowl with granola',k:410,p:16},
+    l:{n:'Hummus & whole-grain wrap',k:510,p:20},
+    d:{n:'Turkey meatballs & pasta',k:650,p:40},
+    s:{n:'Orange & mixed nuts',k:190,p:5} },
+  { name:'Thu',date:11,today:true,
+    b:{n:'Greek yogurt bowl, berries & granola',k:395,p:24},
+    l:{n:'Spinach & lentil soup + bread',k:512,p:22},
+    d:{n:'Salmon, roasted sweet potato & broccoli',k:648,p:38},
+    s:{n:'Apple with almond butter',k:245,p:8} },
+  { name:'Fri',date:12,
+    b:{n:'Whole-grain banana pancakes',k:420,p:14},
+    l:{n:'Tuna & avocado salad',k:530,p:32},
+    d:{n:'Ginger chicken stir-fry & brown rice',k:610,p:36},
+    s:{n:'Cheese & whole-grain crackers',k:220,p:10} },
+  { name:'Sat',date:13,
+    b:{n:'Veggie omelette & sourdough',k:440,p:26},
+    l:{n:'Lentil & feta bowl',k:500,p:24},
+    d:{n:'Herb-baked salmon & asparagus',k:590,p:40},
+    s:{n:'Mango & cottage cheese',k:180,p:12} },
+  { name:'Sun',date:14,
+    b:{n:'Açaí bowl with seeds & fruit',k:400,p:12},
+    l:{n:'Tomato & white bean soup',k:460,p:20},
+    d:{n:'Slow-cooked chicken & root veg',k:600,p:44},
+    s:{n:'Date & nut energy balls ×2',k:230,p:6} },
+];
+
+const nutrients = [
+  {name:'Folate',icon:'🌿',color:'#22C55E',pcts:[82,74,90,88,78,85,80]},
+  {name:'Iron',  icon:'💪',color:'#EF4444',pcts:[68,72,80,76,65,75,70]},
+  {name:'Calcium',icon:'🦴',color:'#8B5CF6',pcts:[90,85,78,92,88,80,86]},
+  {name:'Omega-3',icon:'🐟',color:'#14B8A6',pcts:[55,80,60,75,65,85,50]},
+  {name:'Protein',icon:'⚡',color:'#F59E0B',pcts:[88,90,86,88,82,90,78]},
+];
+
+let activeDay = 3, activeStore = 'instacart';
+
+function buildDayStrip() {
+  document.getElementById('dayStrip').innerHTML = days.map((d,i) => `
+    <div class="day-chip${i===activeDay?' active':''}" onclick="selectDay(${i})">
+      <span class="dn">${d.name}</span><span class="dd">${d.date}</span>
+    </div>`).join('');
+}
+
+function selectDay(i) {
+  activeDay = i;
+  renderMeals(i);
+  renderNutrients(i);
+  document.querySelectorAll('.day-chip').forEach((c,j)=>c.classList.toggle('active',j===i));
+}
+
+function renderNutrients(i) {
+  document.getElementById('nutrientStrip').innerHTML = nutrients.map(n => {
+    const pct = n.pcts[i];
+    return `<div class="nutrient-pill">
+      <div style="width:9px;height:9px;border-radius:50%;background:${n.color};margin:0 auto"></div>
+      <div class="np-name">${n.name}</div>
+      <div class="np-bar-track"><div class="np-bar-fill" style="width:${pct}%;background:${n.color}"></div></div>
+      <div class="np-pct" style="color:${pct>=80?n.color:'var(--ink-muted)'}">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderMeals(i) {
+  const d = days[i];
+  const tk = d.b.k+d.l.k+d.d.k+d.s.k, tp = d.b.p+d.l.p+d.d.p+d.s.p;
+  document.getElementById('mealsCard').innerHTML = `
+    <div class="sec-title">${d.today?'Today':d.name}'s plan · Mediterranean focus</div>
+    ${[['Breakfast',d.b],['Lunch',d.l],['Dinner',d.d],['Snack',d.s]].map(([label,m],j)=>`
+      <div class="meal-block">
+        <div class="meal-type">${label}</div>
+        <div class="meal-name">${m.n}</div>
+        <div class="meal-macros">${m.k} kcal · ${m.p}g protein</div>
+      </div>${j<3?'<div class="divider"></div>':''}
+    `).join('')}`;
+  document.getElementById('macrosCard').innerHTML = `
+    <div class="sec-title">Daily Totals</div>
+    <div class="macro-row">
+      <div class="macro-pill"><span class="mp-val">${tk}</span><span class="mp-lbl">kcal</span></div>
+      <div class="macro-pill"><span class="mp-val">${tp}g</span><span class="mp-lbl">protein</span></div>
+      <div class="macro-pill"><span class="mp-val">${Math.round(tp*4/tk*100)}%</span><span class="mp-lbl">from protein</span></div>
+    </div>
+    <div style="font-size:.65rem;color:var(--ink-muted);margin-top:.4rem">
+      ${tk>=1800&&tk<=2200?'✓ Within your 1,800–2,200 kcal daily target':tk<1800?'↑ Below target — consider adding a snack':'↓ Above target — adjust portions if needed'}
+    </div>`;
+}
+
+function setStore(btn, store) {
+  activeStore = store;
+  document.querySelectorAll('.store-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('orderBtn').textContent = store === 'instacart'
+    ? 'Order via Instacart' : 'Order via Walmart Grocery';
+}
+
+function handleOrder() {
+  const url = activeStore === 'instacart'
+    ? 'https://www.instacart.com'
+    : 'https://www.walmart.com/grocery';
+  window.open(url, '_blank');
+}
+
+/* ── Symptoms ──────────────────────────────────── */
+const syms = [
+  {label:'Nausea',emoji:'🤢',level:'ok'},{label:'Fatigue',emoji:'😴',level:'ok'},
+  {label:'Back pain',emoji:'🔴',level:'ok'},{label:'Heartburn',emoji:'🔥',level:'ok'},
+  {label:'Mood swings',emoji:'😢',level:'ok'},{label:'Mild swelling',emoji:'🦶',level:'ok'},
+  {label:'Dizziness',emoji:'💫',level:'warn'},{label:'Severe headache',emoji:'🤕',level:'warn'},
+  {label:'Shortness of breath',emoji:'😮‍💨',level:'warn'},{label:'Spotting',emoji:'🩸',level:'warn'},
+  {label:'Heavy bleeding',emoji:'🚨',level:'urgent'},{label:'Chest pain',emoji:'💔',level:'urgent'},
+  {label:'No baby movement',emoji:'⚠️',level:'urgent'},{label:'High fever',emoji:'🌡️',level:'urgent'},
+];
+const selected = new Set();
+
+function buildSymGrid() {
+  const groups = [
+    {key:'ok',     label:'Common — usually normal',       cls:'ok-label'},
+    {key:'warn',   label:'Monitor closely — tell doctor', cls:'warn-label'},
+    {key:'urgent', label:'Call doctor now',               cls:'urgent-label'},
+  ];
+  document.getElementById('symGrid').innerHTML = groups.map(g => {
+    const chips = syms.map((s,i)=>s.level===g.key?`
+      <button class="sym-chip" onclick="toggleSym(${i},this)" data-level="${s.level}">
+        <span class="se">${s.emoji}</span>${s.label}
+      </button>`:''  ).join('');
+    return `<div class="sym-group-label ${g.cls}">${g.label}</div>
+            <div class="sym-grid" style="margin-bottom:.5rem">${chips}</div>`;
+  }).join('');
+}
+
+function toggleSym(i,el) {
+  if (selected.has(i)) { selected.delete(i); el.classList.remove('ok','warn','urgent'); }
+  else { selected.add(i); el.classList.add(syms[i].level); }
+  document.getElementById('checkBtn').disabled = selected.size===0;
+}
+
+function runTriage() {
+  const levels = [...selected].map(i=>syms[i].level);
+  const level = levels.includes('urgent')?'urgent':levels.includes('warn')?'warn':'ok';
+  const R = {
+    ok:     {title:'✓ Sounds Normal', body:'The symptoms you selected are common in the second trimester. Keep tracking and mention them at your next appointment if they persist.',action:"Add to doctor's questions →"},
+    warn:   {title:'⚠ Worth Monitoring', body:"Some of what you're experiencing is worth watching closely. If these symptoms intensify or don't resolve in a few hours, contact Dr. Rivera's nurse line today.",action:'Call nurse line'},
+    urgent: {title:'🚨 Contact Your Doctor Now', body:'One or more of your symptoms requires prompt attention. Please call your OB-GYN or go to labor & delivery triage immediately.',action:'Call Dr. Rivera →'},
+  };
+  const r = R[level];
+  const card = document.getElementById('resultCard');
+  card.className=`result-card ${level} visible`;
+  document.getElementById('resultTitle').textContent=r.title;
+  document.getElementById('resultBody').textContent=r.body;
+  const ra = document.getElementById('resultAction');
+  ra.textContent=r.action;
+  ra.onclick = level==='ok'
+    ? ()=>{ docQs.push('Follow-up on symptoms noted this week'); renderDocQs(); switchScreen('me',document.querySelectorAll('.tab')[4]); showMeSection('docqs'); }
+    : level==='warn'
+    ? ()=>alert('Nurse line: contact Dr. Rivera\'s office.\nIf after hours, use the after-hours paging number on your clinic card.')
+    : ()=>alert('Please call 911 or go to Labor & Delivery triage immediately.\nDo not drive yourself.');
+  document.getElementById('checkBtn').style.display='none';
+  document.getElementById('resetBtn').style.display='block';
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function resetTriage() {
+  selected.clear(); buildSymGrid();
+  document.getElementById('resultCard').className='result-card';
+  document.getElementById('checkBtn').style.display=''; document.getElementById('checkBtn').disabled=true;
+  document.getElementById('resetBtn').style.display='none';
+}
+
+/* ── Kick counter ──────────────────────────────── */
+let kickCount=0, kickStart=null, kickInterval=null, kickDone=false;
+
+function countKick() {
+  if (kickDone) return;
+  kickCount++;
+  document.getElementById('kickNum').textContent=kickCount;
+  document.getElementById('kickPercent').textContent=Math.min(100,Math.round(kickCount/10*100))+'%';
+  if (kickCount>=10) {
+    clearInterval(kickInterval);
+    kickDone=true;
+    const elapsed = Math.round((Date.now()-kickStart)/1000);
+    const m=Math.floor(elapsed/60), s=elapsed%60;
+    document.getElementById('kickTapBtn').disabled=true;
+    document.getElementById('kickSuccess').classList.add('visible');
+    document.getElementById('kickSuccessTitle').textContent=`10 kicks in ${m}:${s.toString().padStart(2,'0')} — great activity!`;
+    document.getElementById('kickSuccessBody').textContent = elapsed < 120
+      ? 'That\'s excellent! Quick response means your baby is very active and healthy.'
+      : 'Normal and healthy! Most babies reach 10 kicks within 2 hours.';
+  }
+}
+
+function startKick() {
+  kickStart=Date.now();
+  document.getElementById('kickStartBtn').textContent='⏸ Counting…';
+  document.getElementById('kickStartBtn').disabled=true;
+  document.getElementById('kickTapBtn').disabled=false;
+  kickInterval=setInterval(()=>{
+    const s=Math.round((Date.now()-kickStart)/1000);
+    document.getElementById('kickTimer').textContent=`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+  },1000);
+}
+
+function resetKick() {
+  clearInterval(kickInterval); kickInterval=null;
+  kickCount=0; kickStart=null; kickDone=false;
+  document.getElementById('kickNum').textContent='0';
+  document.getElementById('kickPercent').textContent='0%';
+  document.getElementById('kickTimer').textContent='0:00';
+  document.getElementById('kickTapBtn').disabled=true;
+  document.getElementById('kickStartBtn').disabled=false;
+  document.getElementById('kickStartBtn').textContent='▶ Start Session';
+  document.getElementById('kickSuccess').classList.remove('visible');
+}
+
+/* ── Mood check ────────────────────────────────── */
+const moodQs = [
+  {q:'Feeling hopeful or positive today?',opts:['Not really','Sometimes','Yes, mostly']},
+  {q:'How is your energy level?',opts:['Very low','Moderate','Good']},
+  {q:'Enjoying everyday activities?',opts:['Barely','Somewhat','Yes']},
+  {q:'Sleeping reasonably well?',opts:['Poorly','So-so','Well enough']},
+  {q:'Feeling connected to people you care about?',opts:['Isolated','OK','Connected']},
+];
+const moodAnswers = {};
+
+function buildMoodQs() {
+  document.getElementById('moodQsCard').innerHTML = moodQs.map((q,i)=>`
+    <div class="mood-q">
+      <div class="mood-q-text">${q.q}</div>
+      <div class="mood-opts">
+        ${q.opts.map((o,j)=>`
+          <button class="mood-opt" onclick="rateMood(${i},${j+1},this)">
+            <div>${j===0?'😔':j===1?'😐':'😊'}</div>
+            <div style="margin-top:.1rem;font-size:.58rem">${o}</div>
+          </button>`).join('')}
+      </div>
+    </div>${i<moodQs.length-1?'<div class="divider"></div>':''}`).join('');
+}
+
+function rateMood(q,val,btn) {
+  document.querySelectorAll(`.mood-opts`)[q].querySelectorAll('.mood-opt').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  moodAnswers[q]=val;
+  if (Object.keys(moodAnswers).length===moodQs.length) document.getElementById('moodSubmitBtn').classList.add('ready');
+}
+
+function submitMood() {
+  if (Object.keys(moodAnswers).length<moodQs.length) return;
+  const score = Object.values(moodAnswers).reduce((a,b)=>a+b,0);
+  const res = score>=12
+    ? {cls:'good',   title:'🌸 You\'re doing well', body:'Your responses suggest you\'re in a positive headspace today. Keep up the self-care routine — it\'s working. See you at tomorrow\'s check-in.',action:'Log a note →'}
+    : score>=8
+    ? {cls:'check',  title:'🤍 Having a mixed day', body:'Some days are harder than others, especially in the second trimester. Consider a short walk, reaching out to someone you love, or resting when you can.',action:'Find support resources →'}
+    : {cls:'concern',title:'💜 We\'re here for you', body:'Your responses suggest you may be experiencing some emotional difficulty. This is common and treatable — you\'re not alone. We strongly encourage talking to Dr. Rivera at your next visit or calling the Postpartum Support Helpline.',action:'Call PSI Helpline: 1-800-944-4773'};
+  const el = document.getElementById('ppdResult');
+  el.className=`ppd-result ${res.cls} visible`;
+  document.getElementById('ppdTitle').textContent=res.title;
+  document.getElementById('ppdBody').textContent=res.body;
+  const pa = document.getElementById('ppdAction');
+  pa.textContent=res.action;
+  pa.onclick = res.cls==='concern'
+    ? ()=>{ window.location.href='tel:18009444773'; }
+    : res.cls==='check'
+    ? ()=>{ pa.textContent='💙 Tips sent to your notes'; pa.disabled=true; }
+    : ()=>{ pa.textContent='✓ Note logged!'; pa.disabled=true; };
+  document.getElementById('moodSubmitBtn').style.display='none';
+  const retake = document.getElementById('moodRetakeBtn');
+  if (retake) retake.style.display='block';
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ── Schedule ──────────────────────────────────── */
+const schedules = [
+  { label:'Prenatal · Week 18', items:[
+    {time:'7:00',title:'Wake + prenatal vitamin',sub:'Take with food to reduce nausea',dot:'on'},
+    {time:'7:30',title:'Breakfast',sub:'High-protein focus',dot:'on'},
+    {time:'9:30',title:'Prenatal yoga / walk',sub:'30 min light movement',dot:'now',dur:'30 min'},
+    {time:'12:30',title:'Lunch',sub:'Largest meal of the day',dot:''},
+    {time:'2:00',title:'Rest period',sub:'Left-side rest · 15–20 min',dot:'',dur:'20 min'},
+    {time:'3:30',title:'Snack',sub:'Protein + complex carbs',dot:''},
+    {time:'6:00',title:'Dinner',sub:'Light, earlier than pre-pregnancy',dot:''},
+    {time:'8:00',title:'Evening walk',sub:'20 min, gentle pace',dot:''},
+    {time:'9:30',title:'Wind-down',sub:'No screens · breathing exercises',dot:''},
+    {time:'10:30',title:'Bedtime',sub:'Left-side sleeping recommended',dot:''},
+  ]},
+  { label:'Newborn · 0–4 Weeks', items:[
+    {time:'12 AM',title:'Feed',sub:'Breast or bottle · 20–30 min',dot:'',dur:'30 min'},
+    {time:'1:00',title:'Sleep',sub:'Back to sleep, safe sleep environment',dot:''},
+    {time:'3:30',title:'Feed',sub:'Night feed — wake window follows',dot:'',dur:'30 min'},
+    {time:'5:00',title:'Sleep',sub:'',dot:''},
+    {time:'7:00',title:'Feed',sub:'',dot:'',dur:'30 min'},
+    {time:'7:45',title:'Awake window',sub:'Tummy time · gentle stimulation',dot:'',dur:'45 min'},
+    {time:'8:30',title:'Nap',sub:'Watch for tired cues',dot:''},
+    {time:'10:30',title:'Feed',sub:'',dot:'',dur:'30 min'},
+    {time:'11:00',title:'Nap',sub:'',dot:''},
+    {time:'1:00',title:'Feed',sub:'',dot:'',dur:'30 min'},
+  ]},
+  { label:'3 Months · 2–3 Naps', items:[
+    {time:'7:00',title:'Wake + feed',sub:'',dot:''},
+    {time:'8:00',title:'Awake window',sub:'90 min of play and stimulation',dot:'',dur:'90 min'},
+    {time:'9:30',title:'Nap 1',sub:'~60 min',dot:''},
+    {time:'10:30',title:'Feed + awake',sub:'90 min',dot:''},
+    {time:'12:00',title:'Nap 2',sub:'~60 min',dot:''},
+    {time:'1:00',title:'Feed + awake',sub:'90 min',dot:''},
+    {time:'2:30',title:'Nap 3 (bridge)',sub:'~30 min — keeps bedtime from shifting',dot:'',dur:'30 min'},
+    {time:'3:00',title:'Feed + awake',sub:'',dot:''},
+    {time:'5:00',title:'Catnap',sub:'~20 min if needed',dot:'',dur:'20 min'},
+    {time:'7:00',title:'Bedtime routine + feed',sub:'',dot:''},
+  ]},
+  { label:'6 Months · 2 Naps + Solids', items:[
+    {time:'7:00',title:'Wake + milk feed',sub:'',dot:''},
+    {time:'8:00',title:'Solid food intro',sub:'Purees · iron-rich first foods',dot:'',dur:'15 min'},
+    {time:'9:30',title:'Nap 1',sub:'~75 min',dot:''},
+    {time:'12:00',title:'Lunch solids + milk',sub:'',dot:''},
+    {time:'1:00',title:'Nap 2',sub:'~75 min',dot:''},
+    {time:'3:00',title:'Milk feed + play',sub:'',dot:''},
+    {time:'5:30',title:'Dinner solids + milk',sub:'',dot:''},
+    {time:'7:00',title:'Bedtime routine',sub:'Bath · book · feed · sleep',dot:''},
+  ]},
+  { label:'1 Year · 1 Nap', items:[
+    {time:'7:00',title:'Wake + breakfast',sub:'3 meals now the primary nutrition',dot:''},
+    {time:'9:00',title:'Active play',sub:'Push toys, cruising, early walking',dot:''},
+    {time:'10:00',title:'Snack',sub:'Finger foods',dot:''},
+    {time:'11:00',title:'Lunch',sub:'Family foods, soft pieces',dot:''},
+    {time:'12:30',title:'Nap',sub:'1.5–2 hrs · one nap per day now',dot:'',dur:'2 hrs'},
+    {time:'2:30',title:'Snack',sub:'',dot:''},
+    {time:'5:00',title:'Dinner',sub:'Eating with family at the table',dot:''},
+    {time:'7:00',title:'Bedtime routine',sub:'Books · milk · sleep',dot:''},
+  ]},
+];
+
+function renderSchedule(i) {
+  const s = schedules[i];
+  document.getElementById('scheduleCard').innerHTML=`
+    <div class="sec-title">${s.label}</div>
+    <div class="timeline-wrap">
+      ${s.items.map(it=>`
+        <div class="tl-row">
+          <div class="tl-time">${it.time}</div>
+          <div class="tl-dot ${it.dot}"></div>
+          <div class="tl-body">
+            <div class="tl-title">${it.title}</div>
+            ${it.sub?`<div class="tl-sub">${it.sub}</div>`:''}
+          </div>
+          ${it.dur?`<div class="tl-dur">${it.dur}</div>`:''}
+        </div>`).join('')}
+    </div>`;
+}
+
+function setStage(i,btn) {
+  document.querySelectorAll('.stage-btn').forEach((b,j)=>b.classList.toggle('active',j===i));
+  renderSchedule(i);
+}
+
+/* ── Doctor's questions ────────────────────────── */
+let docQs = [
+  'Braxton Hicks — is my frequency normal?',
+  'Iron supplements — should I increase my dose?',
+];
+
+function renderDocQs() {
+  document.getElementById('docList').innerHTML = docQs.map((q,i)=>`
+    <div class="doc-q-item">
+      <div class="doc-q-num">${i+1}</div>
+      <div class="doc-q-text">${q}</div>
+      <span class="doc-q-del" onclick="delDocQ(${i})">✕</span>
+    </div>`).join('');
+  const chip = document.getElementById('docQsChip');
+  if (chip) chip.textContent = `${docQs.length} question${docQs.length===1?'':'s'} saved`;
+  const wkNum = obData.dueDate ? Math.max(1,Math.min(40,40-Math.round((new Date(obData.dueDate)-new Date())/(7*24*60*60*1000)))) : null;
+  const sqBtn = document.getElementById('suggestQBtn');
+  if (sqBtn && !sqBtn.disabled) sqBtn.innerHTML = `✨ Suggest${wkNum?' Week '+wkNum:''} Questions`;
+}
+
+function addDocQ() {
+  const inp = document.getElementById('docQInput');
+  const val = inp.value.trim();
+  if (!val) return;
+  docQs.push(val); inp.value=''; renderDocQs();
+  document.getElementById('docSummary').style.display='none';
+  saveState(); haptic();
+}
+
+function delDocQ(i) {
+  docQs.splice(i,1); renderDocQs();
+  document.getElementById('docSummary').style.display='none';
+  saveState();
+}
+
+const suggestedQs = [
+  'Is the amount of fetal movement I feel normal for week 18?',
+  'Should I start taking DHA/omega-3 in addition to my prenatal vitamin?',
+  'What are the signs of preterm labor I should watch for?',
+  'Can I continue exercising — and what intensity is safe now?',
+  'When should I schedule my glucose screening test?',
+];
+
+function addSuggestedQs() {
+  let added = 0;
+  suggestedQs.forEach(q => { if (!docQs.includes(q)) { docQs.push(q); added++; } });
+  renderDocQs();
+  document.getElementById('docSummary').style.display='none';
+  const btn = document.querySelector('.suggest-q-btn');
+  btn.textContent = added>0 ? `✓ Added ${added} suggested question${added>1?'s':''}` : '✓ Already added';
+  btn.disabled = true;
+  const wkNum = obData.dueDate ? Math.max(1,Math.min(40,40-Math.round((new Date(obData.dueDate)-new Date())/(7*24*60*60*1000)))) : 0;
+  setTimeout(()=>{ btn.innerHTML=`✨ Suggest Week ${wkNum||''} Questions`.replace('Week  ',''); btn.disabled=false; }, 2500);
+}
+
+function shareDocQs() {
+  const el = document.getElementById('docSummary');
+  if (!docQs.length) { el.innerHTML='No questions yet — add some above.'; el.style.display='block'; return; }
+  el.innerHTML=`<strong style="display:block;margin-bottom:.4rem;color:var(--rose)">Appointment Summary for Dr. Rivera</strong>`
+    + docQs.map((q,i)=>`${i+1}. ${q}`).join('<br>')
+    + (()=>{
+        const wkNum = obData.dueDate ? Math.max(1,Math.min(40,40-Math.round((new Date(obData.dueDate)-new Date())/(7*24*60*60*1000)))) : null;
+        const mon = new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'});
+        return `<br><br><em style="color:var(--ink-muted)">Bloom${wkNum?' · Week '+wkNum:''} · ${mon}</em>`;
+      })();
+  el.style.display='block';
+}
+
+function resetMood() {
+  Object.keys(moodAnswers).forEach(k=>delete moodAnswers[k]);
+  buildMoodQs();
+  document.getElementById('ppdResult').className='ppd-result';
+  document.getElementById('moodSubmitBtn').style.display='';
+  document.getElementById('moodSubmitBtn').classList.remove('ready');
+  document.getElementById('moodRetakeBtn').style.display='none';
+}
+
+/* ── Appointments ──────────────────────────────── */
+let appts = [
+  { name:'OB-GYN Anatomy Scan',  date:'2026-09-13', dr:'Dr. Rivera' },
+  { name:'Glucose Screening',     date:'2026-11-03', dr:'Dr. Rivera' },
+  { name:'Third Trimester Check', date:'2026-12-15', dr:'Dr. Rivera' },
+];
+
+function renderAppts() {
+  renderTodayAppt();
+  const today = new Date(); today.setHours(0,0,0,0);
+  document.getElementById('apptList').innerHTML = appts.length === 0
+    ? '<div style="font-size:.75rem;color:var(--ink-muted);padding:.3rem 0">No appointments yet — add one below.</div>'
+    : appts.map((a,i) => {
+        const d = new Date(a.date+'T00:00:00');
+        const diff = Math.round((d-today)/(24*60*60*1000));
+        const when = diff<0?`${-diff}d ago`:diff===0?'Today':diff===1?'Tomorrow':`In ${diff} days`;
+        const whenColor = diff<0?'var(--ink-muted)':diff<=7?'var(--rose)':'var(--lime-dark)';
+        const mo = d.toLocaleDateString('en-US',{month:'short'});
+        const dy = d.getDate();
+        return `<div class="appt-row">
+          <div class="appt-date-badge">${mo}<br>${dy}</div>
+          <div style="flex:1">
+            <div style="font-size:.78rem;font-weight:700;color:var(--ink)">${a.name}</div>
+            <div style="font-size:.65rem;color:var(--ink-muted)">${a.dr} · <span style="color:${whenColor};font-weight:700">${when}</span></div>
+          </div>
+          <div style="display:flex;gap:.3rem;align-items:center">
+            <button class="appt-mini-btn" onclick="apptPrepQs(${i})">Prep Qs</button>
+            <button class="appt-mini-btn" style="background:var(--rule);color:var(--ink-muted)" onclick="delAppt(${i})">✕</button>
+          </div>
+        </div>`;
+      }).join('');
+}
+
+function addAppt() {
+  const n = document.getElementById('apptName'), d = document.getElementById('apptDate');
+  if (!n.value.trim() || !d.value) { alert('Enter appointment name and date.'); return; }
+  appts.push({ name:n.value.trim(), date:d.value, dr:'Dr. Rivera' });
+  appts.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  n.value=''; d.value=''; renderAppts();
+  saveState(); haptic();
+}
+
+function delAppt(i) { appts.splice(i,1); renderAppts(); saveState(); }
+
+function apptPrepQs(i) {
+  const a = appts[i];
+  const d = new Date(a.date+'T00:00:00');
+  const label = `${a.name} — ${d.toLocaleDateString('en-US',{month:'long',day:'numeric'})}`;
+  if (!docQs.includes('Questions for: '+label)) docQs.push('Questions for: '+label);
+  renderDocQs();
+  showMeSection('docqs');
+}
+
+/* ── Postpartum recovery ───────────────────────── */
+function setDelivery(type, btn) {
+  document.querySelectorAll('.delivery-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.recovery-plan').forEach(p=>p.classList.remove('active'));
+  document.getElementById('rp-'+type).classList.add('active');
+}
+
+/* ── Init ──────────────────────────────────────── */
+buildDayStrip();
+renderMeals(activeDay);
+renderNutrients(activeDay);
+buildSymGrid();
+buildMoodQs();
+renderSchedule(0);
+renderDocQs();
+renderAppts();
+
+/* ── Bloom Knowledge Base (RAG — no API cost) ─────── */
+const BLOOM_KB = [
+  { tags:['first trimester','weeks','pregnancy','development'], content:'The first trimester (weeks 1–12) is when all major organs form. The embryo becomes a fetus by week 10. Nausea, fatigue, and breast tenderness are common. Folic acid (400–800 mcg/day) is critical during this period.' },
+  { tags:['second trimester','weeks 13-28','pregnancy','development'], content:'The second trimester (weeks 13–28) is often the most comfortable. The baby can hear, move, and develop facial features. Many people experience reduced nausea, increased energy, and visible baby movements (quickening, ~18–22 weeks).' },
+  { tags:['third trimester','weeks 29-40','pregnancy','development'], content:'The third trimester (weeks 29–40) involves rapid baby growth. Common symptoms include back pain, heartburn, frequent urination, and Braxton Hicks contractions. The baby settles into a head-down position around 36 weeks.' },
+  { tags:['morning sickness','nausea','vomiting','first trimester'], content:'Morning sickness (nausea/vomiting) affects ~70–80% of pregnant people, typically peaking at 8–10 weeks and improving by 12–14 weeks. Small frequent meals, ginger, vitamin B6 (10–25 mg 3×/day), and staying hydrated can help.' },
+  { tags:['folic acid','folate','neural tube','supplement'], content:'Folic acid (400–800 mcg/day) prevents neural tube defects. Start 1–3 months before conception and continue through the first 12 weeks. Prenatal vitamins typically contain adequate amounts.' },
+  { tags:['prenatal vitamins','supplements','iron','calcium'], content:'Prenatal vitamins should include folic acid (400–800 mcg), iron (27 mg), calcium (1000 mg), iodine (150 mcg), and DHA/omega-3. Iron is best absorbed with vitamin C and away from calcium.' },
+  { tags:['foods to avoid','unsafe food','pregnancy diet','listeria'], content:'Avoid during pregnancy: raw/undercooked meat or fish, high-mercury fish (shark, swordfish, king mackerel), unpasteurized dairy/juice, raw sprouts, deli meats unless heated, and excess liver (vitamin A toxicity).' },
+  { tags:['safe foods','pregnancy nutrition','diet','eat'], content:'Healthy pregnancy foods: leafy greens (folate), lean proteins, dairy (calcium), legumes (folate, iron, protein), berries (antioxidants), eggs (choline), salmon (DHA, 2–3 servings/week), and whole grains (fiber).' },
+  { tags:['caffeine','coffee','tea','pregnancy'], content:'Limit caffeine to under 200 mg/day during pregnancy (~1 small coffee). High caffeine intake is linked to low birth weight and preterm birth. Herbal teas: ginger and peppermint are generally safe; avoid herbal teas with licorice root.' },
+  { tags:['exercise','safe exercise','workout','pregnant'], content:'Safe pregnancy exercises: walking, swimming, prenatal yoga, stationary cycling, and low-impact aerobics. Avoid contact sports, activities with fall risk, and lying flat on your back after the first trimester. Aim for 150 min/week of moderate activity.' },
+  { tags:['weight gain','healthy weight','pregnancy'], content:'Recommended pregnancy weight gain (single baby): underweight BMI <18.5 → 28–40 lbs; normal BMI 18.5–24.9 → 25–35 lbs; overweight BMI 25–29.9 → 15–25 lbs; obese BMI ≥30 → 11–20 lbs.' },
+  { tags:['kicks','fetal movement','kick count'], content:'Fetal movements are felt around 18–22 weeks (later for first pregnancies). By 28 weeks, count 10 movements within 2 hours once daily. Decreased movement warrants prompt medical evaluation.' },
+  { tags:['preterm labor','early labor','contractions'], content:'Signs of preterm labor (before 37 weeks): regular contractions every 10 min or more frequent, lower back ache, pelvic pressure, vaginal bleeding or fluid, or change in vaginal discharge. Seek care immediately.' },
+  { tags:['gestational diabetes','glucose','blood sugar'], content:'Gestational diabetes is diagnosed at 24–28 weeks via glucose tolerance test. Management: carb-controlled diet, regular moderate exercise, blood sugar monitoring, and sometimes insulin. It usually resolves after delivery.' },
+  { tags:['preeclampsia','high blood pressure','blood pressure'], content:'Preeclampsia signs (typically after 20 weeks): high blood pressure (≥140/90), protein in urine, severe headache, vision changes, upper abdominal pain, or sudden swelling. Seek immediate medical care if these occur.' },
+  { tags:['prenatal appointments','checkups','OB visits'], content:'Typical prenatal visit schedule: every 4 weeks until 28 weeks, every 2 weeks 28–36 weeks, then weekly until delivery. Key tests include early blood work, anatomy ultrasound (18–22 weeks), glucose screening (24–28 weeks), and GBS culture (~36 weeks).' },
+  { tags:['ultrasound','anatomy scan','gender'], content:'The anatomy ultrasound at 18–22 weeks checks fetal organ development, confirms placental position, measures growth, and can often reveal sex. First-trimester ultrasound (~8–12 weeks) confirms viability and dating.' },
+  { tags:['birth plan','delivery plan','labor plan'], content:'A birth plan outlines preferences for: pain management (epidural vs. natural), mobility during labor, fetal monitoring, interventions (episiotomy, IV), and immediate postpartum care (delayed cord clamping, skin-to-skin, breastfeeding).' },
+  { tags:['epidural','pain management','labor pain'], content:'Epidurals provide effective labor pain relief and are safe for most people. They can be placed any time during active labor. Side effects may include blood pressure drop, limited mobility, and itching. They do not increase C-section risk.' },
+  { tags:['c-section','cesarean','surgery','delivery'], content:'C-sections account for ~32% of US births. Recovery takes 6 weeks vs. 2–4 for vaginal delivery. Reasons include fetal distress, placenta previa, breech position, labor stall, or prior C-section. Skin-to-skin is possible after C-section.' },
+  { tags:['postpartum','after birth','recovery','fourth trimester'], content:'Postpartum recovery: vaginal bleeding (lochia) for 4–6 weeks, perineal soreness, fatigue, hormonal shifts causing mood swings. Pelvic floor PT, rest, nutrition, and support are essential. Six-week OB checkup is standard.' },
+  { tags:['postpartum depression','PPD','baby blues','mood'], content:'Baby blues (tearfulness, mood swings, anxiety) affect 80% of new parents and resolve within 2 weeks. Postpartum depression (PPD) — persistent sadness, inability to bond, hopelessness — affects ~1 in 7 and requires treatment. Seek help if symptoms persist beyond 2 weeks.' },
+  { tags:['breastfeeding','latch','nursing','milk'], content:'Good latch: baby\'s mouth covers most of the areola, not just the nipple. Lips flange outward. Breastfeeding should not be painful past the first few seconds. Nurse 8–12 times/24 hrs newborn. Milk usually comes in 2–4 days after delivery.' },
+  { tags:['milk supply','breastfeeding supply','low milk'], content:'To support milk supply: nurse or pump frequently (8–12×/day early on), ensure good latch, offer both breasts, stay hydrated (3 L/day), eat adequate calories (+500/day while nursing). Galactagogues (fenugreek, oats) have limited evidence.' },
+  { tags:['pumping','breast pump','pumping schedule'], content:'Pumping schedule for full supply: pump every 2–3 hours, including once at night, for the first few weeks. Double-electric pumps are most efficient. Store breast milk: 4 hrs room temp, 4 days refrigerator, 6 months freezer.' },
+  { tags:['formula','bottle feeding','formula feeding'], content:'Formula types: cow\'s milk-based (most common), soy-based (dairy allergy/intolerance), hydrolyzed (protein allergy), and amino acid-based (severe allergy). Prepare as directed; do not dilute or concentrate. All commercial formula is nutritionally complete.' },
+  { tags:['newborn feeding','how often feed','hunger cues'], content:'Newborns feed 8–12 times per 24 hrs (every 2–3 hrs). Hunger cues: rooting, sucking fists, turning head. Crying is a late hunger sign. Expect 6+ wet diapers and 3+ stools/day by day 4 of life.' },
+  { tags:['newborn weight','weight loss','birth weight'], content:'Newborns typically lose 5–7% of birth weight in the first few days. Most regain it by 10–14 days. Contact your provider if weight loss exceeds 10% or birth weight is not regained by 2 weeks.' },
+  { tags:['jaundice','yellow skin','bilirubin','newborn'], content:'Newborn jaundice (yellowing of skin/eyes) appears 2–4 days after birth and usually resolves by 2 weeks. Risk factors: prematurity, breastfeeding, large bruising. Severe jaundice (high bilirubin) is treated with phototherapy (bili lights).' },
+  { tags:['safe sleep','SIDS','sleep safety','crib'], content:'Safe sleep ABC: Alone, on their Back, in a Crib/bassinet. Firm flat surface, no loose bedding, pillows, bumpers, or stuffed animals. Room-sharing (not bed-sharing) for at least 6 months reduces SIDS risk. Pacifier at sleep lowers risk.' },
+  { tags:['sleep schedule','newborn sleep','how much sleep'], content:'Newborns sleep 14–17 hrs/day in 2–4 hour stretches. By 3–4 months, some consolidate nighttime sleep (longer stretches). By 6 months, many sleep 6+ hours at night. Sleep training (gentle methods) can begin at 4–6 months.' },
+  { tags:['swaddling','swaddle','calm baby'], content:'Swaddling can soothe newborns and improve sleep. Use a thin blanket, leave room for hips to flex (avoid tight wrapping of legs). Stop swaddling when baby shows signs of rolling (~2–3 months) to prevent entrapment risk.' },
+  { tags:['diaper','diaper change','wet diaper','rash'], content:'Change diapers every 2–3 hrs or when soiled. Normal: 6+ wet diapers and 3+ stools/day by day 4. For diaper rash: barrier cream at each change, air-dry bottom, avoid scented wipes. Severe rash may need antifungal treatment.' },
+  { tags:['cord care','umbilical cord','belly button'], content:'Umbilical cord stump falls off in 1–3 weeks. Keep dry and exposed to air. Fold diaper below stump. No tub baths until it falls off. Seek care if area is red, swollen, has discharge, or has foul odor.' },
+  { tags:['bath','bathing newborn','sponge bath'], content:'Sponge baths only until the umbilical cord stump falls off. Tub baths 2–3× weekly are sufficient for newborns — over-bathing dries skin. Use lukewarm water, unscented soap, and always support baby\'s head. Never leave unattended in water.' },
+  { tags:['baby colic','crying','fussy baby','inconsolable'], content:'Colic: crying ≥3 hrs/day, ≥3 days/week, for ≥3 weeks in an otherwise healthy infant. Peaks at 6 weeks, resolves by 3–4 months. Strategies: feeding check (gas, overfeeding), skin-to-skin, white noise, gentle rocking, swaddling.' },
+  { tags:['gas','gassy baby','burping','tummy pain'], content:'To reduce gas: burp after every 1–2 oz formula or when switching breasts, hold upright 20–30 min after feeding, try bicycle legs massage, tummy time when awake, consider paced bottle feeding.' },
+  { tags:['reflux','spit up','GERD','spitting up'], content:'Most spitting up is normal and peaks at 4 months. Reduce reflux: upright feeding, frequent smaller feeds, burping often. Worrying signs: projectile vomiting, poor weight gain, blood in spit-up, or extreme discomfort — see your provider.' },
+  { tags:['tummy time','development','motor skills'], content:'Start tummy time from birth, supervised while awake. Goal: 30 min total/day by 7 weeks. Tummy time builds neck/shoulder strength for rolling, sitting, and crawling milestones.' },
+  { tags:['milestones','development','baby development'], content:'Key milestones: 2 months — social smile, follows objects; 4 months — laughs, holds head steady; 6 months — sits with support, babbles; 9 months — pulls to stand; 12 months — first words, walks with support; 18 months — 10+ words.' },
+  { tags:['vaccines','immunizations','shots','schedule'], content:'CDC-recommended vaccines: Hepatitis B (birth), DTaP, Hib, PCV, IPV, RV (2 & 4 months), MMR, Varicella, Hepatitis A (12–15 months). Flu vaccine annually from 6 months. Vaccines are safe and essential for child health.' },
+  { tags:['fever','temperature','sick baby','illness'], content:'Call your provider for any fever in babies under 3 months. For older babies: temp ≥38°C/100.4°F rectally. Use acetaminophen for babies 2+ months, ibuprofen for babies 6+ months. Don\'t give aspirin to children under 18.' },
+  { tags:['solid foods','starting solids','first foods','weaning'], content:'Start solid foods at 6 months (not before 4 months). Signs of readiness: sits with little support, shows interest in food, good head control. Begin with single-ingredient purées or soft finger foods. Introduce one new food every 3–5 days to watch for allergies.' },
+  { tags:['allergens','food allergy','peanuts','introduction'], content:'Introduce common allergens (peanut, egg, milk, wheat, soy, tree nut, fish, sesame) early and repeatedly — current evidence supports introduction at ~6 months to reduce allergy risk. Start peanut butter thinned with water or purées, not whole nuts.' },
+  { tags:['choking','baby choking','safe foods','food safety'], content:'Choking hazards to avoid under 4 years: whole grapes, cherry tomatoes, raw carrots, whole nuts, large chunks of meat, popcorn, hard candy, and raisins. Cut round foods into small pieces or strips. Learn infant/child CPR.' },
+  { tags:['postpartum nutrition','breastfeeding diet','nutrition after baby'], content:'Breastfeeding increases caloric needs by ~500 kcal/day. Focus on: calcium (3 servings dairy/fortified foods), DHA (2–3 servings fatty fish/week or supplement), iron, vitamin D, and staying hydrated (3+ L/day). Avoid high-mercury fish.' },
+  { tags:['iron','anemia','iron deficiency','blood'], content:'Iron deficiency is common in pregnancy and postpartum. Prenatal iron: 27 mg/day. Signs of deficiency: fatigue, pallor, shortness of breath. Pair iron-rich foods with vitamin C; avoid consuming with calcium or coffee for best absorption.' },
+  { tags:['vitamin D','sunshine','bone health','supplement'], content:'Vitamin D is essential for bone development. Breastfed babies need 400 IU/day supplement from birth. Pregnant people should take 600–2000 IU/day. Sun exposure helps but is insufficient alone; use sunscreen still.' },
+  { tags:['mental health','anxiety','stress','wellbeing'], content:'Perinatal anxiety affects 15–20% of pregnant and postpartum people. Symptoms: excessive worry, sleep disruption, racing thoughts, panic attacks. Therapy (CBT), exercise, social support, and medication when needed are effective treatments.' },
+  { tags:['pelvic floor','kegel','incontinence','recovery'], content:'Pelvic floor exercises (Kegels): tighten pelvic muscles as if stopping urine flow, hold 5–10 sec, release, repeat 10–15 times/day. Start after delivery. Pelvic floor PT is recommended for leakage, pain, or prolapse symptoms.' },
+  { tags:['sex after birth','intimacy','postpartum sex'], content:'Most providers recommend waiting 6 weeks before resuming sex after delivery to allow healing. There is no medical harm in waiting longer. Common issues: low libido (hormones), vaginal dryness (especially while breastfeeding) — lubricant helps.' },
+  { tags:['contraception','birth control','postpartum'], content:'Ovulation can return as early as 3 weeks postpartum (sooner if not breastfeeding). Safe postpartum options: condoms, progestin-only pill (safe while breastfeeding), implant, IUD, or depot shot. Combined estrogen-progestin pills not recommended until 6 weeks postpartum.' },
+  { tags:['cord blood','cord blood banking','stem cells'], content:'Cord blood banking stores stem cells from the umbilical cord. Private banking costs $1500–$2500 upfront + annual fees; public banking is free. Private banking utility for a child\'s own future use is low; public donation can benefit others.' },
+  { tags:['car seat','car safety','infant seat'], content:'Use a rear-facing car seat from birth until the child outgrows its height/weight limit (often 2+ years). Install at 45° angle, harness snug (two-finger test at chest). Have installation checked at a certified tech station.' },
+  { tags:['baby proofing','home safety','childproofing'], content:'Babyproof before mobility (~6 months): cabinet locks, outlet covers, stair gates, furniture anchoring (tip-over risk), securing cords/blind chains, removing small objects (<1.75" diameter), locking medications and cleaning supplies.' },
+  { tags:['sleep training','sleep methods','cry it out','Ferber'], content:'Common sleep training methods: extinction ("cry it out") — abrupt; Ferber (graduated extinction) — check-ins at intervals; Fading/chair method — gradual parental withdrawal. All have similar outcomes; choose based on parental tolerance. Start at 4–6 months.' },
+  { tags:['toddler tantrums','meltdown','behavior','discipline'], content:'Tantrums peak 18 months–3 years. Prevention: consistent routines, verbal warnings before transitions, offering limited choices. During tantrum: stay calm, ensure safety, don\'t negotiate. Afterward: reconnect, name the emotion.' },
+  { tags:['language development','speech','words','talking'], content:'Language milestones: 12 months — 1–2 words; 18 months — 10–20 words; 24 months — 50+ words, 2-word phrases; 36 months — sentences, strangers understand ~75%. Encourage: narrate activities, read daily, limit screen time.' },
+  { tags:['screen time','TV','tablets','toddler screens'], content:'AAP guidelines: no screen time under 18–24 months except video calls. 2–5 years: limit to 1 hr/day of high-quality programming; watch together and discuss. Screen time should not replace sleep, physical activity, or social interaction.' },
+  { tags:['reading','books','literacy','early reading'], content:'Read aloud from birth — language exposure builds brain connections. Use board books, point to pictures, use expressive voices. By 6 months, babies reach for books. Regular reading at age 4–5 is the strongest predictor of school readiness.' },
+  { tags:['play','learning through play','stimulation'], content:'Play is how babies and toddlers learn. Newborn: high-contrast images, faces, voices. 3–6 months: rattles, mirrors. 6–12 months: peek-a-boo, soft blocks. 12–24 months: stacking, shape sorters, pretend play. Limit structured classes; free play is vital.' },
+  { tags:['potty training','toilet training','toddler toilet'], content:'Most children are ready for potty training between 18–30 months. Signs: staying dry for 2 hrs, showing awareness of urge, able to follow instructions. Child-led approach (3-day intensive or gradual) both work. Regression is normal during stressors.' },
+  { tags:['preschool','daycare','childcare'], content:'Quality childcare hallmarks: low child-to-staff ratio (3:1 infants, 4:1 toddlers, 8:1 preschool), warm responsive caregivers, stimulating environment, age-appropriate curriculum. Check licensing, inspect in person, and trust your instincts.' },
+  { tags:['growth spurt','cluster feeding','hunger increase'], content:'Growth spurts in infancy often occur around 2–3 weeks, 6 weeks, 3 months, and 6 months. Signs: sudden increased hunger, fussiness, disrupted sleep. Usually lasts 2–3 days. For breastfeeding, frequent nursing increases milk supply to match.' },
+  { tags:['postpartum weight','losing weight','after baby body'], content:'Postpartum weight loss: most lose 10–13 lbs at delivery. Gradual loss of 1–2 lbs/week is healthy. Breastfeeding burns ~500 extra calories/day. Focus on nutritious foods, gentle exercise (cleared by provider at 6 weeks), and adequate sleep over rapid loss.' },
+  { tags:['stretch marks','skin changes','pregnancy skin'], content:'Stretch marks are caused by skin stretching and genetics — no cream eliminates them, though some may reduce severity. They typically fade from red/purple to silver within 6–12 months postpartum. Common on abdomen, breasts, thighs, hips.' },
+  { tags:['back pain','sciatica','pregnancy pain'], content:'Back pain affects ~50% of pregnant people, especially in the third trimester. Strategies: supportive footwear, pregnancy pillow (between knees when sleeping), prenatal yoga, gentle stretching, warm compresses, and PT. Sciatica (shooting leg pain) is common.' },
+  { tags:['heartburn','indigestion','pregnancy acid reflux'], content:'Heartburn is common in the second and third trimesters due to progesterone and growing uterus. Management: eat small frequent meals, avoid lying down 2–3 hrs after eating, elevate head of bed, avoid spicy/fatty/acidic foods. Antacids (calcium carbonate) are safe.' },
+  { tags:['constipation','bowel','pregnancy gut'], content:'Constipation is common in pregnancy due to progesterone slowing the gut. Increase fiber (25–35 g/day via fruits, vegetables, whole grains, legumes), water (2.5–3 L/day), and physical activity. Stool softeners (docusate) are safe if needed.' },
+  { tags:['swelling','edema','feet swelling','pregnancy'], content:'Mild swelling of feet, ankles, and hands is normal, especially in the third trimester. Elevate feet, reduce sodium, stay hydrated, wear compression socks, and avoid standing for long periods. Sudden facial or hand swelling with headache — seek immediate care (preeclampsia sign).' },
+];
+
+function searchKb(q) {
+  const stopWords = new Set(['the','and','for','are','but','not','you','all','can','she','her','his','how','what','when','why','who','will','with','that','this','have','from','they','say','does','did','its','about','baby','my','me','is','it','do','be','a','an','in','on','of','to','at','as','up','by','we','i']);
+  const words = q.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stopWords.has(w));
+  if (!words.length) return '';
+  return BLOOM_KB.map(entry => {
+    const tagStr = entry.tags.join(' ').toLowerCase();
+    const contentStr = entry.content.toLowerCase();
+    let score = 0;
+    for (const w of words) {
+      if (tagStr.includes(w)) score += 5;
+      if (contentStr.includes(w)) score += 1;
+    }
+    return { ...entry, score };
+  })
+  .filter(e => e.score > 0)
+  .sort((a, b) => b.score - a.score)
+  .slice(0, 3)
+  .map(e => e.content)
+  .join('\n\n');
+}
+
+/* ── Chat UI ───────────────────────────────────── */
+let chatHistory = [];
+let chatOpen = false;
+
+function openChat() {
+  document.getElementById('chat-panel').classList.add('open');
+  chatOpen = true;
+  if (!chatHistory.length) {
+    addBubble('bot', "Hi! I'm Bloom 🌸 Your pregnancy & parenting AI companion. Ask me anything!");
+  }
+  setTimeout(() => document.getElementById('chat-input').focus(), 350);
+}
+
+function closeChat() {
+  document.getElementById('chat-panel').classList.remove('open');
+  chatOpen = false;
+}
+
+function useSug(btn) {
+  document.getElementById('chat-input').value = btn.textContent;
+  document.getElementById('chat-sugs').style.display = 'none';
+  doSend();
+}
+
+function formatBotText(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^#{1,3}\s+(.+)$/gm,'<strong>$1</strong>')
+    .replace(/^[-•]\s+(.+)$/gm,'<span class="cb-li">$1</span>')
+    .replace(/^\d+\.\s+(.+)$/gm,'<span class="cb-li">$1</span>')
+    .replace(/\n{2,}/g,'<br><br>')
+    .replace(/\n/g,'<br>');
+}
+
+function addBubble(who, text) {
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className = 'chat-bubble bubble-' + who;
+  if (who === 'bot' && text !== 'Thinking…') {
+    div.innerHTML = formatBotText(text);
+  } else {
+    div.textContent = text;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+async function doSend() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  document.getElementById('chat-sugs').style.display = 'none';
+
+  addBubble('user', msg);
+  const thinking = addBubble('bot', 'Thinking…');
+  thinking.classList.add('thinking');
+
+  const context = searchKb(msg);
+
+  try {
+    const apiBase = (window.Capacitor?.isNativePlatform?.() || location.protocol === 'file:')
+      ? 'https://bloomai-sandy.vercel.app' : '';
+    const res = await fetch(apiBase + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, context, history: chatHistory })
+    });
+    const data = await res.json();
+    thinking.remove();
+
+    if (!res.ok) {
+      addBubble('bot', data.error || 'Something went wrong. Please try again.');
+      return;
+    }
+
+    const reply = data.reply;
+    const botBubble = addBubble('bot', reply);
+    botBubble.innerHTML = formatBotText(reply);
+    chatHistory.push({ role: 'user', content: msg });
+    chatHistory.push({ role: 'assistant', content: reply });
+    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+  } catch (e) {
+    thinking.remove();
+    addBubble('bot', 'Network error. Please check your connection and try again.');
+  }
+}
+
+/* ── Persistence ─────────────────────────────────── */
+function saveState() {
+  try {
+    localStorage.setItem('bloom_ob',       JSON.stringify(obData));
+    localStorage.setItem('bloom_docqs',    JSON.stringify(docQs));
+    localStorage.setItem('bloom_appts',    JSON.stringify(appts));
+    localStorage.setItem('bloom_launched', '1');
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const ob = localStorage.getItem('bloom_ob');
+    if (ob) Object.assign(obData, JSON.parse(ob));
+    const dq = localStorage.getItem('bloom_docqs');
+    if (dq) docQs = JSON.parse(dq);
+    const ap = localStorage.getItem('bloom_appts');
+    if (ap) appts = JSON.parse(ap);
+  } catch(e) {}
+}
+
+// Restore state and auto-launch returning users
+loadState();
+if (localStorage.getItem('bloom_launched') && obData.name) {
+  launchApp(obData.name, obData.dueDate);
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+
+/* ── Capacitor native plugin init ──────────────────── */
+window.addEventListener('load', async () => {
+  if (!window.Capacitor) return; // web browser — skip
+
+  try {
+    const { SplashScreen } = Capacitor.Plugins;
+    const { StatusBar, Style } = Capacitor.Plugins;
+    const { App }        = Capacitor.Plugins;
+    const { Keyboard }   = Capacitor.Plugins;
+
+    // Hide splash after app is ready
+    if (SplashScreen) await SplashScreen.hide({ fadeOutDuration: 300 });
+
+    // Status bar: dark background, light icons (matches Bloom's dark header)
+    if (StatusBar) {
+      await StatusBar.setStyle({ style: 'LIGHT' });
+      await StatusBar.setBackgroundColor({ color: '#8A0040' });
+    }
+
+    // Android back button — exit app or go back a screen
+    if (App) {
+      App.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) window.history.back();
+        else App.exitApp();
+      });
+    }
+
+    // Keyboard — scroll body up when keyboard opens so inputs stay visible
+    if (Keyboard) {
+      Keyboard.addListener('keyboardWillShow', info => {
+        document.body.style.paddingBottom = info.keyboardHeight + 'px';
+      });
+      Keyboard.addListener('keyboardWillHide', () => {
+        document.body.style.paddingBottom = '';
+      });
+    }
+  } catch (e) {}
+});
+</script>
