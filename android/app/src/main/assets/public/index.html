@@ -534,8 +534,13 @@ body::before {
 .tl-dot.now { border-color:var(--rose);background:var(--rose-pale);box-shadow:0 0 0 3px rgba(224,55,122,.2); }
 .tl-body { flex:1; }
 .tl-title { font-size:.83rem;font-weight:700;color:var(--ink); }
+.tl-title.tl-done { text-decoration:line-through; }
 .tl-sub   { font-size:.7rem;color:var(--ink-muted);margin-top:.06rem;line-height:1.4; }
 .tl-dur   { margin-left:auto;background:var(--surface);border:1px solid var(--rule);border-radius:7px;padding:.16rem .42rem;font-size:.6rem;font-weight:700;color:var(--rose);flex-shrink:0; }
+.tl-row.past { opacity:.42; }
+.tl-row.tl-now { background:rgba(224,55,122,.06);border-radius:8px;margin:0 -.3rem;padding-left:.3rem;padding-right:.3rem; }
+.tl-check { width:20px;height:20px;border-radius:50%;border:1.8px solid var(--rule);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.62rem;color:transparent;margin-top:.12rem;cursor:pointer;transition:all .18s; }
+.tl-check.done { background:var(--rose);border-color:var(--rose);color:#fff; }
 
 /* ── ME ───────────────────────────────────────── */
 .profile-card { display:flex;align-items:center;gap:.85rem; }
@@ -2829,20 +2834,74 @@ function renderSchedule(i) {
       ? `Your baby · ${stageNames[i] || ''}`
       : 'Your prenatal daily routine';
   }
-  document.getElementById('scheduleCard').innerHTML=`
-    <div class="sec-title">${s.label}</div>
-    <div class="timeline-wrap">
-      ${s.items.map(it=>`
-        <div class="tl-row">
-          <div class="tl-time">${it.time}</div>
-          <div class="tl-dot ${it.dot}"></div>
-          <div class="tl-body">
-            <div class="tl-title">${it.title}</div>
-            ${it.sub?`<div class="tl-sub">${it.sub}</div>`:''}
-          </div>
-          ${it.dur?`<div class="tl-dur">${it.dur}</div>`:''}
-        </div>`).join('')}
-    </div>`;
+
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const today = now.toISOString().slice(0, 10);
+  const doneKey = 'bloom_sched_' + i + '_' + today;
+  let schedDone = {};
+  try { schedDone = JSON.parse(localStorage.getItem(doneKey) || '{}'); } catch(e) {}
+
+  // Parse item times sequentially, maintaining monotonic order (handles 12h display without AM/PM)
+  let prevMins = -1;
+  const itemMins = s.items.map(it => {
+    const str = it.time || '';
+    const upper = str.toUpperCase();
+    const isAM = upper.includes('AM');
+    const isPM = upper.includes('PM');
+    const cleaned = str.replace(/\s*(AM|PM)/gi, '').trim();
+    const parts = cleaned.split(':');
+    let h = parseInt(parts[0]) || 0;
+    const m = parseInt(parts[1]) || 0;
+    if (isAM) { if (h === 12) h = 0; }
+    else if (isPM) { if (h !== 12) h += 12; }
+    else {
+      let cand = h * 60 + m;
+      if (cand <= prevMins && h < 12) cand = (h + 12) * 60 + m;
+      prevMins = cand;
+      return cand;
+    }
+    const mins = h * 60 + m;
+    prevMins = mins;
+    return mins;
+  });
+
+  // Find which item slot is "now" (last item whose time <= current time)
+  let nowIdx = -1;
+  for (let j = 0; j < itemMins.length; j++) {
+    if (nowMins >= itemMins[j]) nowIdx = j;
+    else break;
+  }
+
+  document.getElementById('scheduleCard').innerHTML =
+    '<div class="sec-title">' + s.label + '</div>' +
+    '<div class="timeline-wrap">' +
+    s.items.map(function(it, j) {
+      const isPast = j < nowIdx;
+      const isNow = j === nowIdx;
+      const done = !!schedDone[j];
+      const rowCls = ['tl-row', (isPast || done) ? 'past' : '', (isNow && !done) ? 'tl-now' : ''].filter(Boolean).join(' ');
+      return '<div class="' + rowCls + '">' +
+        '<div class="tl-time">' + it.time + '</div>' +
+        '<div class="tl-dot ' + it.dot + '"></div>' +
+        '<div class="tl-body">' +
+          '<div class="tl-title' + (done ? ' tl-done' : '') + '">' + it.title + '</div>' +
+          (it.sub ? '<div class="tl-sub">' + it.sub + '</div>' : '') +
+        '</div>' +
+        (it.dur ? '<div class="tl-dur">' + it.dur + '</div>' : '') +
+        '<button class="tl-check' + (done ? ' done' : '') + '" onclick="toggleSchedItem(' + i + ',' + j + ',\'' + doneKey + '\')">' + (done ? '✓' : '') + '</button>' +
+      '</div>';
+    }).join('') +
+    '</div>';
+}
+
+function toggleSchedItem(stageIdx, itemIdx, doneKey) {
+  let schedDone = {};
+  try { schedDone = JSON.parse(localStorage.getItem(doneKey) || '{}'); } catch(e) {}
+  schedDone[itemIdx] = !schedDone[itemIdx];
+  try { localStorage.setItem(doneKey, JSON.stringify(schedDone)); } catch(e) {}
+  haptic();
+  renderSchedule(stageIdx);
 }
 
 function setStage(i,btn) {
@@ -2990,6 +3049,7 @@ renderNutrients(activeDay);
 buildSymGrid();
 buildMoodQs();
 renderSchedule(0);
+setInterval(function() { renderSchedule(); }, 60000); // refresh schedule every minute for time-awareness
 renderDocQs();
 renderAppts();
 
