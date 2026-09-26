@@ -1793,7 +1793,7 @@ const obSteps = [
         <div>
           <div class="sec-title" style="margin-bottom:.5rem">Is this your first baby?</div>
           <div class="option-chips">
-            ${opts.map(o=>`<button class="option-chip${obData.firstBaby===o?' selected':''}" onclick="pickFirst(this,'${o}')">${o}</button>`).join('')}
+            ${opts.map((o,i)=>`<button class="option-chip${obData.firstBaby===o?' selected':''}" data-opt="${i}" onclick="pickFirst(this)">${o}</button>`).join('')}
           </div>
         </div>`;
     },
@@ -1883,10 +1883,11 @@ const obSteps = [
   }
 ];
 
-function pickFirst(el, val) {
+function pickFirst(el) {
+  const opts = ["👶 Yes, first baby!","🤱 No, I've done this before"];
   document.querySelectorAll('#onboardContent .option-chip').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
-  obData.firstBaby = val;
+  obData.firstBaby = opts[+el.dataset.opt] || '';
 }
 
 function pickStatus(el, status) {
