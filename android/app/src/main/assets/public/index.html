@@ -1502,10 +1502,15 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       <div class="sec-title">Upcoming Appointments</div>
       <div id="apptList"></div>
       <div style="height:.55rem"></div>
-      <div style="display:flex;gap:.4rem">
-        <input class="add-q-input" id="apptName" placeholder="Appointment type…" style="flex:1.2">
-        <input class="add-q-input" id="apptDate" type="date" style="flex:.9;font-size:.7rem">
-        <button class="add-q-btn" onclick="addAppt()">Add</button>
+      <div style="display:flex;flex-direction:column;gap:.4rem">
+        <div style="display:flex;gap:.4rem">
+          <input class="add-q-input" id="apptName" placeholder="Appointment type…" style="flex:1.2">
+          <input class="add-q-input" id="apptDate" type="date" style="flex:.9;font-size:.7rem">
+        </div>
+        <div style="display:flex;gap:.4rem">
+          <input class="add-q-input" id="apptDr" placeholder="Doctor name (optional)" style="flex:1">
+          <button class="add-q-btn" onclick="addAppt()">Add</button>
+        </div>
       </div>
     </div>
 
@@ -2826,11 +2831,7 @@ function resetMood() {
 }
 
 /* ── Appointments ──────────────────────────────── */
-let appts = [
-  { name:'OB-GYN Anatomy Scan',  date:'2026-09-13', dr:'Your Doctor' },
-  { name:'Glucose Screening',     date:'2026-11-03', dr:'Your Doctor' },
-  { name:'Third Trimester Check', date:'2026-12-15', dr:'Your Doctor' },
-];
+let appts = [];
 
 function renderAppts() {
   renderTodayAppt();
@@ -2859,11 +2860,11 @@ function renderAppts() {
 }
 
 function addAppt() {
-  const n = document.getElementById('apptName'), d = document.getElementById('apptDate');
+  const n = document.getElementById('apptName'), d = document.getElementById('apptDate'), dr = document.getElementById('apptDr');
   if (!n.value.trim() || !d.value) { alert('Enter appointment name and date.'); return; }
-  appts.push({ name:n.value.trim(), date:d.value, dr:'Your Doctor' });
+  appts.push({ name:n.value.trim(), date:d.value, dr:(dr && dr.value.trim()) || 'Your Doctor' });
   appts.sort((a,b)=>new Date(a.date)-new Date(b.date));
-  n.value=''; d.value=''; renderAppts();
+  n.value=''; d.value=''; if(dr) dr.value=''; renderAppts();
   saveState(); haptic();
 }
 
