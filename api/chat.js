@@ -1,3 +1,31 @@
+// Models tried in order; first one that works wins. Add new models at the top.
+const FALLBACK_MODELS = [
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'meta-llama/llama-4-maverick-17b-128e-instruct',
+  'llama3-70b-8192',
+  'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it',
+];
+
+async function callGroq(apiKey, model, messages) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ model, messages, max_tokens: 1500, temperature: 0.65 }),
+  });
+  const data = await res.json();
+  return { ok: res.ok, status: res.status, data };
+}
+
+function isModelError(data) {
+  const msg = data?.error?.message || '';
+  return msg.includes('does not exist') || msg.includes('decommissioned') || msg.includes('no longer supported') || msg.includes('deprecated');
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -37,30 +65,31 @@ For medical decisions always recommend consulting a healthcare provider. Never d
     { role: 'user', content: message },
   ];
 
+  // If GROQ_MODEL env var is set, try it first; otherwise use the fallback list
+  const modelsToTry = process.env.GROQ_MODEL
+    ? [process.env.GROQ_MODEL, ...FALLBACK_MODELS]
+    : FALLBACK_MODELS;
+
   try {
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: process.env.GROQ_MODEL || 'llama-3.3-70b-specdec',
-        messages,
-        max_tokens: 1500,
-        temperature: 0.65,
-      }),
-    });
-
-    const data = await groqRes.json();
-
-    if (!groqRes.ok) {
-      const status = groqRes.status === 401 ? 401 : 500;
-      return res.status(status).json({ error: data?.error?.message || 'Something went wrong. Please try again.' });
+    let lastError = 'Something went wrong. Please try again.';
+    for (const model of modelsToTry) {
+      const { ok, status, data } = await callGroq(process.env.GROQ_API_KEY, model, messages);
+      if (ok) {
+        const reply = data.choices?.[0]?.message?.content || "I'm not sure — could you rephrase that?";
+        return res.status(200).json({ reply });
+      }
+      if (status === 401) {
+        return res.status(401).json({ error: 'Invalid API key. Check your GROQ_API_KEY in Vercel environment variables.' });
+      }
+      if (isModelError(data)) {
+        // This model is gone — try the next one
+        lastError = data?.error?.message || lastError;
+        continue;
+      }
+      // Other API error (rate limit, bad request, etc.) — don't retry
+      return res.status(500).json({ error: data?.error?.message || lastError });
     }
-
-    const reply = data.choices?.[0]?.message?.content || "I'm not sure — could you rephrase that?";
-    res.status(200).json({ reply });
+    return res.status(503).json({ error: 'All AI models are currently unavailable. Please try again later.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
