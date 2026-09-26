@@ -1037,10 +1037,10 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
     </div>
 
     <!-- ③ Onboard screen (3 steps) -->
-    <div id="screen-onboard" hidden style="flex:1;display:flex;flex-direction:column;padding:1.25rem 1.25rem 1rem">
-      <div style="font-family:var(--f-d);font-size:1.1rem;font-weight:800;color:var(--rose);margin-bottom:.85rem">bloom</div>
-      <div id="onboardContent" style="flex:1;display:flex;flex-direction:column;gap:.75rem;justify-content:center"></div>
-      <div style="margin-top:1rem;display:flex;gap:.5rem">
+    <div id="screen-onboard" hidden style="flex:1;display:flex;flex-direction:column;padding:1.25rem 1.25rem 1rem;overflow-y:auto">
+      <div style="font-family:var(--f-d);font-size:1.1rem;font-weight:800;color:var(--rose);margin-bottom:.65rem">bloom</div>
+      <div id="onboardContent" style="display:flex;flex-direction:column;gap:.6rem"></div>
+      <div style="margin-top:1rem;display:flex;gap:.5rem;flex-shrink:0">
         <button class="auth-btn secondary" id="onboardBackBtn" onclick="onboardBack()" style="flex:.45;padding:.7rem">← Back</button>
         <button class="auth-btn" id="onboardNextBtn" onclick="onboardNext()" style="flex:1;padding:.7rem">Continue →</button>
       </div>
