@@ -1333,14 +1333,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
   <div class="screen" id="screen-schedule">
     <div>
       <div class="fw-800" style="font-size:1.05rem;color:var(--ink)">Daily Schedule</div>
-      <div class="fs-xs" style="margin-top:.12rem">Auto-adapts as you and baby grow</div>
-    </div>
-    <div class="stage-bar">
-      <button class="stage-btn active" onclick="setStage(0,this)">Prenatal</button>
-      <button class="stage-btn" onclick="setStage(1,this)">Newborn</button>
-      <button class="stage-btn" onclick="setStage(2,this)">3 Months</button>
-      <button class="stage-btn" onclick="setStage(3,this)">6 Months</button>
-      <button class="stage-btn" onclick="setStage(4,this)">1 Year</button>
+      <div class="fs-xs" id="scheduleSubtitle" style="margin-top:.12rem">Your personalised daily routine</div>
     </div>
     <div class="card" id="scheduleCard"></div>
   </div>
@@ -1386,8 +1379,8 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
             <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Baby's name / nickname <span style="font-weight:400;color:var(--ink-muted)">(opt.)</span></div>
             <input class="auth-input" id="pf-baby" placeholder="e.g. Sprout, Lily…" style="padding:.55rem .7rem;font-size:.85rem">
           </div>
-          <div>
-            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem">Due date</div>
+          <div id="pf-date-row">
+            <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem" id="pf-date-label">Due date</div>
             <input class="auth-input" id="pf-due" type="date" style="padding:.55rem .7rem;font-size:.85rem">
           </div>
         </div>
@@ -1745,11 +1738,12 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
-const obData = { name:'', babyName:'', dueDate:'', firstBaby:'', heightFt:'5', heightIn:'4', weightVal:'', weightUnit:'lb', currentWeight:'', age:'', bloodType:'', diet:[], goals:[] };
+const obData = { name:'', babyName:'', dueDate:'', birthDate:'', pregnancyStatus:'pregnant', firstBaby:'', heightFt:'5', heightIn:'4', weightVal:'', weightUnit:'lb', currentWeight:'', age:'', bloodType:'', diet:[], goals:[] };
 
 const obSteps = [
   {
     render() {
+      const isPregnant = obData.pregnancyStatus !== 'born';
       return `
         <div>
           <div style="font-size:1.8rem;margin-bottom:.35rem">👋</div>
@@ -1761,13 +1755,29 @@ const obSteps = [
           <input class="auth-input" id="ob-name" placeholder="e.g. Jessica" value="${obData.name}">
         </div>
         <div>
-          <div class="sec-title" style="margin-bottom:.38rem">Baby's due date</div>
-          <input class="auth-input" id="ob-due" type="date" value="${obData.dueDate}">
+          <div class="sec-title" style="margin-bottom:.5rem">Where are you right now?</div>
+          <div class="option-chips">
+            <button class="option-chip${isPregnant?' selected':''}" onclick="pickStatus(this,'pregnant')">🤰 I'm pregnant</button>
+            <button class="option-chip${!isPregnant?' selected':''}" onclick="pickStatus(this,'born')">👶 My baby is born</button>
+          </div>
+        </div>
+        <div id="ob-date-section">
+          ${isPregnant ? `
+            <div class="sec-title" style="margin-bottom:.38rem">Baby's due date</div>
+            <input class="auth-input" id="ob-due" type="date" value="${obData.dueDate}">
+          ` : `
+            <div class="sec-title" style="margin-bottom:.38rem">Baby's birth date</div>
+            <input class="auth-input" id="ob-birth" type="date" value="${obData.birthDate}">
+          `}
         </div>`;
     },
     save() {
-      obData.name    = document.getElementById('ob-name').value.trim() || 'Customer';
-      obData.dueDate = document.getElementById('ob-due').value;
+      obData.name = document.getElementById('ob-name').value.trim() || 'Customer';
+      if (obData.pregnancyStatus === 'born') {
+        obData.birthDate = document.getElementById('ob-birth')?.value || '';
+      } else {
+        obData.dueDate = document.getElementById('ob-due')?.value || '';
+      }
     }
   },
   {
@@ -1882,6 +1892,21 @@ function pickFirst(el, val) {
   obData.firstBaby = val;
 }
 
+function pickStatus(el, status) {
+  el.closest('.option-chips').querySelectorAll('.option-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  obData.pregnancyStatus = status;
+  const sec = document.getElementById('ob-date-section');
+  if (!sec) return;
+  if (status === 'born') {
+    sec.innerHTML = `<div class="sec-title" style="margin-bottom:.38rem">Baby's birth date</div>
+      <input class="auth-input" id="ob-birth" type="date" value="${obData.birthDate}">`;
+  } else {
+    sec.innerHTML = `<div class="sec-title" style="margin-bottom:.38rem">Baby's due date</div>
+      <input class="auth-input" id="ob-due" type="date" value="${obData.dueDate}">`;
+  }
+}
+
 function renderObStep() {
   document.getElementById('onboardContent').innerHTML = obSteps[obStep].render();
   document.getElementById('stepDots').innerHTML = obSteps.map((_,i)=>
@@ -1931,7 +1956,7 @@ function handleSignIn() {
 
 function finishOnboard() {
   obSteps[obStep].save();
-  launchApp(obData.name, obData.dueDate);
+  launchApp(obData.name, obData.dueDate, obData.birthDate, obData.pregnancyStatus);
 }
 
 /* ── Lookup tables ──────────────────────────────── */
@@ -2148,9 +2173,11 @@ function refreshDashboard() {
   renderTodayTip(wk);
 }
 
-function launchApp(name, dueDate) {
-  obData.name    = name    || obData.name;
-  obData.dueDate = dueDate || obData.dueDate;
+function launchApp(name, dueDate, birthDate, pregnancyStatus) {
+  obData.name             = name             || obData.name;
+  obData.dueDate          = dueDate          || obData.dueDate;
+  obData.birthDate        = birthDate        || obData.birthDate;
+  obData.pregnancyStatus  = pregnancyStatus  || obData.pregnancyStatus || 'pregnant';
   saveState();
   // Show app view
   document.getElementById('loginView').hidden = true;
@@ -2159,6 +2186,7 @@ function launchApp(name, dueDate) {
   refreshDashboard();
   renderDocQs();
   renderAppts();
+  renderSchedule();
   // Wire scroll hint to active screen
   const initScr = document.querySelector('.screen.active');
   if (initScr) {
@@ -2172,7 +2200,11 @@ function launchApp(name, dueDate) {
 function profileEdit() {
   document.getElementById('pf-name').value = obData.name    || '';
   document.getElementById('pf-baby').value = obData.babyName|| '';
-  document.getElementById('pf-due').value  = obData.dueDate || '';
+  const isBorn = obData.pregnancyStatus === 'born';
+  const lbl = document.getElementById('pf-date-label');
+  const inp = document.getElementById('pf-due');
+  if (lbl) lbl.textContent = isBorn ? 'Birth date' : 'Due date';
+  if (inp) inp.value = isBorn ? (obData.birthDate || '') : (obData.dueDate || '');
   document.getElementById('profileEditForm').style.display = '';
   document.getElementById('profileEditBtn').style.display  = 'none';
 }
@@ -2183,9 +2215,12 @@ function profileCancel() {
 function profileSave() {
   obData.name     = document.getElementById('pf-name').value.trim() || 'Customer';
   obData.babyName = document.getElementById('pf-baby').value.trim();
-  obData.dueDate  = document.getElementById('pf-due').value;
+  const dateVal   = document.getElementById('pf-due').value;
+  if (obData.pregnancyStatus === 'born') obData.birthDate = dateVal;
+  else obData.dueDate = dateVal;
   profileCancel();
   refreshDashboard();
+  renderSchedule();
   saveState();
 }
 
@@ -2245,6 +2280,7 @@ function switchScreen(id, btn) {
   document.getElementById('fmapDrawer').hidden = true;
   updateScrollHint(scr);
   scr.onscroll = () => updateScrollHint(scr);
+  if (id === 'schedule') renderSchedule();
 }
 
 function updateScrollHint(scr) {
@@ -2730,8 +2766,35 @@ const schedules = [
   ]},
 ];
 
+function getAutoStage() {
+  if (obData.pregnancyStatus === 'born' && obData.birthDate) {
+    const daysOld = Math.round((new Date() - new Date(obData.birthDate)) / 86400000);
+    if (daysOld < 0) return 0;
+    if (daysOld <= 28) return 1;
+    if (daysOld <= 90) return 2;
+    if (daysOld <= 180) return 3;
+    return 4;
+  }
+  return 0;
+}
+
 function renderSchedule(i) {
-  const s = schedules[i];
+  i = (i === undefined) ? getAutoStage() : i;
+  let s = schedules[i];
+  // Use actual pregnancy week for prenatal label
+  if (i === 0 && obData.dueDate) {
+    const due = new Date(obData.dueDate);
+    const daysIn = Math.round((new Date() - new Date(due.getTime()-280*24*60*60*1000))/86400000);
+    const wk = Math.max(1, Math.min(42, Math.round(daysIn/7)));
+    s = Object.assign({}, s, { label: `Prenatal · Week ${wk}` });
+  }
+  const subtitle = document.getElementById('scheduleSubtitle');
+  if (subtitle) {
+    const stageNames = ['Prenatal','Newborn','3 Months','6 Months','1 Year +'];
+    subtitle.textContent = obData.pregnancyStatus === 'born'
+      ? `Your baby · ${stageNames[i] || ''}`
+      : 'Your prenatal daily routine';
+  }
   document.getElementById('scheduleCard').innerHTML=`
     <div class="sec-title">${s.label}</div>
     <div class="timeline-wrap">
@@ -2749,7 +2812,6 @@ function renderSchedule(i) {
 }
 
 function setStage(i,btn) {
-  document.querySelectorAll('.stage-btn').forEach((b,j)=>b.classList.toggle('active',j===i));
   renderSchedule(i);
 }
 
