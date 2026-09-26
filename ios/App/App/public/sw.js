@@ -1,4 +1,4 @@
-const CACHE = 'bloom-v3';
+const CACHE = 'bloom-v4';
 const SHELL = ['/'];
 
 self.addEventListener('install', e => {
