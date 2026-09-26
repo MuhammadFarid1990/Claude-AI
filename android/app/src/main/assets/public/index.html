@@ -593,13 +593,18 @@ body::before {
 }
 .vacc-card.upcoming { border-color:var(--amber); }
 .vacc-card.future   { border-color:var(--rule); }
+.vacc-card.done     { border-color:var(--green);opacity:.55; }
+.vacc-card.done .vacc-name { text-decoration:line-through;color:var(--ink-muted); }
 .vacc-icon { font-size:1.05rem;flex-shrink:0;margin-top:.05rem; }
 .vacc-name { font-size:.83rem;font-weight:700;color:var(--ink); }
 .vacc-when { font-size:.7rem;color:var(--ink-muted);margin-top:.05rem;line-height:1.4; }
 .vacc-pill { display:inline-block;font-size:.58rem;font-weight:700;border-radius:20px;padding:.12rem .45rem;margin-top:.25rem; }
-.vacc-card:not(.upcoming):not(.future) .vacc-pill { background:#DCFCE7;color:#166534; }
+.vacc-card:not(.upcoming):not(.future):not(.done) .vacc-pill { background:#DCFCE7;color:#166534; }
 .vacc-card.upcoming .vacc-pill { background:#FEF9C3;color:#713F12; }
 .vacc-card.future .vacc-pill   { background:var(--rule);color:var(--ink-muted); }
+.vacc-card.done .vacc-pill     { background:#DCFCE7;color:#166534; }
+.vacc-check { margin-left:auto;flex-shrink:0;align-self:center;width:26px;height:26px;border-radius:50%;border:2px solid var(--rule);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.72rem;color:transparent;transition:all .18s; }
+.vacc-card.done .vacc-check { background:var(--green);border-color:var(--green);color:#fff; }
 
 .delivery-toggle { display:flex;background:var(--surface);border-radius:13px;padding:.25rem;gap:.2rem;box-shadow:0 1px 8px rgba(180,0,80,.07); }
 .delivery-btn { flex:1;border:none;border-radius:9px;padding:.4rem .3rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:var(--f-b);color:var(--ink-muted);background:transparent;transition:all .15s;text-align:center; }
@@ -1526,38 +1531,43 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
     <!-- Vaccine reminders -->
     <div class="card" id="me-vaccines">
       <div class="sec-title">Vaccine Reminders · CDC Schedule</div>
+      <div style="font-size:.68rem;color:var(--ink-muted);margin-bottom:.3rem">Tap a vaccine to mark it done</div>
       <div style="display:flex;flex-direction:column;gap:.45rem;margin-top:.2rem">
-        <div class="vacc-card">
+        <div class="vacc-card" id="vax-0" onclick="toggleVacc('vax-0')">
           <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
-          <div>
+          <div style="flex:1">
             <div class="vacc-name">Flu Shot</div>
             <div class="vacc-when">Recommended at any point in pregnancy</div>
-            <span class="vacc-pill">Due now</span>
+            <span class="vacc-pill" id="vax-0-pill">Due now</span>
           </div>
+          <div class="vacc-check">✓</div>
         </div>
-        <div class="vacc-card upcoming">
+        <div class="vacc-card upcoming" id="vax-1" onclick="toggleVacc('vax-1')">
           <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
-          <div>
+          <div style="flex:1">
             <div class="vacc-name">Tdap (whooping cough)</div>
             <div class="vacc-when">Recommended at weeks 27–36 · You're at week 18</div>
-            <span class="vacc-pill">Upcoming · 9 weeks away</span>
+            <span class="vacc-pill" id="vax-1-pill">Upcoming · 9 weeks away</span>
           </div>
+          <div class="vacc-check">✓</div>
         </div>
-        <div class="vacc-card upcoming">
+        <div class="vacc-card upcoming" id="vax-2" onclick="toggleVacc('vax-2')">
           <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
-          <div>
+          <div style="flex:1">
             <div class="vacc-name">COVID-19 Booster</div>
             <div class="vacc-when">Recommended any trimester</div>
-            <span class="vacc-pill">Discuss at next visit</span>
+            <span class="vacc-pill" id="vax-2-pill">Discuss at next visit</span>
           </div>
+          <div class="vacc-check">✓</div>
         </div>
-        <div class="vacc-card future">
+        <div class="vacc-card future" id="vax-3" onclick="toggleVacc('vax-3')">
           <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
-          <div>
+          <div style="flex:1">
             <div class="vacc-name">RSV Vaccine</div>
             <div class="vacc-when">After delivery — protects newborn via antibodies</div>
-            <span class="vacc-pill">Postpartum</span>
+            <span class="vacc-pill" id="vax-3-pill">Postpartum</span>
           </div>
+          <div class="vacc-check">✓</div>
         </div>
       </div>
     </div>
@@ -1890,6 +1900,31 @@ function pickFirst(el) {
   obData.firstBaby = opts[+el.dataset.opt] || '';
 }
 
+let vaccDone = {};
+function loadVaccDone() {
+  try { vaccDone = JSON.parse(localStorage.getItem('bloom_vacc') || '{}'); } catch(e) { vaccDone = {}; }
+  ['vax-0','vax-1','vax-2','vax-3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('done', !!vaccDone[id]);
+    const pill = document.getElementById(id + '-pill');
+    if (pill && vaccDone[id]) pill.textContent = 'Done ✓';
+  });
+}
+function toggleVacc(id) {
+  vaccDone[id] = !vaccDone[id];
+  try { localStorage.setItem('bloom_vacc', JSON.stringify(vaccDone)); } catch(e) {}
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('done', !!vaccDone[id]);
+  const pill = document.getElementById(id + '-pill');
+  if (pill) {
+    const labels = { 'vax-0':'Due now', 'vax-1':'Upcoming · 9 weeks away', 'vax-2':'Discuss at next visit', 'vax-3':'Postpartum' };
+    pill.textContent = vaccDone[id] ? 'Done ✓' : (labels[id] || '');
+  }
+  haptic();
+}
+
 function pickStatus(el, status) {
   el.closest('.option-chips').querySelectorAll('.option-chip').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
@@ -2185,6 +2220,7 @@ function launchApp(name, dueDate, birthDate, pregnancyStatus) {
   renderDocQs();
   renderAppts();
   renderSchedule();
+  loadVaccDone();
   // Wire scroll hint to active screen
   const initScr = document.querySelector('.screen.active');
   if (initScr) {
