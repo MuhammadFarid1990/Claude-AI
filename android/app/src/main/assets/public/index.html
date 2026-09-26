@@ -1511,7 +1511,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 
     <!-- Doctor's questions -->
     <div class="card" id="me-docqs">
-      <div class="sec-title">Questions for Dr. Rivera</div>
+      <div class="sec-title">Questions for Your Doctor</div>
       <div class="doc-list" id="docList"></div>
       <div style="height:.5rem"></div>
       <button class="suggest-q-btn" id="suggestQBtn" onclick="addSuggestedQs()">✨ Suggest Questions</button>
@@ -1584,7 +1584,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         </div>
         <div class="recovery-week">
           <div class="rw-badge">Wk 5–6</div>
-          <div class="rw-body"><div class="rw-title">OB clearance visit</div><div class="rw-sub">6-week check-up with Dr. Rivera. Cleared for exercise and intimacy.</div></div>
+          <div class="rw-body"><div class="rw-title">OB clearance visit</div><div class="rw-sub">6-week check-up with your doctor. Cleared for exercise and intimacy.</div></div>
         </div>
       </div>
       <div class="recovery-plan" id="rp-csection">
@@ -1598,7 +1598,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         </div>
         <div class="recovery-week">
           <div class="rw-badge">Wk 6–8</div>
-          <div class="rw-body"><div class="rw-title">OB clearance visit</div><div class="rw-sub">Full clearance typically at 8 weeks for C-section. Discuss scar massage with Dr. Rivera.</div></div>
+          <div class="rw-body"><div class="rw-title">OB clearance visit</div><div class="rw-sub">Full clearance typically at 8 weeks for C-section. Discuss scar massage with your doctor.</div></div>
         </div>
       </div>
     </div>
@@ -2537,8 +2537,8 @@ function runTriage() {
   const level = levels.includes('urgent')?'urgent':levels.includes('warn')?'warn':'ok';
   const R = {
     ok:     {title:'✓ Sounds Normal', body:'The symptoms you selected are common in the second trimester. Keep tracking and mention them at your next appointment if they persist.',action:"Add to doctor's questions →"},
-    warn:   {title:'⚠ Worth Monitoring', body:"Some of what you're experiencing is worth watching closely. If these symptoms intensify or don't resolve in a few hours, contact Dr. Rivera's nurse line today.",action:'Call nurse line'},
-    urgent: {title:'🚨 Contact Your Doctor Now', body:'One or more of your symptoms requires prompt attention. Please call your OB-GYN or go to labor & delivery triage immediately.',action:'Call Dr. Rivera →'},
+    warn:   {title:'⚠ Worth Monitoring', body:"Some of what you're experiencing is worth watching closely. If these symptoms intensify or don't resolve in a few hours, contact your doctor's nurse line today.",action:'Call nurse line'},
+    urgent: {title:'🚨 Contact Your Doctor Now', body:'One or more of your symptoms requires prompt attention. Please call your OB-GYN or go to labor & delivery triage immediately.',action:'Call Your Doctor →'},
   };
   const r = R[level];
   const card = document.getElementById('resultCard');
@@ -2550,7 +2550,7 @@ function runTriage() {
   ra.onclick = level==='ok'
     ? ()=>{ docQs.push('Follow-up on symptoms noted this week'); renderDocQs(); switchScreen('me',document.querySelectorAll('.tab')[4]); showMeSection('docqs'); }
     : level==='warn'
-    ? ()=>alert('Nurse line: contact Dr. Rivera\'s office.\nIf after hours, use the after-hours paging number on your clinic card.')
+    ? ()=>alert('Contact your doctor\'s nurse line.\nIf after hours, use the after-hours paging number on your clinic card.')
     : ()=>alert('Please call 911 or go to Labor & Delivery triage immediately.\nDo not drive yourself.');
   document.getElementById('checkBtn').style.display='none';
   document.getElementById('resetBtn').style.display='block';
@@ -2647,7 +2647,7 @@ function submitMood() {
     ? {cls:'good',   title:'🌸 You\'re doing well', body:'Your responses suggest you\'re in a positive headspace today. Keep up the self-care routine — it\'s working. See you at tomorrow\'s check-in.',action:'Log a note →'}
     : score>=8
     ? {cls:'check',  title:'🤍 Having a mixed day', body:'Some days are harder than others, especially in the second trimester. Consider a short walk, reaching out to someone you love, or resting when you can.',action:'Find support resources →'}
-    : {cls:'concern',title:'💜 We\'re here for you', body:'Your responses suggest you may be experiencing some emotional difficulty. This is common and treatable — you\'re not alone. We strongly encourage talking to Dr. Rivera at your next visit or calling the Postpartum Support Helpline.',action:'Call PSI Helpline: 1-800-944-4773'};
+    : {cls:'concern',title:'💜 We\'re here for you', body:'Your responses suggest you may be experiencing some emotional difficulty. This is common and treatable — you\'re not alone. We strongly encourage talking to your doctor at your next visit or calling the Postpartum Support Helpline.',action:'Call PSI Helpline: 1-800-944-4773'};
   const el = document.getElementById('ppdResult');
   el.className=`ppd-result ${res.cls} visible`;
   document.getElementById('ppdTitle').textContent=res.title;
@@ -2806,7 +2806,7 @@ function addSuggestedQs() {
 function shareDocQs() {
   const el = document.getElementById('docSummary');
   if (!docQs.length) { el.innerHTML='No questions yet — add some above.'; el.style.display='block'; return; }
-  el.innerHTML=`<strong style="display:block;margin-bottom:.4rem;color:var(--rose)">Appointment Summary for Dr. Rivera</strong>`
+  el.innerHTML=`<strong style="display:block;margin-bottom:.4rem;color:var(--rose)">Appointment Summary</strong>`
     + docQs.map((q,i)=>`${i+1}. ${q}`).join('<br>')
     + (()=>{
         const wkNum = obData.dueDate ? Math.max(1,Math.min(40,40-Math.round((new Date(obData.dueDate)-new Date())/(7*24*60*60*1000)))) : null;
@@ -2827,9 +2827,9 @@ function resetMood() {
 
 /* ── Appointments ──────────────────────────────── */
 let appts = [
-  { name:'OB-GYN Anatomy Scan',  date:'2026-09-13', dr:'Dr. Rivera' },
-  { name:'Glucose Screening',     date:'2026-11-03', dr:'Dr. Rivera' },
-  { name:'Third Trimester Check', date:'2026-12-15', dr:'Dr. Rivera' },
+  { name:'OB-GYN Anatomy Scan',  date:'2026-09-13', dr:'Your Doctor' },
+  { name:'Glucose Screening',     date:'2026-11-03', dr:'Your Doctor' },
+  { name:'Third Trimester Check', date:'2026-12-15', dr:'Your Doctor' },
 ];
 
 function renderAppts() {
@@ -2861,7 +2861,7 @@ function renderAppts() {
 function addAppt() {
   const n = document.getElementById('apptName'), d = document.getElementById('apptDate');
   if (!n.value.trim() || !d.value) { alert('Enter appointment name and date.'); return; }
-  appts.push({ name:n.value.trim(), date:d.value, dr:'Dr. Rivera' });
+  appts.push({ name:n.value.trim(), date:d.value, dr:'Your Doctor' });
   appts.sort((a,b)=>new Date(a.date)-new Date(b.date));
   n.value=''; d.value=''; renderAppts();
   saveState(); haptic();
