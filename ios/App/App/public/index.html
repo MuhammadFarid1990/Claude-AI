@@ -1744,6 +1744,11 @@ const obSteps = [
   {
     render() {
       const isPregnant = obData.pregnancyStatus !== 'born';
+      const dateHtml = isPregnant
+        ? '<div class="sec-title" style="margin-bottom:.38rem">Baby\'s due date</div>'
+          + '<input class="auth-input" id="ob-due" type="date" value="' + (obData.dueDate || '') + '">'
+        : '<div class="sec-title" style="margin-bottom:.38rem">Baby\'s birth date</div>'
+          + '<input class="auth-input" id="ob-birth" type="date" value="' + (obData.birthDate || '') + '">';
       return `
         <div>
           <div style="font-size:1.8rem;margin-bottom:.35rem">👋</div>
@@ -1757,19 +1762,11 @@ const obSteps = [
         <div>
           <div class="sec-title" style="margin-bottom:.5rem">Where are you right now?</div>
           <div class="option-chips">
-            <button class="option-chip${isPregnant?' selected':''}" onclick="pickStatus(this,'pregnant')">🤰 I'm pregnant</button>
-            <button class="option-chip${!isPregnant?' selected':''}" onclick="pickStatus(this,'born')">👶 My baby is born</button>
+            <button class="option-chip${isPregnant ? ' selected' : ''}" onclick="pickStatus(this,'pregnant')">🤰 I'm pregnant</button>
+            <button class="option-chip${isPregnant ? '' : ' selected'}" onclick="pickStatus(this,'born')">👶 My baby is born</button>
           </div>
         </div>
-        <div id="ob-date-section">
-          ${isPregnant ? `
-            <div class="sec-title" style="margin-bottom:.38rem">Baby's due date</div>
-            <input class="auth-input" id="ob-due" type="date" value="${obData.dueDate}">
-          ` : `
-            <div class="sec-title" style="margin-bottom:.38rem">Baby's birth date</div>
-            <input class="auth-input" id="ob-birth" type="date" value="${obData.birthDate}">
-          `}
-        </div>`;
+        <div id="ob-date-section">${dateHtml}</div>`;
     },
     save() {
       obData.name = document.getElementById('ob-name').value.trim() || 'Customer';
@@ -2005,7 +2002,7 @@ const weekTips = {
   default: 'Stay hydrated, rest when you need to, and remember to take your prenatal vitamin each day.',
   4:  'Your baby is now the size of a poppy seed. Folic acid is crucial right now — keep taking your prenatal vitamin daily.',
   8:  'Morning sickness may peak around now. Small, frequent meals and ginger tea can help ease nausea.',
-  10: 'Your baby's vital organs are forming. Avoid alcohol, smoking, and unnecessary medications.',
+  10: "Your baby's vital organs are forming. Avoid alcohol, smoking, and unnecessary medications.",
   12: 'End of the first trimester! Risk of miscarriage drops significantly after this week.',
   13: 'You may feel your energy returning. Gentle prenatal exercise is safe and beneficial.',
   16: 'Some people feel first movements around now — like a gentle flutter. Every pregnancy is different.',
