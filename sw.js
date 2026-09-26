@@ -1,5 +1,5 @@
-const CACHE = 'bloom-v2';
-const SHELL = ['/index.html', '/'];
+const CACHE = 'bloom-v3';
+const SHELL = ['/'];
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -17,7 +17,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Always network-first for API calls (chat needs live server)
+  // Always network-first for API calls
   if (url.pathname.startsWith('/api/')) {
     e.respondWith(
       fetch(e.request).catch(() =>
@@ -28,7 +28,21 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Cache-first for app shell and static assets
+  // Network-first for HTML navigation (always get latest version)
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).then(resp => {
+        if (resp.ok) {
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return resp;
+      }).catch(() => caches.match(e.request).then(c => c || caches.match('/')))
+    );
+    return;
+  }
+
+  // Cache-first for static assets (js, css, images)
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
@@ -38,11 +52,6 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return resp;
-      }).catch(() => {
-        // Serve app shell for navigation requests when offline
-        if (e.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
       });
     })
   );
