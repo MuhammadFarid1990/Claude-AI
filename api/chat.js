@@ -1,29 +1,42 @@
-// Models tried in order; first one that works wins. Add new models at the top.
-const FALLBACK_MODELS = [
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'meta-llama/llama-4-maverick-17b-128e-instruct',
-  'llama3-70b-8192',
-  'llama-3.1-8b-instant',
-  'mixtral-8x7b-32768',
-  'gemma2-9b-it',
+// Preference order: prefer larger/smarter chat models over small/audio ones
+const MODEL_PREFERENCE = [
+  'llama-4', 'llama3', 'llama-3', 'mixtral', 'gemma2', 'gemma', 'qwen', 'deepseek',
 ];
+const SKIP_KEYWORDS = ['whisper', 'guard', 'vision', 'tts', 'embed', 'tool-use'];
 
-async function callGroq(apiKey, model, messages) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({ model, messages, max_tokens: 1500, temperature: 0.65 }),
-  });
-  const data = await res.json();
-  return { ok: res.ok, status: res.status, data };
-}
+let cachedModel = null;
+let cacheTime = 0;
 
-function isModelError(data) {
-  const msg = data?.error?.message || '';
-  return msg.includes('does not exist') || msg.includes('decommissioned') || msg.includes('no longer supported') || msg.includes('deprecated');
+async function getBestModel(apiKey) {
+  // Cache for 5 minutes to avoid querying /models on every request
+  if (cachedModel && Date.now() - cacheTime < 300000) return cachedModel;
+
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!r.ok) return null;
+    const { data } = await r.json();
+    const chatModels = (data || [])
+      .map(m => m.id)
+      .filter(id => !SKIP_KEYWORDS.some(kw => id.toLowerCase().includes(kw)));
+
+    // Score each model by preference list position (lower = better)
+    chatModels.sort((a, b) => {
+      const aScore = MODEL_PREFERENCE.findIndex(p => a.toLowerCase().includes(p));
+      const bScore = MODEL_PREFERENCE.findIndex(p => b.toLowerCase().includes(p));
+      return (aScore === -1 ? 99 : aScore) - (bScore === -1 ? 99 : bScore);
+    });
+
+    if (chatModels.length) {
+      cachedModel = chatModels[0];
+      cacheTime = Date.now();
+      return cachedModel;
+    }
+  } catch (e) {
+    // fall through
+  }
+  return null;
 }
 
 module.exports = async function handler(req, res) {
@@ -41,6 +54,12 @@ module.exports = async function handler(req, res) {
 
   const { message, context, history = [] } = req.body || {};
   if (!message) return res.status(400).json({ error: 'message required' });
+
+  // Discover the best available model (or use env override)
+  const model = process.env.GROQ_MODEL || await getBestModel(process.env.GROQ_API_KEY);
+  if (!model) {
+    return res.status(503).json({ error: 'Could not find an available AI model. Please try again later.' });
+  }
 
   const systemPrompt = `You are Bloom — a warm, knowledgeable AI assistant built into the Bloom pregnancy and parenting app. You answer ANY question the user asks, helpfully and thoroughly.
 
@@ -65,31 +84,30 @@ For medical decisions always recommend consulting a healthcare provider. Never d
     { role: 'user', content: message },
   ];
 
-  // If GROQ_MODEL env var is set, try it first; otherwise use the fallback list
-  const modelsToTry = process.env.GROQ_MODEL
-    ? [process.env.GROQ_MODEL, ...FALLBACK_MODELS]
-    : FALLBACK_MODELS;
-
   try {
-    let lastError = 'Something went wrong. Please try again.';
-    for (const model of modelsToTry) {
-      const { ok, status, data } = await callGroq(process.env.GROQ_API_KEY, model, messages);
-      if (ok) {
-        const reply = data.choices?.[0]?.message?.content || "I'm not sure — could you rephrase that?";
-        return res.status(200).json({ reply });
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({ model, messages, max_tokens: 1500, temperature: 0.65 }),
+    });
+
+    const data = await groqRes.json();
+
+    if (!groqRes.ok) {
+      // If the auto-discovered model is now gone, clear cache so next request re-discovers
+      const msg = data?.error?.message || '';
+      if (msg.includes('does not exist') || msg.includes('decommissioned') || msg.includes('no longer supported')) {
+        cachedModel = null;
       }
-      if (status === 401) {
-        return res.status(401).json({ error: 'Invalid API key. Check your GROQ_API_KEY in Vercel environment variables.' });
-      }
-      if (isModelError(data)) {
-        // This model is gone — try the next one
-        lastError = data?.error?.message || lastError;
-        continue;
-      }
-      // Other API error (rate limit, bad request, etc.) — don't retry
-      return res.status(500).json({ error: data?.error?.message || lastError });
+      const status = groqRes.status === 401 ? 401 : 500;
+      return res.status(status).json({ error: msg || 'Something went wrong. Please try again.' });
     }
-    return res.status(503).json({ error: 'All AI models are currently unavailable. Please try again later.' });
+
+    const reply = data.choices?.[0]?.message?.content || "I'm not sure — could you rephrase that?";
+    res.status(200).json({ reply });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
