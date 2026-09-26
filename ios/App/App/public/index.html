@@ -537,6 +537,8 @@ body::before {
 .tl-title.tl-done { text-decoration:line-through; }
 .tl-sub   { font-size:.7rem;color:var(--ink-muted);margin-top:.06rem;line-height:1.4; }
 .tl-dur   { margin-left:auto;background:var(--surface);border:1px solid var(--rule);border-radius:7px;padding:.16rem .42rem;font-size:.6rem;font-weight:700;color:var(--rose);flex-shrink:0; }
+.tl-ampm { display:block;font-size:.5rem;font-weight:600;letter-spacing:.05em;opacity:.8; }
+.tl-tag  { font-size:.55rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--rose);margin-bottom:.08rem; }
 .tl-row.past { opacity:.42; }
 .tl-row.tl-now { background:rgba(224,55,122,.06);border-radius:8px;margin:0 -.3rem;padding-left:.3rem;padding-right:.3rem; }
 .tl-check { width:20px;height:20px;border-radius:50%;border:1.8px solid var(--rule);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.62rem;color:transparent;margin-top:.12rem;cursor:pointer;transition:all .18s; }
@@ -2837,7 +2839,7 @@ function renderSchedule(i) {
 
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
-  const today = now.toISOString().slice(0, 10);
+  const today = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
   const doneKey = 'bloom_sched_' + i + '_' + today;
   let schedDone = {};
   try { schedDone = JSON.parse(localStorage.getItem(doneKey) || '{}'); } catch(e) {}
@@ -2866,25 +2868,38 @@ function renderSchedule(i) {
     return mins;
   });
 
-  // Find which item slot is "now" (last item whose time <= current time)
-  let nowIdx = -1;
-  for (let j = 0; j < itemMins.length; j++) {
-    if (nowMins >= itemMins[j]) nowIdx = j;
-    else break;
-  }
+  // Each task lasts its stated length ("30 min" badge or "20 min" in the subtitle), else 30 min, never past the next task
+  const itemEnd = s.items.map((it, j) => {
+    const m = /(\d+)\s*min/i.exec(it.dur || '') || /(\d+)\s*min/i.exec(it.sub || '');
+    const len = m ? parseInt(m[1]) : 30;
+    const next = j + 1 < itemMins.length ? itemMins[j + 1] : Infinity;
+    return Math.min(itemMins[j] + len, next);
+  });
+
+  let nowIdx = itemMins.findIndex((t, j) => nowMins >= t && nowMins < itemEnd[j]);
+  const nextIdx = nowIdx === -1 ? itemMins.findIndex(t => t > nowMins) : -1;
+  const hiIdx = nowIdx !== -1 ? nowIdx : nextIdx;
+
+  const fmtTime = mins => {
+    const h = Math.floor(mins / 60) % 24, m = mins % 60;
+    return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') +
+      '<span class="tl-ampm">' + (h < 12 ? 'AM' : 'PM') + '</span>';
+  };
 
   document.getElementById('scheduleCard').innerHTML =
     '<div class="sec-title">' + s.label + '</div>' +
     '<div class="timeline-wrap">' +
     s.items.map(function(it, j) {
-      const isPast = j < nowIdx;
-      const isNow = j === nowIdx;
+      const isPast = nowMins >= itemEnd[j];
+      const isHi = j === hiIdx;
       const done = !!schedDone[j];
-      const rowCls = ['tl-row', (isPast || done) ? 'past' : '', (isNow && !done) ? 'tl-now' : ''].filter(Boolean).join(' ');
+      const rowCls = ['tl-row', (isPast || done) ? 'past' : '', (isHi && !done) ? 'tl-now' : ''].filter(Boolean).join(' ');
+      const dotCls = (isPast || done) ? 'on' : (j === nowIdx ? 'now' : '');
+      const tag = (isHi && !done) ? '<div class="tl-tag">' + (j === nowIdx ? 'Now' : 'Up next') + '</div>' : '';
       return '<div class="' + rowCls + '">' +
-        '<div class="tl-time">' + it.time + '</div>' +
-        '<div class="tl-dot ' + it.dot + '"></div>' +
-        '<div class="tl-body">' +
+        '<div class="tl-time">' + fmtTime(itemMins[j]) + '</div>' +
+        '<div class="tl-dot ' + dotCls + '"></div>' +
+        '<div class="tl-body">' + tag +
           '<div class="tl-title' + (done ? ' tl-done' : '') + '">' + it.title + '</div>' +
           (it.sub ? '<div class="tl-sub">' + it.sub + '</div>' : '') +
         '</div>' +
