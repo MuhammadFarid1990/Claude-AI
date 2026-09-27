@@ -544,6 +544,70 @@ body::before {
 .tl-check { width:20px;height:20px;border-radius:50%;border:1.8px solid var(--rule);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.62rem;color:transparent;margin-top:.12rem;cursor:pointer;transition:all .18s; }
 .tl-check.done { background:var(--rose);border-color:var(--rose);color:#fff; }
 
+/* ── DAILY PLAN ───────────────────────────────── */
+.daily-card { position:relative;overflow:hidden; }
+.daily-head { display:flex;align-items:flex-start;gap:.6rem; }
+.daily-day { font-family:var(--f-d);font-size:1.7rem;font-weight:800;letter-spacing:-.035em;color:var(--ink);line-height:1; }
+.daily-day span { font-size:.78rem;color:var(--ink-muted);font-weight:700;letter-spacing:0; }
+.daily-stage { font-size:.68rem;color:var(--ink-muted);font-weight:700;margin-top:.3rem; }
+.streak-pill { margin-left:auto;display:flex;align-items:center;gap:.2rem;background:linear-gradient(135deg,#FFB347,#FF6B4A);color:#fff;font-weight:800;font-size:.85rem;border-radius:20px;padding:.32rem .7rem;box-shadow:0 4px 12px rgba(255,107,74,.35);font-variant-numeric:tabular-nums;white-space:nowrap; }
+.streak-pill.cold { background:var(--rule);color:var(--ink-muted);box-shadow:none; }
+.daily-prog { display:flex;align-items:center;gap:.55rem;margin:.8rem 0 .6rem;font-size:.7rem;font-weight:700;color:var(--ink-muted);white-space:nowrap; }
+.daily-prog-track { flex:1;height:7px;border-radius:7px;background:rgba(224,55,122,.12);overflow:hidden; }
+.daily-prog-fill { height:100%;background:linear-gradient(90deg,#FFAAD4,#E0377A);border-radius:7px;transition:width .4s; }
+.dtask { display:flex;align-items:center;gap:.65rem;padding:.65rem .7rem;border-radius:16px;background:var(--rose-bg);border:1.5px solid rgba(224,55,122,.1);cursor:pointer;transition:background .15s; }
+.dtask + .dtask { margin-top:.45rem; }
+.dtask.done { background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.2); }
+.dtask-check { width:28px;height:28px;border-radius:50%;border:2.5px solid var(--rose);background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:transparent;font-size:.78rem;font-weight:800;cursor:pointer;padding:0;transition:all .18s; }
+.dtask.done .dtask-check { background:var(--green);border-color:var(--green);color:#fff; }
+.dtask-check:focus-visible, .ds-done-btn:focus-visible, .ds-sec-btn:focus-visible, .ds-close:focus-visible { outline:2px solid var(--rose);outline-offset:2px; }
+.dtask-body { flex:1;min-width:0; }
+.dtask-label { font-size:.58rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
+.dtask-title { font-size:.86rem;font-weight:700;color:var(--ink);line-height:1.3; }
+.dtask.done .dtask-title { text-decoration:line-through;color:var(--ink-muted); }
+.dtask-sub { font-size:.68rem;color:var(--ink-muted);margin-top:.1rem;line-height:1.35; }
+.dtask-go { color:var(--rose);font-size:1.1rem;font-weight:700;flex-shrink:0; }
+.lbl-eat { color:var(--rose); } .lbl-move { color:var(--lime-dark); } .lbl-do { color:var(--purple); } .lbl-baby { color:var(--teal); } .lbl-food { color:var(--coral); }
+.week-dots { display:flex;justify-content:space-between;margin:.8rem .1rem .1rem; }
+.wd { display:flex;flex-direction:column;align-items:center;gap:.22rem;font-size:.56rem;font-weight:700;color:var(--ink-muted); }
+.wd i { width:22px;height:22px;border-radius:50%;background:var(--rule);display:flex;align-items:center;justify-content:center;font-style:normal;color:#fff;font-size:.62rem;font-weight:800; }
+.wd.part i { background:var(--rose-pale); }
+.wd.full i { background:linear-gradient(135deg,#FFB347,#FF6B4A); }
+.wd.today i { box-shadow:0 0 0 2px #fff,0 0 0 4px var(--rose); }
+.daily-next { margin-top:.75rem;padding:.6rem .75rem;border-radius:14px;border:1.5px dashed var(--rose-pale);background:repeating-linear-gradient(135deg,rgba(224,55,122,.045) 0 8px,transparent 8px 16px);font-size:.7rem;color:var(--ink-2);line-height:1.45; }
+.daily-next b { color:var(--rose); }
+.daily-badge { font-size:.66rem;color:var(--ink-muted);margin-top:.5rem;text-align:center;font-weight:600; }
+.confetti { position:absolute;inset:0;pointer-events:none; }
+.confetti i { position:absolute;top:-12px;width:7px;height:11px;border-radius:2px;animation:confFall 1.7s ease-in forwards; }
+@keyframes confFall { to { transform:translateY(460px) rotate(560deg);opacity:0; } }
+@media (prefers-reduced-motion: reduce) { .confetti { display:none; } }
+
+#day-sheet { position:absolute;inset:0;background:#fff;z-index:310;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);border-radius:inherit;visibility:hidden; }
+#day-sheet.open { transform:translateY(0);visibility:visible; }
+.ds-head { display:flex;align-items:center;gap:.6rem;padding:calc(.85rem + env(safe-area-inset-top, 0px)) 1.1rem .8rem;border-bottom:1px solid #ffe0ee;flex-shrink:0; }
+.ds-day { font-size:.7rem;color:var(--ink-muted);font-weight:600;margin-top:.1rem; }
+.ds-close { margin-left:auto;border:none;background:var(--rose-bg);width:34px;height:34px;border-radius:50%;cursor:pointer;color:var(--rose);font-weight:800;font-size:.9rem;flex-shrink:0; }
+.ds-body { flex:1;overflow-y:auto;padding:1rem 1.15rem calc(1.5rem + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:.95rem; }
+.ds-title { font-family:var(--f-d);font-size:1.4rem;font-weight:800;letter-spacing:-.025em;color:var(--ink);line-height:1.15;text-wrap:balance; }
+.ds-meta { display:flex;flex-wrap:wrap;gap:.35rem; }
+.ds-chip { font-size:.66rem;font-weight:700;padding:.24rem .58rem;border-radius:20px;background:var(--rose-bg);color:var(--rose-dark);font-variant-numeric:tabular-nums; }
+.ds-h { font-size:.64rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:.35rem; }
+.ds-list { padding-left:1.15rem;font-size:.82rem;color:var(--ink);line-height:1.55;display:flex;flex-direction:column;gap:.22rem; }
+.ds-text { font-size:.84rem;color:var(--ink);line-height:1.55; }
+.ds-why { font-size:.8rem;color:var(--ink-2);line-height:1.5;background:var(--lime-bg);border-radius:12px;padding:.6rem .75rem; }
+.ds-move { border:1.5px solid var(--rule);border-radius:16px;padding:.75rem .85rem;display:flex;flex-direction:column;gap:.45rem; }
+.ds-move-top { display:flex;align-items:baseline;gap:.5rem; }
+.ds-move-step { font-size:.6rem;font-weight:800;color:var(--ink-muted);letter-spacing:.08em;text-transform:uppercase; }
+.ds-move-n { font-weight:800;font-size:.92rem;color:var(--ink); }
+.ds-move-d { margin-left:auto;font-size:.68rem;font-weight:800;color:var(--lime-dark);white-space:nowrap; }
+.ds-move .ds-list { font-size:.78rem; }
+.ds-move-why { font-size:.74rem;color:var(--ink-muted);line-height:1.45; }
+.ds-cs { font-size:.72rem;color:#6D28D9;background:#F3EEFF;border-radius:10px;padding:.42rem .58rem;line-height:1.45; }
+.ds-safety { font-size:.74rem;line-height:1.5;color:#7F1D1D;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:.6rem .75rem; }
+.ds-done-btn { border:none;border-radius:16px;padding:.95rem;font-family:var(--f-b);font-weight:800;font-size:.92rem;cursor:pointer;background:linear-gradient(135deg,#E0377A,#AF1F59);color:#fff;box-shadow:0 8px 20px rgba(224,55,122,.35);flex-shrink:0; }
+.ds-done-btn.is-done { background:var(--green);box-shadow:none; }
+.ds-sec-btn { border:1.5px solid var(--rose);background:#fff;color:var(--rose);border-radius:14px;padding:.72rem;font-family:var(--f-b);font-weight:700;font-size:.82rem;cursor:pointer; }
+
 /* ── ME ───────────────────────────────────────── */
 .profile-card { display:flex;align-items:center;gap:.85rem; }
 .body-stat-tile {
@@ -1079,6 +1143,9 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       <div class="week-chip">Week 18 · Second Trimester</div>
     </div>
 
+    <!-- Daily plan: new eat / move / do every day -->
+    <div class="card daily-card" id="dailyCard" hidden></div>
+
     <!-- Baby card -->
     <div class="card rose">
       <div style="display:flex;align-items:flex-start;gap:.75rem">
@@ -1168,31 +1235,6 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       </div>
     </div>
 
-    <!-- Today's highlights -->
-    <div class="card">
-      <div class="sec-title">Today's Highlights</div>
-      <div class="item-row" style="cursor:pointer" onclick="switchScreen('meals',document.querySelectorAll('.tab')[1])">
-        <div class="item-icon ir"><svg class="item-svg" style="stroke:#E0377A" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><line x1="7" y1="2" x2="7" y2="11"/><path d="M21 15a4 4 0 01-4 4h0a4 4 0 01-4-4v-3h8v3z"/><line x1="17" y1="2" x2="17" y2="11"/></svg></div>
-        <div><div class="it">Spinach &amp; lentil soup</div><div class="is">Lunch · 512 kcal · 22g protein</div></div>
-        <div class="ia" style="color:var(--rose)">›</div>
-      </div>
-      <div class="item-row" style="cursor:pointer" onclick="alert('Prenatal vitamin reminder set for 8:00 PM tonight ✓')">
-        <div class="item-icon ig"><svg class="item-svg" style="stroke:#78A400" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-        <div><div class="it">Prenatal vitamin</div><div class="is">Reminder set · 8:00 PM</div></div>
-        <div class="ia" style="color:var(--rose)">›</div>
-      </div>
-      <div class="item-row" style="cursor:pointer" onclick="switchScreen('schedule',document.querySelectorAll('.tab')[3])">
-        <div class="item-icon ico"><svg class="item-svg" style="stroke:#FF6B4A" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
-        <div><div class="it">Prenatal yoga</div><div class="is">30 min · Breathing &amp; stretching</div></div>
-        <div class="ia" style="color:var(--rose)">›</div>
-      </div>
-      <div class="item-row" style="cursor:pointer" onclick="switchScreen('schedule',document.querySelectorAll('.tab')[3])">
-        <div class="item-icon ipu"><svg class="item-svg" style="stroke:#8B5CF6" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
-        <div><div class="it">Afternoon rest</div><div class="is">Left-side rest recommended</div></div>
-        <div class="ia" style="color:var(--rose)">›</div>
-      </div>
-    </div>
-
     <!-- Daily goals -->
     <div class="card">
       <div class="sec-title">Today's 3 Goals</div>
@@ -1242,6 +1284,8 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 
   <!-- ════ MEALS ════════════════════════════════ -->
   <div class="screen" id="screen-meals">
+
+    <div class="card" id="mealsTodayCard" hidden></div>
 
     <div class="day-strip" id="dayStrip"></div>
 
@@ -1749,9 +1793,25 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
     </div>
   </div>
 
+  <!-- Daily plan detail sheet -->
+  <div id="day-sheet" role="dialog" aria-modal="true" aria-labelledby="dsLabel">
+    <div class="ds-head">
+      <div>
+        <div class="dtask-label" id="dsLabel"></div>
+        <div class="ds-day" id="dsDay"></div>
+      </div>
+      <button class="ds-close" onclick="closeDaySheet()" aria-label="Close">✕</button>
+    </div>
+    <div class="ds-body" id="dsBody"></div>
+  </div>
+
 </div><!-- /phone -->
 </div><!-- /phone-wrap -->
 
+<script src="content/moves.js?v=1"></script>
+<script src="content/meals.js?v=1"></script>
+<script src="content/dos.js?v=1"></script>
+<script src="content/baby.js?v=1"></script>
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
@@ -2211,6 +2271,7 @@ function refreshDashboard() {
   // Today screen dynamic sections
   renderTodayAppt();
   renderTodayTip(wk);
+  renderDaily();
 }
 
 function launchApp(name, dueDate, birthDate, pregnancyStatus) {
@@ -2228,6 +2289,7 @@ function launchApp(name, dueDate, birthDate, pregnancyStatus) {
   renderAppts();
   renderSchedule();
   loadVaccDone();
+  if (obData.delivery) setDelivery(obData.delivery);
   // Wire scroll hint to active screen
   const initScr = document.querySelector('.screen.active');
   if (initScr) {
@@ -2893,7 +2955,7 @@ function renderSchedule(i) {
       const isPast = nowMins >= itemEnd[j];
       const isHi = j === hiIdx;
       const done = !!schedDone[j];
-      const rowCls = ['tl-row', (isPast || done) ? 'past' : '', (isHi && !done) ? 'tl-now' : ''].filter(Boolean).join(' ');
+      const rowCls = ['tl-row', done ? 'past' : '', (isHi && !done) ? 'tl-now' : ''].filter(Boolean).join(' ');
       const dotCls = (isPast || done) ? 'on' : (j === nowIdx ? 'now' : '');
       const tag = (isHi && !done) ? '<div class="tl-tag">' + (j === nowIdx ? 'Now' : 'Up next') + '</div>' : '';
       return '<div class="' + rowCls + '">' +
@@ -3052,9 +3114,319 @@ function apptPrepQs(i) {
 /* ── Postpartum recovery ───────────────────────── */
 function setDelivery(type, btn) {
   document.querySelectorAll('.delivery-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  if (!btn) btn = document.querySelector('.delivery-btn[onclick*="' + type + '"]');
+  if (btn) btn.classList.add('active');
   document.querySelectorAll('.recovery-plan').forEach(p=>p.classList.remove('active'));
   document.getElementById('rp-'+type).classList.add('active');
+  obData.delivery = type;
+  saveState();
+  renderDaily();
+}
+
+/* ── Daily plan: something new to eat, move and do every day ── */
+const DAILY_KEY = 'bloom_daily_v1';
+const STREAK_BADGES = [3, 7, 14, 30, 60, 100, 150, 200, 280, 365];
+let dailyState = { days:{}, best:0 };
+let dailyRenderedKey = '';
+
+function loadDaily() {
+  try { dailyState = Object.assign({ days:{}, best:0 }, JSON.parse(localStorage.getItem(DAILY_KEY) || '{}')); }
+  catch(e) { dailyState = { days:{}, best:0 }; }
+}
+function saveDaily() { try { localStorage.setItem(DAILY_KEY, JSON.stringify(dailyState)); } catch(e) {} }
+
+// Calendar days as integers in the user's local time, so "today" flips at their midnight.
+function epochDay(y, m, d) { return Math.round(Date.UTC(y, m, d) / 86400000); }
+function todayEpoch(offset) { const n = new Date(); return epochDay(n.getFullYear(), n.getMonth(), n.getDate()) + (offset || 0); }
+function dateEpoch(str) { const [y, m, d] = String(str).split('-').map(Number); return epochDay(y, m - 1, d); }
+function epochKey(e) { const d = new Date(e * 86400000); return d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate(); }
+function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
+
+function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+// Walks a pool in a shuffled order that reshuffles each full cycle, so no item repeats until the pool is used up.
+function cycleOrder(len, seed, cycle) {
+  const order = [...Array(len).keys()];
+  let s = hashStr(seed + ':' + cycle) || 1;
+  for (let i = len - 1; i > 0; i--) {
+    s = (Math.imul(s, 1103515245) + 12345) >>> 0;
+    const j = s % (i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  // Never start a cycle with the item that ended the previous one
+  if (cycle > 0 && len > 1 && order[0] === cycleOrder(len, seed, cycle - 1)[len - 1]) [order[0], order[1]] = [order[1], order[0]];
+  return order;
+}
+function rotPick(pool, idx, seed) {
+  if (!pool || !pool.length) return null;
+  const len = pool.length;
+  return pool[cycleOrder(len, seed, Math.floor(idx / len))[idx % len]];
+}
+function pickDistinct(pool, start, count, seed) {
+  const out = [];
+  for (let i = start; out.length < count && i < start + count * 3; i++) {
+    const p = rotPick(pool, i, seed);
+    if (p && !out.includes(p)) out.push(p);
+  }
+  return out;
+}
+
+function dietExclusions(forBaby) {
+  const d = (obData.diet || []).join(' ');
+  let ex = /Vegan/.test(d) ? 'mfsed' : /Vegetarian/.test(d) ? 'mfs' : '';
+  if (forBaby) return ex; // allergens are introduced early on purpose, so only ethical diet choices apply to baby
+  if (/Dairy-free/.test(d)) ex += 'd';
+  if (/Gluten-free/.test(d)) ex += 'g';
+  if (/No shellfish/.test(d)) ex += 's';
+  if (/No nuts/.test(d)) ex += 'n';
+  return ex;
+}
+function fitsDiet(item, ex) { return ![...(item.tg || '')].some(t => ex.includes(t)); }
+
+function mealItem(pool, idx, seed) {
+  const meal = rotPick(pool.filter(r => fitsDiet(r, dietExclusions())), idx, seed);
+  return meal
+    ? { key:'eat', label:'Eat', title:meal.n, sub:meal.type + ' · ' + meal.focus, data:meal }
+    : { key:'eat', label:'Eat', title:'Build a plate you love', sub:'No recipe today fits all your food preferences', data:null };
+}
+function moveItem(list, kind) {
+  const mins = list.reduce((a, m) => a + m.m, 0);
+  return { key:'move', label:'Move', title:(kind || mins + '-min routine'), sub:list.map(m => m.n).join(' · '), data:{ list, mins } };
+}
+
+function getDailyPlan(offset) {
+  const D = window.BLOOM_DAILY;
+  if (!D || !D.meals || !D.moves || !D.dos || !D.baby) return null;
+  const t = todayEpoch(offset);
+
+  if (obData.pregnancyStatus === 'born' && obData.birthDate) {
+    const day = t - dateEpoch(obData.birthDate) + 1;
+    if (day < 1) return null;
+    const month = Math.min(11, Math.floor((day - 1) / 30.44)); // baby's age in whole months
+    const phase = day <= 14 ? 'pp1' : day <= 42 ? 'pp2' : day <= 90 ? 'pp3' : 'pp4';
+    const play = rotPick(D.baby[month], day, 'baby' + month);
+    const moves = pickDistinct(D.moves[phase], day * 3, 3, phase);
+    const items = [
+      { key:'baby', label:'Play', title:play.n, sub:play.t + ' · ' + play.skill, data:play },
+      mealItem(D.meals.pp, day, 'pp'),
+      moveItem(moves, phase === 'pp1' ? 'Gentle recovery · ' + moves.reduce((a, m) => a + m.m, 0) + ' min' : '')
+    ];
+    if (month >= 6) {
+      const pool = (month >= 10 ? D.foods.f10 : month >= 8 ? D.foods.f8 : D.foods.f6).filter(f => fitsDiet(f, dietExclusions(true)));
+      const food = rotPick(pool, day, 'food' + month);
+      if (food) items.splice(1, 0, { key:'food', label:'Baby\'s food', title:food.n, sub:'First foods · ' + month + ' months', data:food });
+    }
+    const stage = day <= 42 ? 'Postpartum recovery · Baby week ' + Math.ceil(day / 7)
+      : 'Baby is ' + (day > 365 ? 'over a year' : month + (month === 1 ? ' month' : ' months')) + ' old';
+    return { mode:'born', day, total:365, stage, phase, items };
+  }
+
+  let day = obData.dueDate ? t - (dateEpoch(obData.dueDate) - 280) + 1 : 127 + (offset || 0);
+  day = Math.max(1, Math.min(280, day));
+  const stage = day <= 91 ? 't1' : day <= 189 ? 't2' : 't3';
+  const sd = day - (stage === 't1' ? 1 : stage === 't2' ? 92 : 190);
+  const mains = pickDistinct(D.moves[stage], sd * 2, 2, stage);
+  const moves = [rotPick(D.moves.warm, day, 'warm'), ...mains, rotPick(D.moves.cool, day, 'cool')];
+  const todo = rotPick(D.dos[stage], sd, stage + 'do');
+  const tri = { t1:'First', t2:'Second', t3:'Third' }[stage];
+  return {
+    mode:'pregnant', day, total:280, stage:tri + ' trimester · Week ' + Math.min(40, Math.ceil(day / 7)), phase:stage,
+    items:[
+      mealItem(D.meals[stage], sd, stage + 'meal'),
+      moveItem(moves),
+      { key:'do', label:'Do', title:todo.n, sub:todo.c, data:todo }
+    ]
+  };
+}
+
+function dayRec(e) { return dailyState.days[epochKey(e)]; }
+function isFullDay(e) { const r = dayRec(e); return !!(r && r.full); }
+function currentStreak() {
+  let e = todayEpoch();
+  if (!isFullDay(e)) e--;
+  let n = 0;
+  while (isFullDay(e)) { n++; e--; }
+  return n;
+}
+
+function taskRowHtml(it, rec) {
+  return '<div class="dtask' + (rec[it.key] ? ' done' : '') + '" onclick="openDaySheet(\'' + it.key + '\')">' +
+    '<button class="dtask-check" onclick="toggleDaily(\'' + it.key + '\',event)" aria-label="Mark ' + escHtml(it.label) + ' as done">✓</button>' +
+    '<div class="dtask-body"><div class="dtask-label lbl-' + it.key + '">' + escHtml(it.label) + '</div>' +
+    '<div class="dtask-title">' + escHtml(it.title) + '</div><div class="dtask-sub">' + escHtml(it.sub) + '</div></div>' +
+    '<div class="dtask-go" aria-hidden="true">›</div></div>';
+}
+
+function renderDaily() {
+  const el = document.getElementById('dailyCard');
+  if (!el) return;
+  const plan = getDailyPlan();
+  dailyRenderedKey = epochKey(todayEpoch());
+  renderMealsToday(plan);
+  if (!plan) { el.hidden = true; return; }
+  el.hidden = false;
+  const rec = dayRec(todayEpoch()) || {};
+  const total = plan.items.length, doneN = plan.items.filter(it => rec[it.key]).length;
+  if (dayRec(todayEpoch()) && !!rec.full !== (doneN === total)) { rec.full = doneN === total; saveDaily(); } // today's tasks can change if the profile changes
+  const streak = currentStreak();
+  const letters = ['S','M','T','W','T','F','S'];
+  let dots = '';
+  for (let o = -6; o <= 0; o++) {
+    const r = dayRec(todayEpoch(o));
+    const cls = r && r.full ? 'full' : r && Object.keys(r).some(k => k !== 'full' && r[k]) ? 'part' : '';
+    dots += '<div class="wd ' + cls + (o === 0 ? ' today' : '') + '"><i>' + (r && r.full ? '✓' : '') + '</i>' + letters[new Date(todayEpoch(o) * 86400000).getUTCDay()] + '</div>';
+  }
+  const next = getDailyPlan(1);
+  const nextBadge = STREAK_BADGES.find(b => b > streak);
+  const progText = doneN === total ? 'Day complete · ' + streak + '-day streak' : doneN + ' of ' + total + ' done';
+  el.innerHTML =
+    '<div class="daily-head"><div>' +
+      '<div class="daily-day">Day ' + plan.day + '<span> of ' + plan.total + '</span></div>' +
+      '<div class="daily-stage">' + escHtml(plan.stage) + '</div></div>' +
+      '<div class="streak-pill' + (streak ? '' : ' cold') + '" aria-label="' + streak + '-day streak">🔥 ' + streak + '</div>' +
+    '</div>' +
+    '<div class="daily-prog"><div class="daily-prog-track"><div class="daily-prog-fill" style="width:' + Math.round(doneN / total * 100) + '%"></div></div>' + progText + '</div>' +
+    plan.items.map(it => taskRowHtml(it, rec)).join('') +
+    '<div class="week-dots">' + dots + '</div>' +
+    (next && next.day !== plan.day ? '<div class="daily-next">🔒 <b>Unlocks tomorrow:</b> ' + next.items.map(i => escHtml(i.title)).join(' · ') + '</div>' : '') +
+    '<div class="daily-badge">' + (nextBadge ? 'Next badge: ' + nextBadge + '-day streak · ' + (nextBadge - streak) + ' to go' : 'Every streak badge earned') +
+      (dailyState.best ? ' · Best ' + dailyState.best : '') + '</div>';
+}
+
+function renderMealsToday(plan) {
+  const el = document.getElementById('mealsTodayCard');
+  if (!el) return;
+  const it = plan && plan.items.find(i => i.key === 'eat');
+  if (!it || !it.data) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = '<div class="sec-title">Today\'s new recipe · Day ' + plan.day + '</div>' + taskRowHtml(it, dayRec(todayEpoch()) || {});
+}
+
+function toggleDaily(key, ev) {
+  if (ev) ev.stopPropagation();
+  const plan = getDailyPlan();
+  if (!plan) return;
+  const k = epochKey(todayEpoch());
+  const rec = dailyState.days[k] || (dailyState.days[k] = {});
+  rec[key] = !rec[key];
+  const wasFull = !!rec.full;
+  rec.full = plan.items.every(it => rec[it.key]);
+  dailyState.best = Math.max(dailyState.best || 0, currentStreak());
+  saveDaily();
+  haptic(rec[key] ? 'MEDIUM' : 'LIGHT');
+  const sheetOpen = document.getElementById('day-sheet').classList.contains('open');
+  if (sheetOpen && rec[key]) closeDaySheet();
+  else if (sheetOpen) openDaySheet(key);
+  renderDaily();
+  if (rec.full && !wasFull) celebrateDay();
+}
+
+function celebrateDay() {
+  const el = document.getElementById('dailyCard');
+  if (!el || el.hidden) return;
+  const c = document.createElement('div');
+  c.className = 'confetti';
+  const cols = ['#E0377A','#AADF2F','#FFB347','#8B5CF6','#14B8A6','#FF6B4A'];
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('i');
+    p.style.left = (Math.random() * 100) + '%';
+    p.style.background = cols[i % cols.length];
+    p.style.animationDelay = (Math.random() * .45) + 's';
+    c.appendChild(p);
+  }
+  el.appendChild(c);
+  setTimeout(() => c.remove(), 2400);
+  haptic('HEAVY');
+}
+
+const DAILY_GO = {
+  docqs:    ['Open my doctor questions', () => { switchScreen('me', document.querySelectorAll('.tab')[4]); showMeSection('docqs'); }],
+  vaccines: ['Open vaccine schedule',    () => { switchScreen('me', document.querySelectorAll('.tab')[4]); jumpMe('vaccines', null); }],
+  kicks:    ['Open kick counter',        () => { switchScreen('health', document.querySelectorAll('.tab')[2]); switchHealth('kicks', document.querySelectorAll('.sub-nav-btn')[1]); }]
+};
+function dailyGo(key) { closeDaySheet(); const g = DAILY_GO[key]; if (g) g[1](); }
+
+function listHtml(arr, ordered) {
+  const tag = ordered ? 'ol' : 'ul';
+  return '<' + tag + ' class="ds-list">' + arr.map(x => '<li>' + escHtml(x) + '</li>').join('') + '</' + tag + '>';
+}
+
+function sheetHtml(it, plan) {
+  const d = it.data;
+  if (it.key === 'eat') {
+    if (!d) return '<div class="ds-title">No recipe fits every preference today</div><div class="ds-text">Pick any meal with a protein, a vegetable and a whole grain. You can adjust your food preferences under Me → Diet &amp; Goals.</div>';
+    const prefs = (obData.diet || []).map(x => x.replace(/^\S+\s/, ''));
+    return '<div class="ds-title">' + escHtml(d.n) + '</div>' +
+      '<div class="ds-meta"><span class="ds-chip">' + escHtml(d.type) + '</span><span class="ds-chip">≈' + d.k + ' kcal</span><span class="ds-chip">' + d.p + ' g protein</span><span class="ds-chip">' + escHtml(d.focus) + '</span></div>' +
+      '<div><div class="ds-h">Ingredients</div>' + listHtml(d.ing) + '</div>' +
+      '<div><div class="ds-h">Method</div>' + listHtml(d.how, true) + '</div>' +
+      '<div class="ds-why"><b>Why today:</b> ' + escHtml(d.why) + '</div>' +
+      (prefs.length ? '<div class="ds-text" style="font-size:.72rem;color:var(--ink-muted)">Matched to your preferences: ' + escHtml(prefs.join(', ')) + '</div>' : '') +
+      '<button class="ds-sec-btn" onclick="handleOrder()">Order ingredients</button>';
+  }
+  if (it.key === 'move') {
+    const cs = obData.delivery === 'csection' ? 'C-section: ' : obData.delivery === 'vaginal' ? '' : 'If you had a C-section: ';
+    const steps = plan.mode === 'pregnant' ? ['Warm-up', 'Main', 'Main', 'Cool-down'] : [];
+    let safety = plan.mode === 'pregnant'
+      ? 'Check with your provider before starting or changing exercise. Stop and call them if you have vaginal bleeding, fluid leaking, dizziness, chest pain, a headache, calf pain or swelling, regular painful contractions, or your baby moving less.' +
+        (plan.phase !== 't1' ? ' From the second trimester, avoid lying flat on your back for long stretches.' : '')
+      : 'Beyond walking, breathing and pelvic floor work, wait for your provider\'s OK, usually at your 6-week check. Stop if bleeding gets heavier or turns bright red again, or if you feel pain, leaking, or heaviness in your vagina.' +
+        (obData.delivery !== 'vaginal' ? ' After a C-section, support your incision and lift nothing heavier than your baby until you are cleared.' : '');
+    return '<div class="ds-title">' + escHtml(it.title) + '</div>' +
+      '<div class="ds-meta"><span class="ds-chip">' + d.mins + ' min total</span><span class="ds-chip">' + d.list.length + ' moves</span></div>' +
+      d.list.map((m, i) =>
+        '<div class="ds-move">' +
+          (steps[i] ? '<div class="ds-move-step">' + steps[i] + '</div>' : '') +
+          '<div class="ds-move-top"><div class="ds-move-n">' + escHtml(m.n) + '</div><div class="ds-move-d">' + escHtml(m.dose) + '</div></div>' +
+          listHtml(m.how, true) +
+          '<div class="ds-move-why">' + escHtml(m.why) + '</div>' +
+          (m.cs && cs ? '<div class="ds-cs">' + cs + escHtml(m.cs) + '</div>' : '') +
+        '</div>').join('') +
+      '<div class="ds-safety">' + safety + '</div>';
+  }
+  if (it.key === 'do') {
+    const go = d.go && DAILY_GO[d.go];
+    return '<div class="ds-title">' + escHtml(d.n) + '</div>' +
+      '<div class="ds-meta"><span class="ds-chip">' + escHtml(d.c) + '</span></div>' +
+      '<div class="ds-text">' + escHtml(d.how) + '</div>' +
+      '<div class="ds-why"><b>Why it matters:</b> ' + escHtml(d.why) + '</div>' +
+      (go ? '<button class="ds-sec-btn" onclick="dailyGo(\'' + d.go + '\')">' + go[0] + '</button>' : '');
+  }
+  if (it.key === 'baby') {
+    return '<div class="ds-title">' + escHtml(d.n) + '</div>' +
+      '<div class="ds-meta"><span class="ds-chip">' + escHtml(d.t) + '</span><span class="ds-chip">' + escHtml(d.skill) + '</span></div>' +
+      '<div><div class="ds-h">How</div>' + listHtml(d.how, true) + '</div>' +
+      '<div class="ds-why"><b>Why it helps:</b> ' + escHtml(d.why) + '</div>' +
+      '<div class="ds-text" style="font-size:.72rem;color:var(--ink-muted)">Always supervise play. If your baby fusses or looks away, stop and try again later.</div>';
+  }
+  if (it.key === 'food') {
+    return '<div class="ds-title">' + escHtml(d.n) + '</div>' +
+      '<div class="ds-meta"><span class="ds-chip">' + escHtml(it.sub) + '</span></div>' +
+      '<div><div class="ds-h">How to serve</div><div class="ds-text">' + escHtml(d.how) + '</div></div>' +
+      '<div class="ds-why">' + escHtml(d.note) + '</div>' +
+      '<div class="ds-safety"><b>Every meal:</b>' + listHtml(BLOOM_DAILY.foodRules) + '</div>';
+  }
+  return '';
+}
+
+function openDaySheet(key) {
+  const plan = getDailyPlan();
+  const it = plan && plan.items.find(i => i.key === key);
+  if (!it) return;
+  const done = !!(dayRec(todayEpoch()) || {})[key];
+  const label = document.getElementById('dsLabel');
+  label.textContent = it.label;
+  label.className = 'dtask-label lbl-' + key;
+  document.getElementById('dsDay').textContent = 'Day ' + plan.day + ' · ' + plan.stage;
+  const body = document.getElementById('dsBody');
+  body.innerHTML = sheetHtml(it, plan) +
+    '<button class="ds-done-btn' + (done ? ' is-done' : '') + '" onclick="toggleDaily(\'' + key + '\')">' + (done ? '✓ Done · tap to undo' : 'Mark as done') + '</button>';
+  body.scrollTop = 0;
+  document.getElementById('day-sheet').classList.add('open');
+  const fb = document.getElementById('fmapBtn'); if (fb) fb.hidden = true;
+}
+function closeDaySheet() {
+  document.getElementById('day-sheet').classList.remove('open');
+  const fb = document.getElementById('fmapBtn'); if (fb) fb.hidden = false;
 }
 
 /* ── Init ──────────────────────────────────────── */
@@ -3067,6 +3439,9 @@ renderSchedule(0);
 setInterval(function() { renderSchedule(); }, 60000); // refresh schedule every minute for time-awareness
 renderDocQs();
 renderAppts();
+loadDaily();
+renderDaily();
+setInterval(function() { if (epochKey(todayEpoch()) !== dailyRenderedKey) renderDaily(); }, 60000);
 
 /* ── Bloom Knowledge Base (RAG — no API cost) ─────── */
 const BLOOM_KB = [
