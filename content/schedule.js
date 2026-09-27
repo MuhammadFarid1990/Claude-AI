@@ -37,6 +37,14 @@ BLOOM_DAILY.schedule = {
     { from:35, to:37, title:'Group B strep test', sub:'A quick swab is usually done between 36 and 37 weeks.' },
     { from:36, to:42, title:'Know when to go in', sub:'Contractions 5 minutes apart, lasting 1 minute, for 1 hour; waters breaking; bleeding; or baby moving less: call your provider.' }
   ],
+  // Postpartum recovery steps, shown on day `from` and then weekly until `to` (born mode). Tailored by delivery type.
+  recoveryChecks: [
+    { from:15, to:42, t:'17:00', title:'Recovery check', sub:{ vag:'Bleeding should be light or brownish by now. Keep up short walks and pelvic floor squeezes. Bright red bleeding coming back, or a fever: call your provider.', cs:'Walk a little further each day, and still lift nothing heavier than your baby. Redness, warmth or discharge at the incision, or a fever: call your provider.', any:'Bleeding should be light or brownish by now; keep up short walks. After a C-section, lift nothing heavier than your baby. Bright red bleeding coming back, a fever or a red, oozing incision: call your provider.' } },
+    { from:17, to:17, title:'Check in with your provider', sub:'Doctors recommend a call or visit within 3 weeks of birth. Mention bleeding, pain, feeding and how your mood has been.', open:'docqs' },
+    { from:43, to:43, del:'vag', title:'Your postpartum check-up', sub:'The full check-up is usually around now. Ask about exercise, contraception, your mood and your pelvic floor. Wait for the all-clear before running or heavy lifting.', open:'docqs' },
+    { from:43, to:57, del:'cs', title:'Your postpartum check-up', sub:'After a C-section this is usually at 6–8 weeks. Ask when you can drive, lift and exercise, and whether scar massage is right for you.', open:'docqs' },
+    { from:43, to:43, del:'any', title:'Your postpartum check-up', sub:'The full check-up is usually at 6–8 weeks. Ask about exercise, contraception, your mood and your pelvic floor.', open:'docqs' }
+  ],
   bagItems: ['ID, insurance card and birth preferences','a long phone charger','comfy nightwear that opens for feeding','maternity pads and dark underwear','toiletries and lip balm','snacks and a big water bottle','a going-home outfit for baby','a car seat, installed','nipple cream and nursing bras','slippers and warm socks'],
 
   born: [

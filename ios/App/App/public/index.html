@@ -700,9 +700,6 @@ body::before {
 .vacc-check { margin-left:auto;flex-shrink:0;align-self:center;width:26px;height:26px;border-radius:50%;border:2px solid var(--rule);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.72rem;color:transparent;transition:all .18s; }
 .vacc-card.done .vacc-check { background:var(--green);border-color:var(--green);color:#fff; }
 
-.delivery-toggle { display:flex;background:var(--surface);border-radius:13px;padding:.25rem;gap:.2rem;box-shadow:0 1px 8px rgba(180,0,80,.07); }
-.delivery-btn { flex:1;border:none;border-radius:9px;padding:.4rem .3rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:var(--f-b);color:var(--ink-muted);background:transparent;transition:all .15s;text-align:center; }
-.delivery-btn.active { background:var(--rose);color:white; }
 
 /* ── New utility components ───────────────────── */
 .goal-list { display:flex;flex-direction:column;gap:.5rem; }
@@ -819,12 +816,6 @@ body::before {
 .trust-badge { display:inline-flex;align-items:center;gap:.3rem;font-size:.6rem;font-weight:700;padding:.18rem .5rem;border-radius:6px;background:#DCFCE7;color:#166534; }
 .privacy-badge { display:inline-flex;align-items:center;gap:.3rem;font-size:.6rem;font-weight:700;padding:.18rem .5rem;border-radius:6px;background:#EDE9FF;color:#4C1D95; }
 
-.recovery-plan { display:none;flex-direction:column;gap:.55rem; }
-.recovery-plan.active { display:flex; }
-.recovery-week { display:flex;gap:.65rem;align-items:flex-start; }
-.rw-badge { min-width:40px;text-align:center;background:var(--rose-pale);border-radius:8px;padding:.3rem .2rem;font-size:.58rem;font-weight:800;color:var(--rose);flex-shrink:0; }
-.rw-body .rw-title { font-size:.83rem;font-weight:700;color:var(--ink); }
-.rw-body .rw-sub   { font-size:.7rem;color:var(--ink-muted);margin-top:.08rem;line-height:1.45; }
 
 /* ── Touch / Tap fixes ───────────────────────── */
 button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-pill, .store-btn, .sub-nav-btn, .stage-btn, .delivery-btn, .quick-btn {
@@ -1429,7 +1420,6 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       <button class="me-sec-pill" onclick="jumpMe('appointments',this)">Appointments</button>
       <button class="me-sec-pill" onclick="jumpMe('docqs',this)">Doctor Qs</button>
       <button class="me-sec-pill" onclick="jumpMe('vaccines',this)">Vaccines</button>
-      <button class="me-sec-pill" onclick="jumpMe('recovery',this)">Recovery</button>
       <button class="me-sec-pill" onclick="jumpMe('pricing',this)">Plans</button>
     </div>
 
@@ -1466,6 +1456,13 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
             </div>
             <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem" id="pf-date-label">Due date</div>
             <input class="auth-input" id="pf-due" type="date" style="padding:.55rem .7rem;font-size:.85rem">
+            <div id="pf-del-row" hidden>
+              <div class="sec-title" style="margin:.6rem 0 .3rem;font-size:.68rem">How was baby born?</div>
+              <div class="option-chips" id="pf-del">
+                <button type="button" class="option-chip" data-type="vaginal" onclick="pickProfileDelivery('vaginal')">Vaginal birth</button>
+                <button type="button" class="option-chip" data-type="csection" onclick="pickProfileDelivery('csection')">C-section</button>
+              </div>
+            </div>
           </div>
         </div>
         <div style="display:flex;gap:.5rem;margin-top:.65rem">
@@ -1642,49 +1639,10 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
           <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
           <div style="flex:1">
             <div class="vacc-name">RSV Vaccine</div>
-            <div class="vacc-when">After delivery — protects newborn via antibodies</div>
-            <span class="vacc-pill" id="vax-3-pill">Postpartum</span>
+            <div class="vacc-when">Weeks 32–36, September to January — protects baby for the first months. Or baby can get an RSV antibody shot after birth instead.</div>
+            <span class="vacc-pill" id="vax-3-pill">Weeks 32–36</span>
           </div>
           <div class="vacc-check">✓</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Postpartum recovery plan -->
-    <div class="card" id="me-recovery">
-      <div class="sec-title">Postpartum Recovery Plan</div>
-      <div style="font-size:.72rem;color:var(--ink-muted);margin-bottom:.55rem">Set your delivery type so we can personalise your recovery path.</div>
-      <div class="delivery-toggle">
-        <button class="delivery-btn active" onclick="setDelivery('vaginal',this)">Vaginal Birth</button>
-        <button class="delivery-btn" onclick="setDelivery('csection',this)">C-Section</button>
-      </div>
-      <div style="height:.65rem"></div>
-      <div class="recovery-plan active" id="rp-vaginal">
-        <div class="recovery-week">
-          <div class="rw-badge">Wk 1–2</div>
-          <div class="rw-body"><div class="rw-title">Rest &amp; perineal care</div><div class="rw-sub">Ice packs, sitz baths, no lifting above 10 lb. Lochia (bleeding) expected.</div></div>
-        </div>
-        <div class="recovery-week">
-          <div class="rw-badge">Wk 3–4</div>
-          <div class="rw-body"><div class="rw-title">Gentle movement</div><div class="rw-sub">Short walks OK. Continue pelvic floor exercises. Watch for postpartum depression signs.</div></div>
-        </div>
-        <div class="recovery-week">
-          <div class="rw-badge">Wk 5–6</div>
-          <div class="rw-body"><div class="rw-title">OB clearance visit</div><div class="rw-sub">6-week check-up with your doctor. Cleared for exercise and intimacy.</div></div>
-        </div>
-      </div>
-      <div class="recovery-plan" id="rp-csection">
-        <div class="recovery-week">
-          <div class="rw-badge">Wk 1–2</div>
-          <div class="rw-body"><div class="rw-title">Limited mobility</div><div class="rw-sub">No driving or lifting. Keep incision dry. Pain management with approved meds.</div></div>
-        </div>
-        <div class="recovery-week">
-          <div class="rw-badge">Wk 3–4</div>
-          <div class="rw-body"><div class="rw-title">Incision healing</div><div class="rw-sub">Short walks increasing gradually. Watch for infection signs: redness, fever, discharge.</div></div>
-        </div>
-        <div class="recovery-week">
-          <div class="rw-badge">Wk 6–8</div>
-          <div class="rw-body"><div class="rw-title">OB clearance visit</div><div class="rw-sub">Full clearance typically at 8 weeks for C-section. Discuss scar massage with your doctor.</div></div>
         </div>
       </div>
     </div>
@@ -1763,7 +1721,6 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('appointments',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Appointments</button>
       <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('docqs',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Doctor questions</button>
       <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('vaccines',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Vaccine schedule</button>
-      <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('recovery',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Recovery plan</button>
       <button onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);jumpMe('pricing',null);toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rule);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--ink)">Pricing plans</button>
       <button onclick="document.getElementById('loginView').hidden=false;document.getElementById('appView').hidden=true;document.getElementById('chat-fab').hidden=true;closeChat();showScreen('welcome');toggleFmap()" style="padding:.5rem .6rem;border:1.5px solid var(--rose);border-radius:10px;background:var(--rose-bg);cursor:pointer;text-align:left;font-family:var(--f-b);font-size:.7rem;color:var(--rose);font-weight:700">Login / Onboard</button>
     </div>
@@ -1855,7 +1812,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script src="content/dos.js?v=1"></script>
 <script src="content/baby.js?v=1"></script>
 <script src="content/newborn.js?v=1"></script>
-<script src="content/schedule.js?v=1"></script>
+<script src="content/schedule.js?v=2"></script>
 <script src="content/anim.js?v=3"></script>
 <script>
 /* ── Login / Onboard ───────────────────────────── */
@@ -2031,7 +1988,7 @@ function toggleVacc(id) {
   el.classList.toggle('done', !!vaccDone[id]);
   const pill = document.getElementById(id + '-pill');
   if (pill) {
-    const labels = { 'vax-0':'Due now', 'vax-1':'Upcoming · 9 weeks away', 'vax-2':'Discuss at next visit', 'vax-3':'Postpartum' };
+    const labels = { 'vax-0':'Due now', 'vax-1':'Upcoming · 9 weeks away', 'vax-2':'Discuss at next visit', 'vax-3':'Weeks 32–36' };
     pill.textContent = vaccDone[id] ? 'Done ✓' : (labels[id] || '');
   }
   haptic();
@@ -2424,8 +2381,15 @@ function pickProfileStage(stage) {
   document.querySelectorAll('#pf-stage .option-chip').forEach(c => c.classList.toggle('selected', c.dataset.stage === stage));
   document.getElementById('pf-date-label').textContent = stage === 'born' ? 'Baby\'s birth date' : 'Due date';
   document.getElementById('pf-due').value = stage === 'born' ? (obData.birthDate || '') : (obData.dueDate || '');
+  document.getElementById('pf-del-row').hidden = stage !== 'born';
+}
+let pfDelivery = '';
+function pickProfileDelivery(type) {
+  pfDelivery = type;
+  document.querySelectorAll('#pf-del .option-chip').forEach(c => c.classList.toggle('selected', c.dataset.type === type));
 }
 function profileEdit() {
+  pickProfileDelivery(obData.delivery || '');
   document.getElementById('pf-name').value = obData.name    || '';
   document.getElementById('pf-baby').value = obData.babyName|| '';
   pickProfileStage(obData.pregnancyStatus === 'born' ? 'born' : 'pregnant');
@@ -2444,7 +2408,9 @@ function profileSave() {
   if (pfStage === 'born') obData.birthDate = dateVal;
   else obData.dueDate = dateVal;
   obData.pregnancyStatus = pfStage;
+  if (pfStage === 'born' && pfDelivery) obData.delivery = pfDelivery;
   profileCancel();
+  renderDaily();
   refreshDashboard();
   renderSchedule();
   saveState();
@@ -2522,7 +2488,7 @@ function showMeSection(section) {
 
 const mePillNames = {
   profile:'Profile', body:'Body', dietgoals:'Diet & Goals', appointments:'Appointments',
-  docqs:'Doctor Qs', vaccines:'Vaccines', recovery:'Recovery', pricing:'Plans'
+  docqs:'Doctor Qs', vaccines:'Vaccines', pricing:'Plans'
 };
 
 /* ── Body Profile panel ──────────────────────────── */
@@ -3025,7 +2991,7 @@ function buildDaySchedule() {
     if (!code) return '';
     const slot = { B:'Breakfast', L:'Lunch', D:'Dinner', S:'Snack' }[code];
     if (slot) { const idx = menu ? menu.meals.findIndex(m => m.slot === slot) : -1; return idx < 0 ? '' : 'openRecipe(0,' + idx + ')'; }
-    if (code === 'kicks' || code === 'vaccines') return 'dailyGo(\'' + code + '\')';
+    if (code === 'kicks' || code === 'vaccines' || code === 'docqs') return 'dailyGo(\'' + code + '\')';
     return pi(code) ? 'openDaySheet(\'' + code + '\')' : '';
   };
   const items = template.filter(x =>
@@ -3037,6 +3003,11 @@ function buildDaySchedule() {
     S.pregnancyChecks.forEach(c => {
       if (wk >= c.from && wk <= c.to && (day % 7 === 0 || pregWeekOf(day - 1) < c.from))
         items.push({ mins:toMins('09:15'), title:c.title, sub:c.sub, len:10, open:openFor(c.open) });
+    });
+  } else {
+    (S.recoveryChecks || []).forEach(c => {
+      if (day >= c.from && day <= c.to && (!c.del || c.del === ctx.del) && (day - c.from) % 7 === 0)
+        items.push({ mins:toMins(c.t || '09:15'), title:fill(schedPick(c.title, ctx)), sub:fill(schedPick(c.sub, ctx)), len:10, open:openFor(c.open) });
     });
   }
   const iso = localIsoToday();
@@ -3235,16 +3206,12 @@ function apptPrepQs(i) {
   showMeSection('docqs');
 }
 
-/* ── Postpartum recovery ───────────────────────── */
-function setDelivery(type, btn) {
-  document.querySelectorAll('.delivery-btn').forEach(b=>b.classList.remove('active'));
-  if (!btn) btn = document.querySelector('.delivery-btn[onclick*="' + type + '"]');
-  if (btn) btn.classList.add('active');
-  document.querySelectorAll('.recovery-plan').forEach(p=>p.classList.remove('active'));
-  document.getElementById('rp-'+type).classList.add('active');
+/* ── Delivery type (tailors postpartum moves and the recovery steps in the schedule) ── */
+function setDelivery(type) {
   obData.delivery = type;
   saveState();
   renderDaily();
+  renderSchedule();
 }
 
 /* ── Daily plan: something new to eat, move and do every day ── */
