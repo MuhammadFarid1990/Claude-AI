@@ -548,6 +548,8 @@ body::before {
 .tl-row.tl-now { background:rgba(224,55,122,.06);border-radius:8px;margin:0 -.3rem;padding-left:.3rem;padding-right:.3rem; }
 .tl-check { width:20px;height:20px;border-radius:50%;border:1.8px solid var(--rule);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.62rem;color:transparent;margin-top:.12rem;cursor:pointer;transition:all .18s; }
 .tl-check.done { background:var(--rose);border-color:var(--rose);color:#fff; }
+.tl-link { cursor:pointer; }
+.tl-more { color:var(--rose);font-weight:800; }
 
 /* ── DAILY PLAN ───────────────────────────────── */
 .daily-card { position:relative;overflow:hidden; }
@@ -1848,6 +1850,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script src="content/dos.js?v=1"></script>
 <script src="content/baby.js?v=1"></script>
 <script src="content/newborn.js?v=1"></script>
+<script src="content/schedule.js?v=1"></script>
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
@@ -2968,150 +2971,107 @@ function submitMood() {
 }
 
 /* ── Schedule ──────────────────────────────────── */
-const schedules = [
-  { label:'Prenatal · Week 18', items:[
-    {time:'7:00',title:'Wake + prenatal vitamin',sub:'Take with food to reduce nausea',dot:'on'},
-    {time:'7:30',title:'Breakfast',sub:'High-protein focus',dot:'on'},
-    {time:'9:30',title:'Prenatal yoga / walk',sub:'30 min light movement',dot:'now',dur:'30 min'},
-    {time:'12:30',title:'Lunch',sub:'Largest meal of the day',dot:''},
-    {time:'2:00',title:'Rest period',sub:'Left-side rest · 15–20 min',dot:'',dur:'20 min'},
-    {time:'3:30',title:'Snack',sub:'Protein + complex carbs',dot:''},
-    {time:'6:00',title:'Dinner',sub:'Light, earlier than pre-pregnancy',dot:''},
-    {time:'8:00',title:'Evening walk',sub:'20 min, gentle pace',dot:''},
-    {time:'9:30',title:'Wind-down',sub:'No screens · breathing exercises',dot:''},
-    {time:'10:30',title:'Bedtime',sub:'Left-side sleeping recommended',dot:''},
-  ]},
-  { label:'Newborn · 0–4 Weeks', items:[
-    {time:'12 AM',title:'Feed',sub:'Breast or bottle · 20–30 min',dot:'',dur:'30 min'},
-    {time:'1:00',title:'Sleep',sub:'Back to sleep, safe sleep environment',dot:''},
-    {time:'3:30',title:'Feed',sub:'Night feed — wake window follows',dot:'',dur:'30 min'},
-    {time:'5:00',title:'Sleep',sub:'',dot:''},
-    {time:'7:00',title:'Feed',sub:'',dot:'',dur:'30 min'},
-    {time:'7:45',title:'Awake window',sub:'Tummy time · gentle stimulation',dot:'',dur:'45 min'},
-    {time:'8:30',title:'Nap',sub:'Watch for tired cues',dot:''},
-    {time:'10:30',title:'Feed',sub:'',dot:'',dur:'30 min'},
-    {time:'11:00',title:'Nap',sub:'',dot:''},
-    {time:'1:00',title:'Feed',sub:'',dot:'',dur:'30 min'},
-  ]},
-  { label:'3 Months · 2–3 Naps', items:[
-    {time:'7:00',title:'Wake + feed',sub:'',dot:''},
-    {time:'8:00',title:'Awake window',sub:'90 min of play and stimulation',dot:'',dur:'90 min'},
-    {time:'9:30',title:'Nap 1',sub:'~60 min',dot:''},
-    {time:'10:30',title:'Feed + awake',sub:'90 min',dot:''},
-    {time:'12:00',title:'Nap 2',sub:'~60 min',dot:''},
-    {time:'1:00',title:'Feed + awake',sub:'90 min',dot:''},
-    {time:'2:30',title:'Nap 3 (bridge)',sub:'~30 min — keeps bedtime from shifting',dot:'',dur:'30 min'},
-    {time:'3:00',title:'Feed + awake',sub:'',dot:''},
-    {time:'5:00',title:'Catnap',sub:'~20 min if needed',dot:'',dur:'20 min'},
-    {time:'7:00',title:'Bedtime routine + feed',sub:'',dot:''},
-  ]},
-  { label:'6 Months · 2 Naps + Solids', items:[
-    {time:'7:00',title:'Wake + milk feed',sub:'',dot:''},
-    {time:'8:00',title:'Solid food intro',sub:'Purees · iron-rich first foods',dot:'',dur:'15 min'},
-    {time:'9:30',title:'Nap 1',sub:'~75 min',dot:''},
-    {time:'12:00',title:'Lunch solids + milk',sub:'',dot:''},
-    {time:'1:00',title:'Nap 2',sub:'~75 min',dot:''},
-    {time:'3:00',title:'Milk feed + play',sub:'',dot:''},
-    {time:'5:30',title:'Dinner solids + milk',sub:'',dot:''},
-    {time:'7:00',title:'Bedtime routine',sub:'Bath · book · feed · sleep',dot:''},
-  ]},
-  { label:'1 Year · 1 Nap', items:[
-    {time:'7:00',title:'Wake + breakfast',sub:'3 meals now the primary nutrition',dot:''},
-    {time:'9:00',title:'Active play',sub:'Push toys, cruising, early walking',dot:''},
-    {time:'10:00',title:'Snack',sub:'Finger foods',dot:''},
-    {time:'11:00',title:'Lunch',sub:'Family foods, soft pieces',dot:''},
-    {time:'12:30',title:'Nap',sub:'1.5–2 hrs · one nap per day now',dot:'',dur:'2 hrs'},
-    {time:'2:30',title:'Snack',sub:'',dot:''},
-    {time:'5:00',title:'Dinner',sub:'Eating with family at the table',dot:''},
-    {time:'7:00',title:'Bedtime routine',sub:'Books · milk · sleep',dot:''},
-  ]},
-];
+function schedPick(v, ctx) {
+  if (v == null || typeof v !== 'object') return v;
+  if (ctx.tri && v[ctx.tri] !== undefined) return v[ctx.tri];
+  if (v[ctx.del] !== undefined) return v[ctx.del];
+  return v.any;
+}
+function pregWeekOf(day) { return Math.max(1, Math.min(40, 40 - Math.round((281 - day) / 7))); }
 
-function getAutoStage() {
-  if (obData.pregnancyStatus === 'born' && obData.birthDate) {
-    const daysOld = Math.round((new Date() - new Date(obData.birthDate)) / 86400000);
-    if (daysOld < 0) return 0;
-    if (daysOld <= 28) return 1;
-    if (daysOld <= 90) return 2;
-    if (daysOld <= 180) return 3;
-    return 4;
+// Builds today's 24-hour schedule from the stage template, today's daily plan and today's menu.
+function buildDaySchedule() {
+  const S = window.BLOOM_DAILY && BLOOM_DAILY.schedule, plan = getDailyPlan();
+  if (!S || !plan) return null;
+  const menu = menuFor(0);
+  const pi = k => plan.items.find(i => i.key === k);
+  const meal = n => menu && menu.meals.find(m => m.slot === n);
+  const move = pi('move'), baby = pi('baby'), feed = pi('feed'), food = pi('food'), todo = pi('do');
+  const born = plan.mode === 'born', day = plan.day, d = day - 1;
+  const tok = {
+    MOVE: move ? move.title : 'Gentle movement', MOVES: move ? move.sub : '', MOVEMIN: move ? move.data.mins : 15,
+    PLAY: baby ? baby.title : '', PLAYSUB: baby ? (baby.data.who ? baby.data.who + ': ' : '') + baby.data.how[0] : '',
+    FEEDTIP: feed ? feed.title : 'feed on cue', FOOD: food ? food.title : 'soft family foods',
+    DO: todo ? todo.title : '', DOSUB: todo ? todo.data.how : '',
+    BAGITEM: S.bagItems[day % S.bagItems.length],
+    TUMMY: d < 14 ? '1–2 minutes on your chest, a few times today.' : d < 42 ? '3–5 minutes on a mat, 3–4 times today.' : d < 84 ? 'Build up to 15–30 minutes in total across the day.' : d < 122 ? 'About an hour in total today, in short sessions: rolling and reaching.' : 'Lots of floor time: rolling, pivoting and reaching for toys.',
+    DIAPERS: day <= 4 ? day + ' or more wet diapers' : '6 or more wet diapers and 3 or more poops'
+  };
+  [['B','Breakfast'],['L','Lunch'],['D','Dinner'],['S','Snack']].forEach(([k, n]) => {
+    const m = meal(n);
+    tok[k] = m ? m.r.n : 'a balanced ' + n.toLowerCase();
+    tok[k + 'F'] = m ? m.r.focus + ' · ≈' + m.r.k + ' kcal' : '';
+  });
+  const fill = v => String(v == null ? '' : v).replace(/\{(\w+)\}/g, (x, k) => tok[k] !== undefined ? tok[k] : x);
+  const ctx = { tri: born ? null : plan.phase, del: obData.delivery === 'csection' ? 'cs' : obData.delivery === 'vaginal' ? 'vag' : 'any' };
+  const wk = born ? 0 : pregWeekOf(day);
+  let template, name;
+  if (born) {
+    const bracket = S.born.find(x => day >= x.from && day <= x.to) || S.born[S.born.length - 1];
+    template = bracket.items; name = bracket.name;
+  } else {
+    template = S.pregnancy; name = 'Week ' + wk;
   }
-  return 0;
+  const bathNight = born && (day <= 42 ? day % 3 === 0 : day % 2 === 0);
+  const bathTimes = new Set(template.filter(x => x.bath).map(x => x.t));
+  const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const openFor = code => {
+    if (!code) return '';
+    const slot = { B:'Breakfast', L:'Lunch', D:'Dinner', S:'Snack' }[code];
+    if (slot) { const idx = menu ? menu.meals.findIndex(m => m.slot === slot) : -1; return idx < 0 ? '' : 'openRecipe(0,' + idx + ')'; }
+    if (code === 'kicks' || code === 'vaccines') return 'dailyGo(\'' + code + '\')';
+    return pi(code) ? 'openDaySheet(\'' + code + '\')' : '';
+  };
+  const items = template.filter(x =>
+      (!x.tri || x.tri.includes(ctx.tri)) && (!x.minWk || wk >= x.minWk) && (!x.maxWk || wk <= x.maxWk) &&
+      (!x.on || x.on.includes(day)) &&
+      (x.bath ? bathNight : !(bathNight && bathTimes.has(x.t))))
+    .map(x => ({ mins:toMins(x.t), title:fill(schedPick(x.title, ctx)), sub:fill(schedPick(x.sub, ctx)), len:parseInt(fill(x.len)) || 30, open:openFor(x.open) }));
+  if (!born) {
+    S.pregnancyChecks.forEach(c => {
+      if (wk >= c.from && wk <= c.to && (day % 7 === 0 || pregWeekOf(day - 1) < c.from))
+        items.push({ mins:toMins('09:15'), title:c.title, sub:c.sub, len:10, open:openFor(c.open) });
+    });
+  }
+  const iso = localIsoToday();
+  (typeof appts !== 'undefined' ? appts : []).filter(a => a.date === iso).forEach(a =>
+    items.push({ mins:toMins('09:00'), title:'Appointment: ' + a.name, sub:(a.dr || 'Your doctor') + ' · Tap Doctor Qs to prep your questions.', len:60, open:'' }));
+  items.sort((x, y) => x.mins - y.mins);
+  return { plan, items, name, born };
 }
 
-function renderSchedule(i) {
-  i = (i === undefined) ? getAutoStage() : i;
-  let s = schedules[i];
-  // Use actual pregnancy week for prenatal label
-  if (i === 0 && obData.dueDate) {
-    const due = new Date(obData.dueDate);
-    const daysIn = Math.round((new Date() - new Date(due.getTime()-280*24*60*60*1000))/86400000);
-    const wk = Math.max(1, Math.min(42, Math.round(daysIn/7)));
-    s = Object.assign({}, s, { label: `Prenatal · Week ${wk}` });
-  }
+function renderSchedule() {
+  const sched = buildDaySchedule();
+  const card = document.getElementById('scheduleCard');
+  if (!card) return;
   const subtitle = document.getElementById('scheduleSubtitle');
-  if (subtitle) {
-    const stageNames = ['Prenatal','Newborn','3 Months','6 Months','1 Year +'];
-    subtitle.textContent = obData.pregnancyStatus === 'born'
-      ? `Your baby · ${stageNames[i] || ''}`
-      : 'Your prenatal daily routine';
-  }
+  if (!sched) { card.innerHTML = ''; return; }
+  const { plan, items, born } = sched;
+  if (subtitle) subtitle.textContent = born ? 'Built for today · ' + plan.stage : 'Built for today · ' + plan.stage;
 
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
-  const today = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
-  const doneKey = 'bloom_sched_' + i + '_' + today;
+  const doneKey = 'bloom_sched_' + plan.mode + '_' + now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
   let schedDone = {};
   try { schedDone = JSON.parse(localStorage.getItem(doneKey) || '{}'); } catch(e) {}
 
-  // Parse item times sequentially, maintaining monotonic order (handles 12h display without AM/PM)
-  let prevMins = -1;
-  const itemMins = s.items.map(it => {
-    const str = it.time || '';
-    const upper = str.toUpperCase();
-    const isAM = upper.includes('AM');
-    const isPM = upper.includes('PM');
-    const cleaned = str.replace(/\s*(AM|PM)/gi, '').trim();
-    const parts = cleaned.split(':');
-    let h = parseInt(parts[0]) || 0;
-    const m = parseInt(parts[1]) || 0;
-    if (isAM) { if (h === 12) h = 0; }
-    else if (isPM) { if (h !== 12) h += 12; }
-    else {
-      let cand = h * 60 + m;
-      if (cand <= prevMins && h < 12) cand = (h + 12) * 60 + m;
-      prevMins = cand;
-      return cand;
-    }
-    const mins = h * 60 + m;
-    prevMins = mins;
-    return mins;
-  });
-
-  // Each task lasts its stated length ("30 min" badge or "20 min" in the subtitle), else 30 min, never past the next task
-  const itemEnd = s.items.map((it, j) => {
-    const m = /(\d+)\s*min/i.exec(it.dur || '') || /(\d+)\s*min/i.exec(it.sub || '');
-    const len = m ? parseInt(m[1]) : 30;
-    const next = j + 1 < itemMins.length ? itemMins[j + 1] : Infinity;
-    return Math.min(itemMins[j] + len, next);
-  });
-
-  let nowIdx = itemMins.findIndex((t, j) => nowMins >= t && nowMins < itemEnd[j]);
-  const nextIdx = nowIdx === -1 ? itemMins.findIndex(t => t > nowMins) : -1;
+  const itemEnd = items.map((it, j) => Math.min(it.mins + it.len, j + 1 < items.length ? Math.max(items[j + 1].mins, it.mins + 5) : Infinity));
+  const nowIdx = items.findIndex((it, j) => nowMins >= it.mins && nowMins < itemEnd[j]);
+  const nextIdx = nowIdx === -1 ? items.findIndex(it => it.mins > nowMins) : -1;
   const hiIdx = nowIdx !== -1 ? nowIdx : nextIdx;
   const qs = document.getElementById('qbSchedSub');
-  if (qs) qs.textContent = nowIdx !== -1 ? 'Now: ' + s.items[nowIdx].title : nextIdx !== -1 ? 'Next: ' + s.items[nextIdx].title : 'All done for today';
+  if (qs) qs.textContent = nowIdx !== -1 ? 'Now: ' + items[nowIdx].title : nextIdx !== -1 ? 'Next: ' + items[nextIdx].title : 'All done for today';
 
   const fmtTime = mins => {
     const h = Math.floor(mins / 60) % 24, m = mins % 60;
-    return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') +
-      '<span class="tl-ampm">' + (h < 12 ? 'AM' : 'PM') + '</span>';
+    return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + '<span class="tl-ampm">' + (h < 12 ? 'AM' : 'PM') + '</span>';
   };
+  const showDur = it => it.open === 'openDaySheet(\'move\')' || /^(Nap|Catnap|Tummy|Floor|Stroller)/.test(it.title);
 
-  document.getElementById('scheduleCard').innerHTML =
-    '<div class="sec-title">' + s.label + '</div>' +
+  card.innerHTML =
+    '<div class="sec-title">Day ' + plan.day + ' · ' + escHtml(sched.name) + '</div>' +
     '<div class="timeline-wrap">' +
-    s.items.map(function(it, j) {
+    items.map(function(it, j) {
       const isPast = nowMins >= itemEnd[j];
       const isHi = j === hiIdx;
       const done = !!schedDone[j];
@@ -3119,31 +3079,29 @@ function renderSchedule(i) {
       const dotCls = (isPast || done) ? 'on' : (j === nowIdx ? 'now' : '');
       const tag = (isHi && !done) ? '<div class="tl-tag">' + (j === nowIdx ? 'Now' : 'Up next') + '</div>' : '';
       return '<div class="' + rowCls + '">' +
-        '<div class="tl-time">' + fmtTime(itemMins[j]) + '</div>' +
+        '<div class="tl-time">' + fmtTime(it.mins) + '</div>' +
         '<div class="tl-dot ' + dotCls + '"></div>' +
-        '<div class="tl-body">' + tag +
-          '<div class="tl-title' + (done ? ' tl-done' : '') + '">' + it.title + '</div>' +
-          (it.sub ? '<div class="tl-sub">' + it.sub + '</div>' : '') +
+        '<div class="tl-body' + (it.open ? ' tl-link" onclick="' + it.open : '') + '">' + tag +
+          '<div class="tl-title' + (done ? ' tl-done' : '') + '">' + escHtml(it.title) + (it.open ? ' <span class="tl-more">›</span>' : '') + '</div>' +
+          (it.sub ? '<div class="tl-sub">' + escHtml(it.sub) + '</div>' : '') +
         '</div>' +
-        (it.dur ? '<div class="tl-dur">' + it.dur + '</div>' : '') +
-        '<button class="tl-check' + (done ? ' done' : '') + '" onclick="toggleSchedItem(' + i + ',' + j + ',\'' + doneKey + '\')">' + (done ? '✓' : '') + '</button>' +
+        (showDur(it) ? '<div class="tl-dur">' + it.len + ' min</div>' : '') +
+        '<button class="tl-check' + (done ? ' done' : '') + '" aria-label="Mark ' + escHtml(it.title) + ' done" onclick="toggleSchedItem(' + j + ',\'' + doneKey + '\')">' + (done ? '✓' : '') + '</button>' +
       '</div>';
     }).join('') +
-    '</div>';
+    '</div>' +
+    '<div class="ds-source" style="margin-top:.6rem">Times are a flexible guide; follow your baby\'s cues and your provider\'s advice.</div>';
 }
 
-function toggleSchedItem(stageIdx, itemIdx, doneKey) {
+function toggleSchedItem(itemIdx, doneKey) {
   let schedDone = {};
   try { schedDone = JSON.parse(localStorage.getItem(doneKey) || '{}'); } catch(e) {}
   schedDone[itemIdx] = !schedDone[itemIdx];
   try { localStorage.setItem(doneKey, JSON.stringify(schedDone)); } catch(e) {}
   haptic();
-  renderSchedule(stageIdx);
+  renderSchedule();
 }
 
-function setStage(i,btn) {
-  renderSchedule(i);
-}
 
 /* ── Doctor's questions ────────────────────────── */
 let docQs = [
@@ -3415,7 +3373,7 @@ function getDailyPlan(offset) {
   const todo = rotPick(D.dos[stage], sd, stage + 'do');
   const tri = { t1:'First', t2:'Second', t3:'Third' }[stage];
   return {
-    mode:'pregnant', day, total:280, stage:tri + ' trimester · Week ' + wkNow, phase:stage,
+    mode:'pregnant', day, wk:wkNow, total:280, stage:tri + ' trimester · Week ' + wkNow, phase:stage,
     items:[
       mealItem(D.meals[stage], sd, stage + 'meal'),
       moveItem(moves),
@@ -3681,7 +3639,7 @@ buildDayStrip();
 renderMeals();
 buildSymGrid();
 buildMoodQs();
-renderSchedule(0);
+renderSchedule();
 setInterval(function() { renderSchedule(); }, 60000); // refresh schedule every minute for time-awareness
 renderDocQs();
 renderAppts();
