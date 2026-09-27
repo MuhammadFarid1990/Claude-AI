@@ -617,6 +617,7 @@ body::before {
 .ds-move-n { font-weight:800;font-size:.92rem;color:var(--ink); }
 .ds-move-d { margin-left:auto;font-size:.68rem;font-weight:800;color:var(--lime-dark);white-space:nowrap; }
 .ds-move .ds-list { font-size:.78rem; }
+.move-anim { display:block;width:100%;max-width:220px;height:auto;margin:.1rem auto .2rem;background:var(--rose-bg);border-radius:12px; }
 .ds-move-why { font-size:.74rem;color:var(--ink-muted);line-height:1.45; }
 .ds-cs { font-size:.72rem;color:#6D28D9;background:#F3EEFF;border-radius:10px;padding:.42rem .58rem;line-height:1.45; }
 .ds-safety { font-size:.74rem;line-height:1.5;color:#7F1D1D;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:.6rem .75rem; }
@@ -1845,12 +1846,13 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 </div><!-- /phone -->
 </div><!-- /phone-wrap -->
 
-<script src="content/moves.js?v=1"></script>
+<script src="content/moves.js?v=2"></script>
 <script src="content/meals.js?v=2"></script>
 <script src="content/dos.js?v=1"></script>
 <script src="content/baby.js?v=1"></script>
 <script src="content/newborn.js?v=1"></script>
 <script src="content/schedule.js?v=1"></script>
+<script src="content/anim.js?v=2"></script>
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
@@ -3518,6 +3520,7 @@ function sheetHtml(it, plan) {
         '<div class="ds-move">' +
           (steps[i] ? '<div class="ds-move-step">' + steps[i] + '</div>' : '') +
           '<div class="ds-move-top"><div class="ds-move-n">' + escHtml(m.n) + '</div><div class="ds-move-d">' + escHtml(m.dose) + '</div></div>' +
+          (m.a && BLOOM_DAILY.anim && BLOOM_DAILY.anim[m.a] ? '<svg class="move-anim" viewBox="0 0 200 134" role="img" aria-label="Animated diagram: ' + escHtml(m.n) + '" data-a="' + m.a + '" data-bump="' + (plan.mode === 'pregnant' ? 1 : 0) + '"></svg>' : '') +
           listHtml(m.how, true) +
           '<div class="ds-move-why">' + escHtml(m.why) + '</div>' +
           (m.cs && cs ? '<div class="ds-cs">' + cs + escHtml(m.cs) + '</div>' : '') +
@@ -3573,6 +3576,7 @@ function openDaySheet(key) {
     '<button class="ds-done-btn' + (done ? ' is-done' : '') + '" onclick="toggleDaily(\'' + key + '\')">' + (done ? '✓ Done · tap to undo' : 'Mark as done') + '</button>' +
     '<div class="ds-source">Based on public guidelines from ACOG, AAP, CDC and WHO. General information, not medical advice. Check with your doctor or midwife; use at your own discretion.</div>';
   body.scrollTop = 0;
+  initMoveAnims(body);
   document.getElementById('day-sheet').classList.add('open');
   const fb = document.getElementById('fmapBtn'); if (fb) fb.hidden = true;
 }
@@ -3629,7 +3633,126 @@ function acceptHealthNotice() {
   const next = afterNotice; afterNotice = null;
   if (next) next();
 }
+
+/* ── Exercise diagrams: animated stick figures ── */
+let animRAF = 0, animFigs = [];
+const SVGNS = 'http://www.w3.org/2000/svg';
+function ikJoint(root, end, l1, l2, hint) {
+  const dx = end[0] - root[0], dy = end[1] - root[1], d = Math.hypot(dx, dy) || 0.001, ux = dx / d, uy = dy / d;
+  if (d >= l1 + l2 - 0.01) return [root[0] + ux * d * l1 / (l1 + l2), root[1] + uy * d * l1 / (l1 + l2)];
+  const a = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d)))), ca = Math.cos(a), sa = Math.sin(a);
+  const c1 = [root[0] + l1 * (ux * ca - uy * sa), root[1] + l1 * (uy * ca + ux * sa)];
+  const c2 = [root[0] + l1 * (ux * ca + uy * sa), root[1] + l1 * (uy * ca - ux * sa)];
+  const mx = (root[0] + end[0]) / 2, my = (root[1] + end[1]) / 2;
+  const dot = c => (c[0] - mx) * hint[0] + (c[1] - my) * hint[1];
+  return dot(c1) >= dot(c2) ? c1 : c2;
+}
+function resolvePose(src) {
+  const q = Object.assign({}, src), front = q.view === 'front';
+  [1, 2].forEach(i => {
+    const side = i === 1 ? 1 : -1;
+    if (!q['k' + i]) q['k' + i] = ikJoint(q.p, q['f' + i], 24, 24, front ? [side, 0] : [1, 0]);
+    if (!q['e' + i]) q['e' + i] = ikJoint(q.s, q['w' + i], 18, 18, front ? [side, 0.6] : [-0.4, 1]);
+    if (!q['t' + i]) { const f = q['f' + i]; q['t' + i] = front ? [f[0] + 5 * side, f[1]] : q.tb ? [f[0] - 6, f[1]] : [f[0] + 7, f[1]]; }
+  });
+  q.c = q.c || 0; q.ring = q.ring || 0;
+  return q;
+}
+const POSE_KEYS = ['h','s','p','e1','w1','e2','w2','k1','f1','k2','f2','t1','t2'];
+function lerpPose(a, b, t) {
+  const o = { view:a.view, bn:a.bn, c:a.c + (b.c - a.c) * t, ring:a.ring + (b.ring - a.ring) * t };
+  POSE_KEYS.forEach(k => { o[k] = [a[k][0] + (b[k][0] - a[k][0]) * t, a[k][1] + (b[k][1] - a[k][1]) * t]; });
+  return o;
+}
+function svgEl(parent, tag, attrs) { const el = document.createElementNS(SVGNS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); parent.appendChild(el); return el; }
+function drawProp(g, prop) {
+  const ink = { stroke:'#DDB7CB', 'stroke-width':4, 'stroke-linecap':'round', fill:'none' };
+  if (prop === 'water') { svgEl(g, 'rect', { x:6, y:74, width:188, height:52, fill:'#E3F4FA', rx:6 }); svgEl(g, 'path', Object.assign({}, ink, { d:'M6 74 q12 -5 24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t20 0', stroke:'#9AD3E6', 'stroke-width':2.5 })); }
+  if (prop === 'mat') svgEl(g, 'rect', { x:24, y:124, width:152, height:4, rx:2, fill:'#F6D3E4' });
+  if (prop === 'chair') svgEl(g, 'path', Object.assign({}, ink, { d:'M64 100 H92 M64 100 V62 M67 100 V126 M90 100 V126' }));
+  if (prop === 'wall') svgEl(g, 'path', Object.assign({}, ink, { d:'M154 8 V126 M154 20 l8 -6 M154 44 l8 -6 M154 68 l8 -6 M154 92 l8 -6 M154 116 l8 -6' }));
+  if (prop === 'wallback') svgEl(g, 'path', Object.assign({}, ink, { d:'M86 8 V126 M86 20 l-8 -6 M86 44 l-8 -6 M86 68 l-8 -6 M86 92 l-8 -6 M86 116 l-8 -6' }));
+  if (prop === 'door') svgEl(g, 'path', Object.assign({}, ink, { d:'M90 6 V126', 'stroke-width':6 }));
+  if (prop === 'counter') svgEl(g, 'rect', { x:128, y:68, width:44, height:58, rx:3, fill:'#F6DDE9' });
+  if (prop === 'step') svgEl(g, 'rect', { x:104, y:108, width:52, height:18, rx:2, fill:'#F6DDE9' });
+  if (prop === 'ball') svgEl(g, 'circle', { cx:84, cy:108, r:18, fill:'#FBD7E7', stroke:'#EBA9C7', 'stroke-width':2 });
+  if (prop === 'bike') { svgEl(g, 'path', Object.assign({}, ink, { d:'M76 76 H94 M86 76 L98 108 L122 80 L128 58 M66 126 H134 M98 108 V126' })); svgEl(g, 'circle', { cx:100, cy:108, r:9, fill:'none', stroke:'#DDB7CB', 'stroke-width':2, 'stroke-dasharray':'3 3' }); }
+  svgEl(g, 'line', { x1:8, y1:126.5, x2:192, y2:126.5, stroke:'#EFD3E1', 'stroke-width':2, 'stroke-linecap':'round' });
+}
+function buildFig(svg) {
+  const def = BLOOM_DAILY.anim && BLOOM_DAILY.anim[svg.dataset.a];
+  if (!def) return null;
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox', def.vb || '0 0 200 134');
+  drawProp(svgEl(svg, 'g', {}), def.prop);
+  const far = { fill:'none', stroke:'#F0A8C7', 'stroke-width':5.5, 'stroke-linecap':'round', 'stroke-linejoin':'round' };
+  const near = Object.assign({}, far, { stroke:'#AF1F59' });
+  const f = { svg, def, frames:def.frames.map(resolvePose), bump:svg.dataset.bump === '1' };
+  f.farArm = svgEl(svg, 'polyline', far); f.farLeg = svgEl(svg, 'polyline', far);
+  f.torso = svgEl(svg, 'path', Object.assign({}, near, { 'stroke-width':7 }));
+  f.neck = svgEl(svg, 'line', Object.assign({}, near, { 'stroke-width':5 }));
+  if (f.bump) f.bumpEl = svgEl(svg, 'ellipse', { fill:'#FFD0E8', stroke:'#E0377A', 'stroke-width':2 });
+  f.ring = svgEl(svg, 'circle', { fill:'none', stroke:'#14B8A6', 'stroke-width':2, 'stroke-dasharray':'3 3' });
+  f.head = svgEl(svg, 'circle', { r:8, fill:'#E0377A', stroke:'#AF1F59', 'stroke-width':2 });
+  f.nearLeg = svgEl(svg, 'polyline', near); f.nearArm = svgEl(svg, 'polyline', near);
+  if (def.prop === 'band') f.band = svgEl(svg, 'line', { stroke:'#14B8A6', 'stroke-width':2 });
+  if (def.prop === 'weight' || def.prop === 'weights') { f.wt1 = svgEl(svg, 'rect', { width:10, height:6, rx:2, fill:'#4A1C38' }); if (def.prop === 'weights') f.wt2 = svgEl(svg, 'rect', { width:10, height:6, rx:2, fill:'#7A4A62' }); }
+  if (def.prop === 'baby') f.baby = svgEl(svg, 'ellipse', { rx:9, ry:6, fill:'#FFE3B8', stroke:'#E0A060', 'stroke-width':1.5 });
+  return f;
+}
+function drawFig(f, q) {
+  const pt = a => a[0].toFixed(1) + ',' + a[1].toFixed(1);
+  f.farArm.setAttribute('points', [q.s, q.e2, q.w2].map(pt).join(' '));
+  f.farLeg.setAttribute('points', [q.p, q.k2, q.f2, q.t2].map(pt).join(' '));
+  f.nearArm.setAttribute('points', [q.s, q.e1, q.w1].map(pt).join(' '));
+  f.nearLeg.setAttribute('points', [q.p, q.k1, q.f1, q.t1].map(pt).join(' '));
+  const vx = q.s[0] - q.p[0], vy = q.s[1] - q.p[1], len = Math.hypot(vx, vy) || 1, nx = -vy / len, ny = vx / len;
+  const cx = (q.s[0] + q.p[0]) / 2 + nx * q.c, cy = (q.s[1] + q.p[1]) / 2 + ny * q.c;
+  f.torso.setAttribute('d', 'M' + pt(q.p) + ' Q' + cx.toFixed(1) + ',' + cy.toFixed(1) + ' ' + pt(q.s));
+  f.neck.setAttribute('x1', q.s[0]); f.neck.setAttribute('y1', q.s[1]); f.neck.setAttribute('x2', q.h[0]); f.neck.setAttribute('y2', q.h[1]);
+  f.head.setAttribute('cx', q.h[0]); f.head.setAttribute('cy', q.h[1]);
+  let bx, by;
+  if (q.view === 'front') { bx = q.p[0] + vx * 0.35; by = q.p[1] + vy * 0.35; }
+  else {
+    let dx = nx, dy = ny;
+    if (q.bn) { const l = Math.hypot(q.bn[0], q.bn[1]); dx = q.bn[0] / l; dy = q.bn[1] / l; }
+    const off = 8 + Math.max(q.c, 0) * 0.6;
+    bx = q.p[0] + vx * 0.42 + dx * off; by = q.p[1] + vy * 0.42 + dy * off;
+  }
+  if (f.bumpEl) { f.bumpEl.setAttribute('cx', bx.toFixed(1)); f.bumpEl.setAttribute('cy', by.toFixed(1)); f.bumpEl.setAttribute('rx', q.view === 'front' ? 12 : 10); f.bumpEl.setAttribute('ry', q.view === 'front' ? 11 : 10); }
+  f.ring.setAttribute('cx', bx.toFixed(1)); f.ring.setAttribute('cy', by.toFixed(1)); f.ring.setAttribute('r', q.ring ? (q.ring + (f.bump ? 6 : 0)).toFixed(1) : 0);
+  f.ring.style.opacity = q.ring ? 1 : 0;
+  if (f.band) { f.band.setAttribute('x1', q.w1[0]); f.band.setAttribute('y1', q.w1[1]); f.band.setAttribute('x2', q.t1[0]); f.band.setAttribute('y2', q.t1[1]); }
+  if (f.wt1) { f.wt1.setAttribute('x', q.w1[0] - 5); f.wt1.setAttribute('y', q.w1[1] - 1); }
+  if (f.wt2) { f.wt2.setAttribute('x', q.w2[0] - 5); f.wt2.setAttribute('y', q.w2[1] - 1); }
+  if (f.baby) { f.baby.setAttribute('cx', q.w1[0] + 2); f.baby.setAttribute('cy', q.w1[1] - 6); }
+}
+function poseAt(f, ms) {
+  const n = f.frames.length, seg = 1300, move = 1000;
+  ms = Math.max(0, ms);
+  const step = Math.floor(ms / seg), local = Math.min(1, (ms % seg) / move);
+  const e = local < 0.5 ? 2 * local * local : 1 - Math.pow(-2 * local + 2, 2) / 2;
+  return lerpPose(f.frames[step % n], f.frames[(step + 1) % n], e);
+}
+function initMoveAnims(root) {
+  stopMoveAnims();
+  root.querySelectorAll('svg.move-anim').forEach(svg => { const f = buildFig(svg); if (f) animFigs.push(f); });
+  if (!animFigs.length) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) { animFigs.forEach(f => drawFig(f, f.frames[Math.min(1, f.frames.length - 1)])); return; }
+  const t0 = performance.now();
+  const tick = now => {
+    animFigs = animFigs.filter(f => f.svg.isConnected);
+    if (!animFigs.length) { animRAF = 0; return; }
+    animFigs.forEach(f => drawFig(f, poseAt(f, now - t0)));
+    animRAF = requestAnimationFrame(tick);
+  };
+  animRAF = requestAnimationFrame(tick);
+}
+function stopMoveAnims() { if (animRAF) cancelAnimationFrame(animRAF); animRAF = 0; animFigs = []; }
+
 function closeDaySheet() {
+  stopMoveAnims();
   document.getElementById('day-sheet').classList.remove('open');
   const fb = document.getElementById('fmapBtn'); if (fb) fb.hidden = false;
 }
