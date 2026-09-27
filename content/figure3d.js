@@ -2,7 +2,8 @@
 // VRM Public License 1.0: commercial use, modification and redistribution allowed) posed from
 // BLOOM_DAILY.anim keyframes. Poses are solved with fixed bone lengths by rigidPose() in the app,
 // mapped into 3D (side-view poses face +x, front-view poses face the camera), then retargeted onto
-// the avatar's skeleton by aiming each bone at its next joint.
+// the avatar's skeleton by aiming each bone at its next joint. Styled as a flat two-tone illustration
+// (sports crop top, leggings, flat shoes) seen from the side, like a fitness diagram.
 window.Bloom3D = (function () {
   const T = window.THREE;
   if (!T || !window.GLTFLoader || !window.SkeletonClone) return null;
@@ -26,15 +27,33 @@ window.Bloom3D = (function () {
     return renderer;
   }
 
-  const ramp = new T.DataTexture(new Uint8Array([165, 215, 255]), 3, 1, T.RedFormat);
+  // Two flat tones per colour, like a vector illustration.
+  const ramp = new T.DataTexture(new Uint8Array([200, 255]), 2, 1, T.RedFormat);
   ramp.minFilter = ramp.magFilter = T.NearestFilter; ramp.needsUpdate = true;
   const toon = color => new T.MeshToonMaterial({ color, gradientMap:ramp });
+  const OUTFIT = { top:0x2E6C74, leggings:0x5FA8A2, shoes:0x2A2A33, hair:0xA87462, skin:0xF6CDB4 };
   const M = {
-    prop:toon(0xEBD6E1), wood:toon(0xC89F7A), mat:toon(0xF3B3CF), ball:toon(0xF59CC0), band:toon(0x14B8A6),
+    prop:toon(0xF1E4EA), wood:toon(0xD2AD8A), mat:toon(0xF3B3CF), ball:toon(0xE94F7D), band:toon(0xE94F7D),
     iron:toon(0x3A3340), swaddle:toon(0xFFE2B8), babySkin:toon(0xF2C4A6),
     water:new T.MeshStandardMaterial({ color:0x77C4DE, roughness:0.15, transparent:true, opacity:0.32, depthWrite:false }),
-    ring:new T.MeshBasicMaterial({ color:0x14B8A6, transparent:true, opacity:0.65 })
+    ring:new T.MeshBasicMaterial({ color:0xE94F7D, transparent:true, opacity:0.6 })
   };
+  // Recolours or trims a skinned material by bind-pose height (metres, before skinning):
+  // leggings on the legs, and a crop top that ends under the bust so the bump shows.
+  function byHeight(mat, opt) {
+    const color = new T.Color(opt.color || 0xffffff);
+    mat.onBeforeCompile = sh => {
+      sh.uniforms.uBand = { value:new T.Vector2(opt.lo || -1, opt.hi || -1) };
+      sh.uniforms.uBandColor = { value:color };
+      sh.uniforms.uCut = { value:new T.Vector2(opt.cut || -1, opt.cutX || 99) };
+      sh.uniforms.uFlat = { value:new T.Vector2(opt.flatLo || -1, opt.flatHi || -1) };
+      sh.uniforms.uFlatColor = { value:new T.Color(opt.flatColor || 0xffffff) };
+      sh.vertexShader = 'varying vec3 vBind;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvBind = position;');
+      sh.fragmentShader = 'varying vec3 vBind;\nuniform vec2 uBand;\nuniform vec3 uBandColor;\nuniform vec2 uCut;\nuniform vec2 uFlat;\nuniform vec3 uFlatColor;\n' +
+        sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\nif (vBind.y < uCut.x || (abs(vBind.x) > uCut.y && vBind.y > 1.17)) discard;\nfloat bandTop = uBand.y + 0.075 * (1.0 - smoothstep(-0.03, 0.05, vBind.z));\nif (vBind.y > uBand.x && vBind.y < bandTop) diffuseColor.rgb = uBandColor;\nelse if (vBind.y > uFlat.x && vBind.y < uFlat.y && abs(vBind.x) < 0.2) diffuseColor.rgb = uFlatColor;');
+    };
+    mat.customProgramCacheKey = () => 'bh' + (opt.cut ? 'c' : '') + (opt.hi ? 'b' : '');
+  }
   const V = (p, z) => new T.Vector3(p[0] - 100, 126 - p[1], z || 0);
   const shadow = m => { m.castShadow = true; return m; };
   const cap = (r, len, mat) => shadow(new T.Mesh(new T.CapsuleGeometry(r, Math.max(0.1, len), 6, 16), mat));
@@ -74,10 +93,22 @@ window.Bloom3D = (function () {
       const src = o.material, name = src.name || '';
       const opts = { map:src.map, transparent:src.transparent, alphaTest:src.alphaTest, side:src.side, depthWrite:src.depthWrite };
       const mat = /_FACE|_EYE/.test(name) ? new T.MeshBasicMaterial(opts) : new T.MeshToonMaterial(Object.assign(opts, { gradientMap:ramp }));
-      if (/Tops/.test(name)) mat.color = new T.Color(0xF7A6CC);                       // pink T-shirt
-      if (/Bottoms/.test(name)) { mat.map = null; mat.color = new T.Color(0x6A2C8C); } // purple shorts
+      if (/Tops/.test(name)) { mat.map = null; mat.color = new T.Color(OUTFIT.top); byHeight(mat, { cut:1.118, cutX:0.112 }); } // sleeveless sports crop top
+      if (/Bottoms/.test(name)) o.visible = false;                                                          // leggings replace the shorts
+      if (/_SKIN/.test(name)) mat.color = new T.Color(OUTFIT.skin);
+      if (/Body_00_SKIN/.test(name)) byHeight(mat, { lo:0.095, hi:0.915, color:OUTFIT.leggings, flatLo:0.9, flatHi:1.2, flatColor:OUTFIT.skin }); // plain skin where the texture has underwear               // full-length leggings
+      if (/Shoes/.test(name)) { mat.map = null; mat.color = new T.Color(OUTFIT.shoes); }                          // flat shoes
+      if (/HAIR/.test(name)) mat.color = new T.Color(OUTFIT.hair);
       mat.name = name;
       o.material = mat;
+    });
+    // Shorten the long hair to shoulder length so it never hides the arms or trails across the floor.
+    scene.traverse(o => {
+      if (!o.isMesh || !/HAIR/.test(o.material.name)) return;
+      const pos = o.geometry.attributes.position, top = 1.3;
+      for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); if (y < top) pos.setY(i, top - (top - y) * 0.42); }
+      pos.needsUpdate = true;
+      o.geometry.computeBoundingSphere();
     });
     scene.updateMatrixWorld(true);
     const wp = n => scene.getObjectByName(n).getWorldPosition(new T.Vector3());
@@ -90,7 +121,7 @@ window.Bloom3D = (function () {
   // Shapes a pregnancy bump into the skin and T-shirt in bind pose, so it moves with the body.
   function shapeBump(root, week, belly) {
     const grow = Math.max(0, Math.min(1, (week - 12) / 28));
-    const A = 0.03 + 0.085 * grow;
+    const A = 0.04 + 0.12 * grow;
     const cy = belly.y0 + (belly.y1 - belly.y0) * 0.45, sy = (belly.y1 - belly.y0) * 0.62, sx = 0.105;
     root.traverse(o => {
       if (!o.isSkinnedMesh || !/Body_00_SKIN|Tops/.test(o.material.name)) return;
@@ -163,12 +194,30 @@ window.Bloom3D = (function () {
     aimTo(rig.spec.C_UpperChest, S3.clone().sub(mid3));
     aimTo(rig.spec.C_Neck, H3.clone().sub(S3));
     // Limb 1 is the near side: the character's right in side views, her left in front views.
+    // Side-lying moves bend the hips and knees along the floor, which a flat diagram can't show,
+    // so those legs are built in 3D: hips bent forward by `fold` degrees, knees at about 100°,
+    // and the diagram's knee height kept (that is the clamshell opening).
+    const folds = q.fold == null ? [0, 0] : [].concat(q.fold, q.fold);
+    const feetDir = Math.sign(P3.x - S3.x) || 1;
+    const flat = (deg, y) => { const r = deg * Math.PI / 180, hz = Math.sqrt(Math.max(0, 1 - y * y)); return new T.Vector3(feetDir * Math.cos(r) * hz, y, Math.sin(r) * hz); };
     [1, 2].forEach(i => {
       const sd = front ? (i === 1 ? 'L' : 'R') : (i === 1 ? 'R' : 'L'), g = k => V(q[k + i]);
-      const lift = new T.Vector3(0, avatar.ankle, 0); // diagram feet are soles; the avatar's foot joint is the ankle
-      aimTo(rig.spec[sd + 'UpperLeg'], g('k').sub(g('r')));
-      aimTo(rig.spec[sd + 'LowerLeg'], g('f').add(lift).sub(g('k')));
-      aimTo(rig.spec[sd + 'Foot'], g('t').sub(g('f')));
+      const fold = folds[i - 1];
+      if (fold) {
+        const lift = Math.max(-0.2, Math.min(0.85, (V(q['kh' + i] || q['k' + i]).y - g('r').y) / 24));
+        aimTo(rig.spec[sd + 'UpperLeg'], flat(fold, lift));
+        aimTo(rig.spec[sd + 'LowerLeg'], flat(fold - 100, i === 1 && folds[1] ? -Math.min(0.95, lift + 0.4) : -lift)); // the top foot rests on the lower one
+        aimTo(rig.spec[sd + 'Foot'], flat(fold - 20, 0));
+      } else if (q.sz) { // shins pointing straight behind her (knees bent, feet back)
+        aimTo(rig.spec[sd + 'UpperLeg'], g('k').sub(g('r')));
+        aimTo(rig.spec[sd + 'LowerLeg'], new T.Vector3(0, 0, q.sz));
+        aimTo(rig.spec[sd + 'Foot'], g('k').sub(g('r')).normalize().multiplyScalar(-0.3).add(new T.Vector3(0, 0, q.sz)));
+      } else {
+        const lift = new T.Vector3(0, avatar.ankle, 0); // diagram feet are soles; the avatar's foot joint is the ankle
+        aimTo(rig.spec[sd + 'UpperLeg'], g('k').sub(g('r')));
+        aimTo(rig.spec[sd + 'LowerLeg'], g('f').add(lift).sub(g('k')));
+        aimTo(rig.spec[sd + 'Foot'], g('t').sub(g('f')));
+      }
       aimTo(rig.spec[sd + 'UpperArm'], g('e').sub(g('a')));
       aimTo(rig.spec[sd + 'LowerArm'], g('w').sub(g('e')));
     });
@@ -179,7 +228,6 @@ window.Bloom3D = (function () {
   const BACKDROP = { mat:1, water:1, wall:1, wallback:1, door:1 };
   function addProps(scene, prop) {
     const add = (m, x, y, z) => { m.position.set(x, y, z); if (!BACKDROP[prop]) m.userData.fit = true; scene.add(m); return m; };
-    if (prop === 'mat') add(box(150, 1.2, 42, M.mat), 0, 0.6, 0).castShadow = false;
     if (prop === 'chair') {
       add(box(28, 3, 28, M.wood), -22, 25, 0); add(box(3, 36, 28, M.wood), -35.5, 44, 0);
       [[-34, 12], [-34, -12], [-10, 12], [-10, -12]].forEach(([x, z]) => add(box(2.6, 24, 2.6, M.wood), x, 12, z));
@@ -206,16 +254,15 @@ window.Bloom3D = (function () {
   function create(canvas, def, pregnant, week) {
     if (!avatar) return null;
     const scene = new T.Scene();
-    scene.add(new T.HemisphereLight(0xffffff, 0xf3d9e6, 1.35));
-    const sun = new T.DirectionalLight(0xffffff, 1.6);
-    sun.position.set(70, 170, 120);
+    scene.add(new T.HemisphereLight(0xffffff, 0xffffff, 1.1));
+    const sun = new T.DirectionalLight(0xffffff, 1.3);
+    sun.position.set(-60, 160, 170); // from the front and above, so the far side falls into the second tone
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left:-140, right:140, top:150, bottom:-70, near:20, far:500 });
     sun.shadow.bias = -0.0006;
     scene.add(sun);
-    const fill = new T.DirectionalLight(0xffe4ef, 0.6); fill.position.set(-140, 70, -30); scene.add(fill);
-    const floor = new T.Mesh(new T.PlaneGeometry(700, 700), new T.ShadowMaterial({ opacity:0.12 }));
+    const floor = new T.Mesh(new T.PlaneGeometry(700, 700), new T.ShadowMaterial({ opacity:0.08 }));
     floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
     addProps(scene, def.prop);
     const rig = makeRig(pregnant, week);
@@ -226,9 +273,9 @@ window.Bloom3D = (function () {
     if (def.prop === 'band') { extra.band = cap(0.7, 10, M.band); scene.add(extra.band); }
     if (def.prop === 'baby') { extra.babyBody = cap(5.5, 8, M.swaddle); extra.babyHead = sph(4.4, M.babySkin); scene.add(extra.babyBody, extra.babyHead); }
 
-    // Orthographic three-quarter view, framed around the whole movement.
+    // The same near-side view for every move (like a flat illustration), framed around the whole movement.
     const cam = new T.OrthographicCamera(-1, 1, 1, -1, 1, 3000);
-    cam.position.copy(new T.Vector3(0.55, 0.36, 1).normalize().multiplyScalar(700));
+    cam.position.copy((def.high ? new T.Vector3(0.45, 0.6, 1) : new T.Vector3(0.16, 0.1, 1)).normalize().multiplyScalar(700)); // side-lying moves are seen from a little higher
     cam.lookAt(0, 0, 0);
     cam.updateMatrixWorld(true);
     const fig = { canvas, ctx:canvas.getContext('2d'), scene, cam, rig, extra, pregnant };

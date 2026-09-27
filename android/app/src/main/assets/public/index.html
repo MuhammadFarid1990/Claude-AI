@@ -619,9 +619,13 @@ body::before {
 .ds-move .ds-list { font-size:.78rem; }
 .anim-wrap { position:relative;width:100%;max-width:240px;margin:.1rem auto .2rem;cursor:pointer; }
 .anim-wrap .move-anim { max-width:none;margin:0; }
-.move-3d { background:radial-gradient(ellipse 80% 55% at 50% 85%, #FBE3EE 0%, #FFF5FB 70%); }
+.move-anim.move-3d { background:#fff; }
 .anim-paused { position:absolute;left:8px;top:6px;font-size:.62rem;font-weight:700;color:var(--ink-muted);background:rgba(255,255,255,.85);border-radius:6px;padding:.1rem .35rem; }
 .move-anim { cursor:pointer;display:block;width:100%;max-width:220px;height:auto;margin:.1rem auto .2rem;background:var(--rose-bg);border-radius:12px; }
+.move-anim.anim-wait { background:linear-gradient(100deg,#F7F2F5 30%,#FFFFFF 50%,#F7F2F5 70%);background-size:300% 100%;animation:animWait 1.3s linear infinite; }
+.move-anim.anim-wait * { visibility:hidden; }
+@keyframes animWait { from { background-position:100% 0; } to { background-position:0 0; } }
+@media (prefers-reduced-motion: reduce) { .move-anim.anim-wait { animation:none; } }
 .ds-move-why { font-size:.74rem;color:var(--ink-muted);line-height:1.45; }
 .ds-cs { font-size:.72rem;color:#6D28D9;background:#F3EEFF;border-radius:10px;padding:.42rem .58rem;line-height:1.45; }
 .ds-safety { font-size:.74rem;line-height:1.5;color:#7F1D1D;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:.6rem .75rem; }
@@ -1813,7 +1817,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script src="content/baby.js?v=1"></script>
 <script src="content/newborn.js?v=1"></script>
 <script src="content/schedule.js?v=2"></script>
-<script src="content/anim.js?v=3"></script>
+<script src="content/anim.js?v=4"></script>
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
@@ -2365,6 +2369,8 @@ function launchApp(name, dueDate, birthDate, pregnancyStatus) {
   renderSchedule();
   loadVaccDone();
   if (obData.delivery) setDelivery(obData.delivery);
+  // Fetch the 3D exercise figure in the background so diagrams are ready when a Move sheet opens.
+  setTimeout(() => (window.requestIdleCallback || (f => f()))(() => loadThree()), 3000);
   // Wire scroll hint to active screen
   const initScr = document.querySelector('.screen.active');
   if (initScr) {
@@ -3631,7 +3637,7 @@ function resolvePose(src) {
 }
 const POSE_KEYS = ['h','s','p','e1','w1','e2','w2','k1','f1','k2','f2','t1','t2'];
 function lerpPose(a, b, t) {
-  const o = { view:a.view, bn:a.bn, c:a.c + (b.c - a.c) * t, ring:a.ring + (b.ring - a.ring) * t };
+  const o = { view:a.view, bn:a.bn, sz:a.sz, fold:a.fold, c:a.c + (b.c - a.c) * t, ring:a.ring + (b.ring - a.ring) * t };
   POSE_KEYS.forEach(k => { o[k] = [a[k][0] + (b[k][0] - a[k][0]) * t, a[k][1] + (b[k][1] - a[k][1]) * t]; });
   return o;
 }
@@ -3641,7 +3647,7 @@ function rigidPose(q) {
   const unit = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
   const along = (a, u, L) => [a[0] + u[0] * L, a[1] + u[1] * L];
   const front = q.view === 'front';
-  const o = { view:q.view, bn:q.bn, c:q.c, ring:q.ring, p:q.p };
+  const o = { view:q.view, bn:q.bn, c:q.c, ring:q.ring, p:q.p, sz:q.sz };
   o.s = along(q.p, unit(q.p, q.s), BONES.torso);
   o.h = along(o.s, unit(q.s, q.h), BONES.neck);
   const chain = (root, hintPt, end, l1, l2) => {
@@ -3650,11 +3656,15 @@ function rigidPose(q) {
     const jj = along(root, unit(root, j), l1);
     return [jj, along(jj, unit(jj, end), l2)];
   };
+  // In front views the hips and shoulders sit either side of the spine (stacked when she lies on her side).
+  const ts = unit(o.p, o.s), perp = [-ts[1], ts[0]];
+  o.fold = q.fold;
   [1, 2].forEach(i => {
     const side = i === 1 ? 1 : -1;
-    const hipRoot = front ? [o.p[0] + BONES.hip * side, o.p[1]] : o.p;
-    const shRoot = front ? [o.s[0] + BONES.shoulder * side, o.s[1]] : o.s;
+    const hipRoot = front ? along(o.p, perp, BONES.hip * side) : o.p;
+    const shRoot = front ? along(o.s, perp, BONES.shoulder * side) : o.s;
     o['r' + i] = hipRoot; o['a' + i] = shRoot;
+    if (q.fold) o['kh' + i] = q['k' + i]; // raw knee target: side-lying legs are rebuilt in 3D from its height
     [o['k' + i], o['f' + i]] = chain(hipRoot, q['k' + i], q['f' + i], BONES.thigh, BONES.shin);
     [o['e' + i], o['w' + i]] = chain(shRoot, q['e' + i], q['w' + i], BONES.upper, BONES.fore);
     o['t' + i] = along(o['f' + i], unit(q['f' + i], q['t' + i]), BONES.foot);
@@ -3738,16 +3748,17 @@ function poseAt(f, ms) {
   const e = local < 0.5 ? 2 * local * local : 1 - Math.pow(-2 * local + 2, 2) / 2;
   return lerpPose(f.frames[step % n], f.frames[(step + 1) % n], e);
 }
-let threeState = 0; // 0 not loaded, 1 loading, 2 ready, 3 unavailable
+let threeState = 0, threeWaiters = []; // 0 not loaded, 1 loading, 2 ready, 3 unavailable
 function loadThree(done) {
-  if (threeState === 2) { done(); return; }
-  if (threeState !== 0) return;
+  if (threeState >= 2) { if (done) done(); return; }
+  if (done) threeWaiters.push(done);
+  if (threeState === 1) return;
   threeState = 1;
-  const add = (src, next) => { const sc = document.createElement('script'); sc.src = src; sc.onload = next; sc.onerror = () => { threeState = 3; }; document.head.appendChild(sc); };
-  add('content/vendor/three.min.js?v=160', () => add('content/vendor/GLTFLoader.js?v=160', () => add('content/vendor/SkeletonUtils.js?v=160', () => add('content/figure3d.js?v=13', () => {
-    if (!window.Bloom3D || !Bloom3D.supported()) { threeState = 3; return; }
-    // Only switch to 3D once the avatar has loaded; otherwise the 2D diagrams stay.
-    Bloom3D.loadAvatar(av => { threeState = av ? 2 : 3; if (av) done(); });
+  const finish = ok => { if (threeState !== 1) return; threeState = ok ? 2 : 3; threeWaiters.splice(0).forEach(f => f()); };
+  const add = (src, next) => { const sc = document.createElement('script'); sc.src = src; sc.onload = next; sc.onerror = () => finish(false); document.head.appendChild(sc); };
+  add('content/vendor/three.min.js?v=160', () => add('content/vendor/GLTFLoader.js?v=160', () => add('content/vendor/SkeletonUtils.js?v=160', () => add('content/figure3d.js?v=14', () => {
+    if (!window.Bloom3D || !Bloom3D.supported()) { finish(false); return; }
+    Bloom3D.loadAvatar(av => finish(!!av));
   }))));
 }
 
@@ -3777,18 +3788,27 @@ function build3D(svg) {
   return f;
 }
 
-function initMoveAnims(root) {
+let animWaitTimer = 0;
+function initMoveAnims(root, force2D) {
   stopMoveAnims();
   const svgs = [...root.querySelectorAll('svg.move-anim')];
   if (!svgs.length) return;
+  const sheetOpen = () => root.isConnected && root.querySelector('svg.move-anim') && document.getElementById('day-sheet').classList.contains('open');
+  if (threeState < 2 && !force2D) {
+    // Show a clean placeholder while the 3D figure downloads, rather than a different-looking drawing.
+    svgs.forEach(svg => svg.classList.add('anim-wait'));
+    loadThree(() => { clearTimeout(animWaitTimer); if (sheetOpen()) initMoveAnims(root); });
+    animWaitTimer = setTimeout(() => { if (threeState < 2 && sheetOpen()) initMoveAnims(root, true); }, 12000); // slow connection: simple drawings meanwhile
+    return;
+  }
   const use3D = threeState === 2;
   svgs.forEach(svg => {
+    svg.classList.remove('anim-wait');
     let f = null;
     if (use3D) { try { f = build3D(svg); } catch (e) { f = null; } }
     if (!f) { f = buildFig(svg); if (f) { f.el = svg; f.draw = q => drawFig(f, q); } }
     if (f) animFigs.push(f);
   });
-  if (!use3D && threeState === 0) loadThree(() => { if (root.isConnected && root.querySelector('svg.move-anim') && document.getElementById('day-sheet').classList.contains('open')) initMoveAnims(root); });
   if (!animFigs.length) return;
   // The motion is the instruction, so it always plays; reduced-motion users get a slower pace and tap-to-pause.
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -3811,6 +3831,7 @@ function initMoveAnims(root) {
   animRAF = requestAnimationFrame(tick);
 }
 function stopMoveAnims() {
+  clearTimeout(animWaitTimer);
   if (animRAF) cancelAnimationFrame(animRAF);
   animFigs.forEach(f => { if (f.three) Bloom3D.dispose(f.three); });
   animRAF = 0; animFigs = [];
