@@ -567,7 +567,8 @@ body::before {
 .dtask.done .dtask-title { text-decoration:line-through;color:var(--ink-muted); }
 .dtask-sub { font-size:.68rem;color:var(--ink-muted);margin-top:.1rem;line-height:1.35; }
 .dtask-go { color:var(--rose);font-size:1.1rem;font-weight:700;flex-shrink:0; }
-.lbl-eat { color:var(--rose); } .lbl-move { color:var(--lime-dark); } .lbl-do { color:var(--purple); } .lbl-baby { color:var(--teal); } .lbl-food { color:var(--coral); }
+.lbl-eat { color:var(--rose); } .lbl-move { color:var(--lime-dark); } .lbl-do { color:var(--purple); } .lbl-baby { color:var(--teal); } .lbl-food, .lbl-feed { color:var(--coral); }
+.baby-here-btn { width:100%;margin-top:.75rem; }
 .week-dots { display:flex;justify-content:space-between;margin:.8rem .1rem .1rem; }
 .wd { display:flex;flex-direction:column;align-items:center;gap:.22rem;font-size:.56rem;font-weight:700;color:var(--ink-muted); }
 .wd i { width:22px;height:22px;border-radius:50%;background:var(--rule);display:flex;align-items:center;justify-content:center;font-style:normal;color:#fff;font-size:.62rem;font-weight:800; }
@@ -1162,7 +1163,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
           <div class="baby-size">Facial muscles developing — your baby can make expressions and suck their thumb.</div>
         </div>
         <!-- Sweet potato character illustration -->
-        <div style="flex-shrink:0;width:64px;height:72px">
+        <div style="flex-shrink:0;width:64px;height:72px" id="babyArt">
           <svg viewBox="0 0 64 72" fill="none" xmlns="http://www.w3.org/2000/svg">
             <!-- Leafy top -->
             <path d="M28 16 C26 8, 18 6, 20 14" stroke="#AADF2F" stroke-width="2" stroke-linecap="round" fill="none"/>
@@ -1200,15 +1201,15 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         </div>
       </div>
       <div class="baby-stats" style="margin-top:.65rem">
-        <div class="b-stat"><span class="bv" id="babyLen">5.6″</span><span class="bl">Length</span></div>
-        <div class="b-stat"><span class="bv" id="babyWt">6.7oz</span><span class="bl">Weight</span></div>
-        <div class="b-stat"><span class="bv" id="babyDays">127</span><span class="bl">Days in</span></div>
+        <div class="b-stat"><span class="bv" id="babyLen">5.6″</span><span class="bl" id="babyLenL">Length</span></div>
+        <div class="b-stat"><span class="bv" id="babyWt">6.7oz</span><span class="bl" id="babyWtL">Weight</span></div>
+        <div class="b-stat"><span class="bv" id="babyDays">127</span><span class="bl" id="babyDaysL">Days in</span></div>
       </div>
     </div>
 
     <!-- Pregnancy progress -->
     <div class="card">
-      <div class="sec-title">Pregnancy Progress</div>
+      <div class="sec-title" id="progTitle">Pregnancy Progress</div>
       <div class="prog-wrap">
         <div class="prog-label" id="progLabel"><span>Week 18 of 40</span><span>22 weeks left</span></div>
         <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
@@ -1444,6 +1445,10 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
             <input class="auth-input" id="pf-baby" placeholder="e.g. Sprout, Lily…" style="padding:.55rem .7rem;font-size:.85rem">
           </div>
           <div id="pf-date-row">
+            <div class="option-chips" id="pf-stage" style="margin-bottom:.5rem">
+              <button type="button" class="option-chip" data-stage="pregnant" onclick="pickProfileStage('pregnant')">🤰 Pregnant</button>
+              <button type="button" class="option-chip" data-stage="born" onclick="pickProfileStage('born')">👶 Baby is born</button>
+            </div>
             <div class="sec-title" style="margin-bottom:.3rem;font-size:.68rem" id="pf-date-label">Due date</div>
             <input class="auth-input" id="pf-due" type="date" style="padding:.55rem .7rem;font-size:.85rem">
           </div>
@@ -1834,6 +1839,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script src="content/meals.js?v=1"></script>
 <script src="content/dos.js?v=1"></script>
 <script src="content/baby.js?v=1"></script>
+<script src="content/newborn.js?v=1"></script>
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
@@ -2191,7 +2197,11 @@ function refreshDashboard() {
   const ha = document.querySelector('.header-avatar');   if(ha) ha.textContent=initial;
 
   let wk = 18; // default
-  if (dueDate) {
+  const born = isBornMode();
+  document.querySelectorAll('.sub-nav-btn[onclick*="kicks"]').forEach(b => b.hidden = born);
+  if (born) renderBornToday();
+  else if (dueDate) {
+    resetPregnancyToday();
     const due      = new Date(dueDate);
     const today    = new Date();
     const daysIn   = Math.round((today - new Date(due.getTime()-280*24*60*60*1000))/86400000);
@@ -2249,7 +2259,7 @@ function refreshDashboard() {
     const wkg=obData.weightUnit==='kg'?parseFloat(obData.weightVal):parseFloat(obData.weightVal)*0.4536;
     const age=parseInt(obData.age);
     const bmr=10*wkg+6.25*hcm-5*age-161;
-    const add=wk<=13?0:wk<=26?340:452;
+    const add=born?400:wk<=13?0:wk<=26?340:452;
     const kcal=Math.round(bmr*1.4)+add;
     if(kcalEl){kcalEl.textContent=`~${kcal.toLocaleString()} kcal target`;kcalEl.hidden=false;}
     const hStr=`${obData.heightFt}′${obData.heightIn}″`;
@@ -2273,11 +2283,19 @@ function refreshDashboard() {
       });
     }
     if(!items.length) items=['Take prenatal vitamin with breakfast','Drink 8 glasses of water today',wk>=28?'Count kicks for 2 hours':'30 min prenatal-safe movement'];
+    let badge = 'Wk ' + wk;
+    if (born) {
+      const bd = babyDayNum();
+      items = bd <= 42
+        ? ['Feed baby 8–12 times in 24 hours','Drink a glass of water at every feed','Rest when baby sleeps, even for 20 minutes']
+        : ['Tummy time: 3 short sessions today','Drink a glass of water at every feed','Get outside for 10 minutes'];
+      badge = 'Day ' + bd;
+    }
     goalList.innerHTML=items.slice(0,3).map(t=>`
       <div class="goal-item" onclick="toggleGoal(this)">
         <div class="goal-check"></div>
         <div class="goal-text">${t}</div>
-        <span class="goal-badge">Wk ${wk}</span>
+        <span class="goal-badge">${badge}</span>
       </div>`).join('');
   }
 
@@ -2292,8 +2310,73 @@ function refreshDashboard() {
 
   // Today screen dynamic sections
   renderTodayAppt();
-  renderTodayTip(wk);
+  if (born) renderBornTip(babyDayNum()); else renderTodayTip(wk);
   renderDaily();
+}
+
+function resetPregnancyToday() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('progTitle', 'Pregnancy Progress');
+  set('babyLenL', 'Length'); set('babyWtL', 'Weight'); set('babyDaysL', 'Days in');
+  const art = document.getElementById('babyArt'); if (art) art.hidden = false;
+}
+
+function bornMilestone(d) {
+  if (d < 7)   return 'Newborns sleep 14–17 hours a day and feed 8–12 times. They focus best about 20–30 cm away: the distance to your face while feeding.';
+  if (d < 21)  return 'Baby already knows your voice and smell. Short bursts of tummy time on your chest build neck strength.';
+  if (d < 42)  return 'Watch for the first real social smile, usually around 6 weeks.';
+  if (d < 90)  return 'Cooing, following faces and maybe the first laugh soon. Tummy time builds up to 15–30 minutes a day.';
+  if (d < 180) return 'Rolling, reaching and grabbing. Everything goes in the mouth now, so keep small objects out of reach.';
+  if (d < 270) return 'First foods, sitting up and babbling "ba-ba" and "da-da". Crawling may start soon.';
+  if (d < 365) return 'Pulling up, cruising, maybe first steps and words. Baby understands far more than they can say.';
+  return 'Happy first birthday! Toddlerhood begins.';
+}
+
+function renderBornToday() {
+  const day = babyDayNum(), d = Math.max(0, day - 1);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const age = babyAgeText(day);
+  const bornOn = new Date(dateEpoch(obData.birthDate) * 86400000).toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric', timeZone:'UTC' });
+  const short = d < 1 ? 'Newborn' : d < 14 ? d + 'd' : d < 61 ? Math.floor(d / 7) + ' wk' : Math.floor(d / 30.44) + ' mo';
+  const wc = document.querySelector('.week-chip');
+  if (wc) wc.textContent = day <= 42 ? 'Baby is ' + age + ' · Recovery week ' + Math.ceil(day / 7) : 'Baby is ' + age;
+  const badgeText = d < 1 ? 'Newborn' : 'Baby · ' + short;
+  if (typeof badges !== 'undefined') badges.today = badgeText;
+  set('headerBadge', badgeText);
+  const ps = document.querySelector('.profile-sub'); if (ps) ps.textContent = 'Born ' + bornOn + ' · ' + age;
+  const name = obData.babyName || 'Your baby';
+  const bt = document.querySelector('.baby-title'); if (bt) bt.textContent = day <= 1 ? name + ' was born today' : name + ' is ' + age;
+  const bs = document.querySelector('.baby-size'); if (bs) bs.textContent = bornMilestone(d);
+  const art = document.getElementById('babyArt'); if (art) art.hidden = true;
+  set('babyLen', d); set('babyLenL', 'Days old');
+  set('babyWt', Math.floor(d / 7)); set('babyWtL', 'Weeks old');
+  if (day <= 42) { set('babyDays', 43 - day); set('babyDaysL', 'Days to 6-wk check'); }
+  else { set('babyDays', Math.floor(d / 30.44)); set('babyDaysL', 'Months old'); }
+  const pf = document.getElementById('progFill'), pl = document.getElementById('progLabel');
+  if (day <= 42) {
+    set('progTitle', 'Postpartum recovery');
+    if (pf) pf.style.width = Math.round(day / 42 * 100) + '%';
+    if (pl) pl.innerHTML = '<span>Week ' + Math.ceil(day / 7) + ' of 6</span><span>' + (43 - day) + ' days to your check-up</span>';
+    set('progNote', 'Your postnatal check is usually around 6 weeks after birth. Born ' + bornOn + '.');
+  } else {
+    set('progTitle', 'Baby\'s first year');
+    if (pf) pf.style.width = Math.min(100, Math.round(day / 365 * 100)) + '%';
+    if (pl) pl.innerHTML = '<span>Month ' + Math.min(12, Math.floor(d / 30.44) + 1) + ' of 12</span><span>' + Math.max(0, 366 - day) + ' days to 1st birthday</span>';
+    set('progNote', 'Born ' + bornOn);
+  }
+}
+
+function renderBornTip(day) {
+  const d = day - 1;
+  const tip = d < 3   ? 'Rest, feed and let others help. Everything else can wait.'
+    : d < 14  ? 'Baby blues (weepy, anxious, up and down) are common around days 3 to 5 and usually pass within 2 weeks. If low mood lasts longer, or you have thoughts of harming yourself or your baby, call your doctor right away.'
+    : d < 42  ? 'Bleeding should get lighter week by week. Soaking a pad within an hour, large clots, fever or a bad-smelling discharge mean you should call your provider.'
+    : d < 90  ? 'Your 6-week check is the time to ask about exercise, contraception, your pelvic floor and your mood.'
+    : d < 180 ? 'Postpartum depression can start any time in the first year. Check in with yourself in the Health tab.'
+    : 'Look after yourself too: sleep when you can, eat regularly and keep moving.';
+  const label = document.getElementById('todayTipLabel'), text = document.getElementById('todayTipText');
+  if (label) label.textContent = 'Week ' + Math.ceil(day / 7) + ' tip for you';
+  if (text) text.textContent = tip;
 }
 
 function launchApp(name, dueDate, birthDate, pregnancyStatus) {
@@ -2312,7 +2395,6 @@ function launchApp(name, dueDate, birthDate, pregnancyStatus) {
   renderSchedule();
   loadVaccDone();
   if (obData.delivery) setDelivery(obData.delivery);
-  showHealthNotice();
   // Wire scroll hint to active screen
   const initScr = document.querySelector('.screen.active');
   if (initScr) {
@@ -2323,14 +2405,17 @@ function launchApp(name, dueDate, birthDate, pregnancyStatus) {
 }
 
 /* ── Profile edit ───────────────────────────────── */
+let pfStage = 'pregnant';
+function pickProfileStage(stage) {
+  pfStage = stage;
+  document.querySelectorAll('#pf-stage .option-chip').forEach(c => c.classList.toggle('selected', c.dataset.stage === stage));
+  document.getElementById('pf-date-label').textContent = stage === 'born' ? 'Baby\'s birth date' : 'Due date';
+  document.getElementById('pf-due').value = stage === 'born' ? (obData.birthDate || '') : (obData.dueDate || '');
+}
 function profileEdit() {
   document.getElementById('pf-name').value = obData.name    || '';
   document.getElementById('pf-baby').value = obData.babyName|| '';
-  const isBorn = obData.pregnancyStatus === 'born';
-  const lbl = document.getElementById('pf-date-label');
-  const inp = document.getElementById('pf-due');
-  if (lbl) lbl.textContent = isBorn ? 'Birth date' : 'Due date';
-  if (inp) inp.value = isBorn ? (obData.birthDate || '') : (obData.dueDate || '');
+  pickProfileStage(obData.pregnancyStatus === 'born' ? 'born' : 'pregnant');
   document.getElementById('profileEditForm').style.display = '';
   document.getElementById('profileEditBtn').style.display  = 'none';
 }
@@ -2342,8 +2427,10 @@ function profileSave() {
   obData.name     = document.getElementById('pf-name').value.trim() || 'Customer';
   obData.babyName = document.getElementById('pf-baby').value.trim();
   const dateVal   = document.getElementById('pf-due').value;
-  if (obData.pregnancyStatus === 'born') obData.birthDate = dateVal;
+  if (pfStage === 'born' && !dateVal) { alert('Add your baby\'s birth date to switch to newborn mode.'); return; }
+  if (pfStage === 'born') obData.birthDate = dateVal;
   else obData.dueDate = dateVal;
+  obData.pregnancyStatus = pfStage;
   profileCancel();
   refreshDashboard();
   renderSchedule();
@@ -3216,43 +3303,69 @@ function moveItem(list, kind) {
   return { key:'move', label:'Move', title:(kind || mins + '-min routine'), sub:list.map(m => m.n).join(' · '), data:{ list, mins } };
 }
 
+function isBornMode() { return obData.pregnancyStatus === 'born' && !!obData.birthDate; }
+function babyDayNum() { return todayEpoch() - dateEpoch(obData.birthDate) + 1; }
+function babyAgeText(day) {
+  const d = day - 1;
+  if (d < 1) return 'a newborn';
+  if (d < 14) return d + (d === 1 ? ' day' : ' days') + ' old';
+  if (d < 61) return Math.floor(d / 7) + ' weeks old';
+  if (d < 365) { const m = Math.floor(d / 30.44); return m + (m === 1 ? ' month' : ' months') + ' old'; }
+  return 'over a year old';
+}
+
 function getDailyPlan(offset) {
   const D = window.BLOOM_DAILY;
   if (!D || !D.meals || !D.moves || !D.dos || !D.baby) return null;
   const t = todayEpoch(offset);
 
-  if (obData.pregnancyStatus === 'born' && obData.birthDate) {
+  if (isBornMode()) {
     const day = t - dateEpoch(obData.birthDate) + 1;
     if (day < 1) return null;
+    const NB = D.newborn || {};
     const month = Math.min(11, Math.floor((day - 1) / 30.44)); // baby's age in whole months
     const phase = day <= 14 ? 'pp1' : day <= 42 ? 'pp2' : day <= 90 ? 'pp3' : 'pp4';
-    const play = rotPick(D.baby[month], day, 'baby' + month);
-    const moves = pickDistinct(D.moves[phase], day * 3, 3, phase);
-    const items = [
-      { key:'baby', label:'Play', title:play.n, sub:play.t + ' · ' + play.skill, data:play },
-      mealItem(D.meals.pp, day, 'pp'),
-      moveItem(moves, phase === 'pp1' ? 'Gentle recovery · ' + moves.reduce((a, m) => a + m.m, 0) + ' min' : '')
-    ];
+    const care = NB.care && NB.care[day - 1];
+    let baby;
+    if (care) baby = { key:'baby', label:'Care', title:care.n, sub:care.who, data:care };
+    else {
+      const play = rotPick(D.baby[month], day, 'baby' + month);
+      baby = { key:'baby', label:'Play', title:play.n, sub:play.t + ' · ' + play.skill, data:play };
+    }
+    let feed = null;
     if (month >= 6) {
       const pool = (month >= 10 ? D.foods.f10 : month >= 8 ? D.foods.f8 : D.foods.f6).filter(f => fitsDiet(f, dietExclusions(true)));
       const food = rotPick(pool, day, 'food' + month);
-      if (food) items.splice(1, 0, { key:'food', label:'Baby\'s food', title:food.n, sub:'First foods · ' + month + ' months', data:food });
+      if (food) feed = { key:'food', label:'Baby\'s food', title:food.n, sub:'First foods · ' + month + ' months', data:food };
+    } else if (NB.feedDays) {
+      const f = day <= 14 ? NB.feedDays[day - 1] : rotPick(day <= 60 ? NB.feedWeeks : NB.feedMonths, day, day <= 60 ? 'feedw' : 'feedm');
+      if (f) feed = { key:'feed', label:'Feed', title:f.n, sub:'Breast milk or formula' + (day <= 14 ? ' · Day ' + day : ''), data:f };
     }
-    const stage = day <= 42 ? 'Postpartum recovery · Baby week ' + Math.ceil(day / 7)
-      : 'Baby is ' + (day > 365 ? 'over a year' : month + (month === 1 ? ' month' : ' months')) + ' old';
+    const early = day <= 3 && NB.ppMeals ? NB.ppMeals[day - 1] : null;
+    const eat = early && fitsDiet(early, dietExclusions())
+      ? { key:'eat', label:'Eat', title:early.n, sub:early.type + ' · ' + early.focus, data:early }
+      : mealItem(D.meals.pp, day, 'pp');
+    let moves = day <= 3 && NB.ppMoves ? NB.ppMoves[day - 1].map(n => D.moves.pp1.find(m => m.n === n)).filter(Boolean) : [];
+    if (!moves.length) moves = pickDistinct(D.moves[phase], day * 3, 3, phase);
+    const items = [baby, feed, eat, moveItem(moves, phase === 'pp1' ? 'Gentle recovery · ' + moves.reduce((a, m) => a + m.m, 0) + ' min' : '')].filter(Boolean);
+    const stage = day === 1 ? 'Birth day · Rest, feed and recover'
+      : day <= 42 ? 'Baby is ' + babyAgeText(day) + ' · Recovery week ' + Math.ceil(day / 7)
+      : 'Baby is ' + babyAgeText(day);
     return { mode:'born', day, total:365, stage, phase, items };
   }
 
   let day = obData.dueDate ? t - (dateEpoch(obData.dueDate) - 280) + 1 : 127 + (offset || 0);
   day = Math.max(1, Math.min(280, day));
-  const stage = day <= 91 ? 't1' : day <= 189 ? 't2' : 't3';
-  const sd = day - (stage === 't1' ? 1 : stage === 't2' ? 92 : 190);
+  // Same week count as the rest of the app: 40 minus whole weeks left until the due date
+  const wkNow = Math.max(1, Math.min(40, 40 - Math.round((281 - day) / 7)));
+  const stage = wkNow <= 13 ? 't1' : wkNow <= 26 ? 't2' : 't3';
+  const sd = day - (stage === 't1' ? 1 : stage === 't2' ? 96 : 187);
   const mains = pickDistinct(D.moves[stage], sd * 2, 2, stage);
   const moves = [rotPick(D.moves.warm, day, 'warm'), ...mains, rotPick(D.moves.cool, day, 'cool')];
   const todo = rotPick(D.dos[stage], sd, stage + 'do');
   const tri = { t1:'First', t2:'Second', t3:'Third' }[stage];
   return {
-    mode:'pregnant', day, total:280, stage:tri + ' trimester · Week ' + Math.min(40, Math.ceil(day / 7)), phase:stage,
+    mode:'pregnant', day, total:280, stage:tri + ' trimester · Week ' + wkNow, phase:stage,
     items:[
       mealItem(D.meals[stage], sd, stage + 'meal'),
       moveItem(moves),
@@ -3309,6 +3422,7 @@ function renderDaily() {
     '</div>' +
     '<div class="daily-prog"><div class="daily-prog-track"><div class="daily-prog-fill" style="width:' + Math.round(doneN / total * 100) + '%"></div></div>' + progText + '</div>' +
     plan.items.map(it => taskRowHtml(it, rec)).join('') +
+    (plan.mode === 'pregnant' && plan.day >= 245 ? '<button class="ds-sec-btn baby-here-btn" onclick="openBabyArrived()">👶 Baby arrived? Switch to newborn mode</button>' : '') +
     '<div class="week-dots">' + dots + '</div>' +
     (next && next.day !== plan.day ? '<div class="daily-next">🔒 <b>Unlocks tomorrow:</b> ' + next.items.map(i => escHtml(i.title)).join(' · ') + '</div>' : '') +
     '<div class="daily-badge">' + (nextBadge ? 'Next badge: ' + nextBadge + '-day streak · ' + (nextBadge - streak) + ' to go' : 'Every streak badge earned') +
@@ -3414,9 +3528,18 @@ function sheetHtml(it, plan) {
       '<div class="ds-why"><b>Why it matters:</b> ' + escHtml(d.why) + '</div>' +
       (go ? '<button class="ds-sec-btn" onclick="dailyGo(\'' + d.go + '\')">' + go[0] + '</button>' : '');
   }
+  if (it.key === 'feed') {
+    return '<div class="ds-title">' + escHtml(d.n) + '</div>' +
+      '<div class="ds-meta"><span class="ds-chip">' + escHtml(it.sub) + '</span></div>' +
+      '<div><div class="ds-h">Today</div>' + listHtml(d.how, true) + '</div>' +
+      (d.watch ? '<div><div class="ds-h">Diapers to expect today</div><div class="ds-text">' + escHtml(d.watch) + '</div></div>' : '') +
+      (d.formula ? '<div><div class="ds-h">If you use formula</div><div class="ds-text">' + escHtml(d.formula) + '</div></div>' : '') +
+      '<div class="ds-why"><b>Why it matters:</b> ' + escHtml(d.why) + '</div>' +
+      '<div class="ds-safety"><b>Call your paediatrician right away</b> if baby has fewer wet diapers than expected, is too sleepy to feed, has yellowing skin that is spreading or deepening, or has a temperature of 38°C (100.4°F) or higher. Under 3 months, a fever always needs urgent care.</div>';
+  }
   if (it.key === 'baby') {
     return '<div class="ds-title">' + escHtml(d.n) + '</div>' +
-      '<div class="ds-meta"><span class="ds-chip">' + escHtml(d.t) + '</span><span class="ds-chip">' + escHtml(d.skill) + '</span></div>' +
+      '<div class="ds-meta">' + (d.who ? '<span class="ds-chip">' + escHtml(d.who) + '</span>' : '') + '<span class="ds-chip">' + escHtml(d.t) + '</span>' + (d.skill ? '<span class="ds-chip">' + escHtml(d.skill) + '</span>' : '') + '</div>' +
       '<div><div class="ds-h">How</div>' + listHtml(d.how, true) + '</div>' +
       '<div class="ds-why"><b>Why it helps:</b> ' + escHtml(d.why) + '</div>' +
       '<div class="ds-text" style="font-size:.72rem;color:var(--ink-muted)">Always supervise play. If your baby fusses or looks away, stop and try again later.</div>';
@@ -3432,6 +3555,7 @@ function sheetHtml(it, plan) {
 }
 
 function openDaySheet(key) {
+  if (!noticeAccepted()) { afterNotice = () => openDaySheet(key); showHealthNotice(); return; }
   const plan = getDailyPlan();
   const it = plan && plan.items.find(i => i.key === key);
   if (!it) return;
@@ -3448,14 +3572,58 @@ function openDaySheet(key) {
   document.getElementById('day-sheet').classList.add('open');
   const fb = document.getElementById('fmapBtn'); if (fb) fb.hidden = true;
 }
-function showHealthNotice() {
-  let seen = false;
-  try { seen = localStorage.getItem('bloom_notice_v1') === '1'; } catch(e) {}
-  document.getElementById('health-notice').hidden = seen;
+let birthType = '';
+function localIsoToday() { const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'); }
+function openBabyArrived() {
+  const today = localIsoToday();
+  birthType = obData.delivery || '';
+  const label = document.getElementById('dsLabel');
+  label.textContent = 'Congratulations';
+  label.className = 'dtask-label lbl-baby';
+  document.getElementById('dsDay').textContent = 'Switch Bloom to newborn mode';
+  const body = document.getElementById('dsBody');
+  body.innerHTML =
+    '<div class="ds-title">Your baby is here!</div>' +
+    '<div class="ds-text">Bloom will switch to your baby\'s first year and your postpartum recovery. You can switch back from Me → Edit if you tapped this by mistake.</div>' +
+    '<div><div class="ds-h">Birth date</div><input class="auth-input" id="ba-date" type="date" value="' + today + '" max="' + today + '"></div>' +
+    '<div><div class="ds-h">How was baby born?</div><div class="option-chips" id="ba-type">' +
+      '<button type="button" class="option-chip' + (birthType === 'vaginal' ? ' selected' : '') + '" data-type="vaginal" onclick="pickBirthType(this)">Vaginal birth</button>' +
+      '<button type="button" class="option-chip' + (birthType === 'csection' ? ' selected' : '') + '" data-type="csection" onclick="pickBirthType(this)">C-section</button>' +
+    '</div></div>' +
+    '<div><div class="ds-h">Baby\'s name (optional)</div><input class="auth-input" id="ba-name" placeholder="e.g. Lily" value="' + escHtml(obData.babyName || '') + '"></div>' +
+    '<button class="ds-done-btn" onclick="confirmBabyArrived()">Start newborn mode</button>';
+  body.scrollTop = 0;
+  document.getElementById('day-sheet').classList.add('open');
+  const fb = document.getElementById('fmapBtn'); if (fb) fb.hidden = true;
 }
+function pickBirthType(el) {
+  birthType = el.dataset.type;
+  document.querySelectorAll('#ba-type .option-chip').forEach(c => c.classList.toggle('selected', c === el));
+}
+function confirmBabyArrived() {
+  const date = document.getElementById('ba-date').value;
+  if (!date || date > localIsoToday()) { alert('Pick your baby\'s birth date (today or earlier).'); return; }
+  obData.pregnancyStatus = 'born';
+  obData.birthDate = date;
+  const nm = document.getElementById('ba-name').value.trim();
+  if (nm) obData.babyName = nm;
+  saveState();
+  closeDaySheet();
+  if (birthType) setDelivery(birthType);
+  refreshDashboard();
+  renderSchedule();
+  const scr = document.getElementById('screen-today'); if (scr) scr.scrollTop = 0;
+  celebrateDay();
+}
+
+let afterNotice = null;
+function noticeAccepted() { try { return localStorage.getItem('bloom_notice_v1') === '1'; } catch(e) { return false; } }
+function showHealthNotice() { document.getElementById('health-notice').hidden = false; }
 function acceptHealthNotice() {
   try { localStorage.setItem('bloom_notice_v1', '1'); } catch(e) {}
   document.getElementById('health-notice').hidden = true;
+  const next = afterNotice; afterNotice = null;
+  if (next) next();
 }
 function closeDaySheet() {
   document.getElementById('day-sheet').classList.remove('open');
