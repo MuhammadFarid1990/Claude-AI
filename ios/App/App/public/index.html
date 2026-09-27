@@ -617,7 +617,7 @@ body::before {
 .ds-move-n { font-weight:800;font-size:.92rem;color:var(--ink); }
 .ds-move-d { margin-left:auto;font-size:.68rem;font-weight:800;color:var(--lime-dark);white-space:nowrap; }
 .ds-move .ds-list { font-size:.78rem; }
-.move-anim { display:block;width:100%;max-width:220px;height:auto;margin:.1rem auto .2rem;background:var(--rose-bg);border-radius:12px; }
+.move-anim { cursor:pointer;display:block;width:100%;max-width:220px;height:auto;margin:.1rem auto .2rem;background:var(--rose-bg);border-radius:12px; }
 .ds-move-why { font-size:.74rem;color:var(--ink-muted);line-height:1.45; }
 .ds-cs { font-size:.72rem;color:#6D28D9;background:#F3EEFF;border-radius:10px;padding:.42rem .58rem;line-height:1.45; }
 .ds-safety { font-size:.74rem;line-height:1.5;color:#7F1D1D;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:.6rem .75rem; }
@@ -3698,6 +3698,12 @@ function buildFig(svg) {
   if (def.prop === 'band') f.band = svgEl(svg, 'line', { stroke:'#14B8A6', 'stroke-width':2 });
   if (def.prop === 'weight' || def.prop === 'weights') { f.wt1 = svgEl(svg, 'rect', { width:10, height:6, rx:2, fill:'#4A1C38' }); if (def.prop === 'weights') f.wt2 = svgEl(svg, 'rect', { width:10, height:6, rx:2, fill:'#7A4A62' }); }
   if (def.prop === 'baby') f.baby = svgEl(svg, 'ellipse', { rx:9, ry:6, fill:'#FFE3B8', stroke:'#E0A060', 'stroke-width':1.5 });
+  const vb = (def.vb || '0 0 200 134').split(' ').map(Number);
+  f.pauseTag = svgEl(svg, 'text', { x:vb[0] + 6, y:vb[1] + 12, 'font-size':9, 'font-weight':700, fill:'#9A6080', 'font-family':'sans-serif' });
+  f.pauseTag.textContent = 'Paused · tap to play';
+  f.pauseTag.style.display = 'none';
+  f.paused = false; f.elapsed = 0;
+  svg.addEventListener('click', () => { f.paused = !f.paused; f.pauseTag.style.display = f.paused ? '' : 'none'; });
   return f;
 }
 function drawFig(f, q) {
@@ -3738,13 +3744,16 @@ function initMoveAnims(root) {
   stopMoveAnims();
   root.querySelectorAll('svg.move-anim').forEach(svg => { const f = buildFig(svg); if (f) animFigs.push(f); });
   if (!animFigs.length) return;
+  // The motion is the instruction, so it always plays; reduced-motion users get a slower pace and tap-to-pause.
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) { animFigs.forEach(f => drawFig(f, f.frames[Math.min(1, f.frames.length - 1)])); return; }
-  const t0 = performance.now();
+  const speed = reduce ? 0.55 : 1;
+  animFigs.forEach(f => drawFig(f, f.frames[0]));
+  let last = performance.now();
   const tick = now => {
     animFigs = animFigs.filter(f => f.svg.isConnected);
     if (!animFigs.length) { animRAF = 0; return; }
-    animFigs.forEach(f => drawFig(f, poseAt(f, now - t0)));
+    const dt = Math.max(0, Math.min(100, now - last)); last = now;
+    animFigs.forEach(f => { if (!f.paused) { f.elapsed += dt * speed; drawFig(f, poseAt(f, f.elapsed)); } });
     animRAF = requestAnimationFrame(tick);
   };
   animRAF = requestAnimationFrame(tick);
