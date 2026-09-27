@@ -337,7 +337,8 @@ body::before {
 }
 
 /* ── MEALS ────────────────────────────────────── */
-.day-strip { display:flex;gap:.38rem;overflow-x:auto;scrollbar-width:none;padding-bottom:2px; }
+.day-strip { display:flex;gap:.38rem;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;flex-shrink:0; }
+#storeToggleWrap, .order-btn, #orderNote { flex-shrink:0; }
 .day-strip::-webkit-scrollbar { display:none; }
 .day-chip {
   flex-shrink:0;display:flex;flex-direction:column;align-items:center;
@@ -354,6 +355,10 @@ body::before {
 
 .meal-block { margin-bottom:.65rem; }
 .meal-block:last-child { margin-bottom:0; }
+.meal-tap { cursor:pointer; }
+.meal-row { display:flex;align-items:center;gap:.5rem; }
+.meal-row > div:first-child { flex:1;min-width:0; }
+.meal-new { margin-left:.4rem;background:var(--rose);color:#fff;border-radius:6px;padding:.08rem .38rem;font-size:.55rem;letter-spacing:.06em;vertical-align:1px; }
 .meal-type { font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--rose);margin-bottom:.22rem; }
 .meal-name { font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:.12rem;line-height:1.35; }
 .meal-macros { font-size:.72rem;color:var(--ink-muted);line-height:1.4; }
@@ -1231,12 +1236,12 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         <button class="quick-btn" onclick="switchScreen('health',document.querySelectorAll('.tab')[2])">
           <svg class="qb-svg" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
           <div class="qb-label">Health Check</div>
-          <div class="qb-sub">Symptoms · Kicks · Mood</div>
+          <div class="qb-sub" id="qbHealthSub">Symptoms · Kicks · Mood</div>
         </button>
         <button class="quick-btn" onclick="switchScreen('schedule',document.querySelectorAll('.tab')[3])">
           <svg class="qb-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           <div class="qb-label">My Schedule</div>
-          <div class="qb-sub">Next: Prenatal yoga</div>
+          <div class="qb-sub" id="qbSchedSub">Your daily routine</div>
         </button>
         <button class="quick-btn" onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);showMeSection('docqs')">
           <svg class="qb-svg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
@@ -1309,15 +1314,16 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
     </div>
 
     <div class="card" style="padding:.7rem .9rem">
-      <div class="sec-title" style="margin-bottom:.5rem">Key Nutrients Today</div>
-      <div class="nutrient-strip" id="nutrientStrip"></div>
+      <div class="sec-title" style="margin-bottom:.5rem">Nutrient focus</div>
+      <div class="ds-meta" id="nutrientStrip"></div>
     </div>
     <div class="card" id="mealsCard"></div>
     <div class="card" id="macrosCard"></div>
 
-    <button class="order-btn" id="orderBtn" onclick="handleOrder()">
+    <button class="order-btn" id="orderBtn" onclick="orderDay()">
       Order via Instacart
     </button>
+    <div class="ds-order-note" id="orderNote" style="text-align:center;margin-top:-.4rem">Opens the store and copies this day's shopping list.</div>
 
   </div><!-- /meals -->
 
@@ -1838,7 +1844,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 </div><!-- /phone-wrap -->
 
 <script src="content/moves.js?v=1"></script>
-<script src="content/meals.js?v=1"></script>
+<script src="content/meals.js?v=2"></script>
 <script src="content/dos.js?v=1"></script>
 <script src="content/baby.js?v=1"></script>
 <script src="content/newborn.js?v=1"></script>
@@ -2201,6 +2207,7 @@ function refreshDashboard() {
   let wk = 18; // default
   const born = isBornMode();
   document.querySelectorAll('.sub-nav-btn[onclick*="kicks"]').forEach(b => b.hidden = born);
+  const qh = document.getElementById('qbHealthSub'); if (qh) qh.textContent = born ? 'Symptoms · Mood' : 'Symptoms · Kicks · Mood';
   if (born) renderBornToday();
   else if (dueDate) {
     resetPregnancyToday();
@@ -2257,12 +2264,7 @@ function refreshDashboard() {
   const bodyEl=document.getElementById('profileBody');
   const kcalEl=document.getElementById('mealKcalSub');
   if(obData.weightVal && obData.age){
-    const hcm=(parseInt(obData.heightFt||5)*12+parseInt(obData.heightIn||4))*2.54;
-    const wkg=obData.weightUnit==='kg'?parseFloat(obData.weightVal):parseFloat(obData.weightVal)*0.4536;
-    const age=parseInt(obData.age);
-    const bmr=10*wkg+6.25*hcm-5*age-161;
-    const add=born?400:wk<=13?0:wk<=26?340:452;
-    const kcal=Math.round(bmr*1.4)+add;
+    const kcal=kcalTarget();
     if(kcalEl){kcalEl.textContent=`~${kcal.toLocaleString()} kcal target`;kcalEl.hidden=false;}
     const hStr=`${obData.heightFt}′${obData.heightIn}″`;
     const wStr=obData.weightVal+' '+obData.weightUnit;
@@ -2640,103 +2642,135 @@ function switchHealth(panel, btn) {
   if (btn) btn.classList.add('active');
 }
 
-/* ── Meals ─────────────────────────────────────── */
-const days = [
-  { name:'Mon',date:8,
-    b:{n:'Oatmeal with berries & flax',k:380,p:14},
-    l:{n:'Chickpea & vegetable soup',k:490,p:18},
-    d:{n:'Herb chicken, quinoa & greens',k:620,p:42},
-    s:{n:'Apple with almond butter',k:210,p:5} },
-  { name:'Tue',date:9,
-    b:{n:'Avocado toast & soft-boiled eggs',k:430,p:22},
-    l:{n:'Quinoa & roasted veg salad',k:470,p:16},
-    d:{n:'Baked cod with sweet potato',k:580,p:38},
-    s:{n:'Greek yogurt with walnuts',k:200,p:12} },
-  { name:'Wed',date:10,
-    b:{n:'Smoothie bowl with granola',k:410,p:16},
-    l:{n:'Hummus & whole-grain wrap',k:510,p:20},
-    d:{n:'Turkey meatballs & pasta',k:650,p:40},
-    s:{n:'Orange & mixed nuts',k:190,p:5} },
-  { name:'Thu',date:11,today:true,
-    b:{n:'Greek yogurt bowl, berries & granola',k:395,p:24},
-    l:{n:'Spinach & lentil soup + bread',k:512,p:22},
-    d:{n:'Salmon, roasted sweet potato & broccoli',k:648,p:38},
-    s:{n:'Apple with almond butter',k:245,p:8} },
-  { name:'Fri',date:12,
-    b:{n:'Whole-grain banana pancakes',k:420,p:14},
-    l:{n:'Tuna & avocado salad',k:530,p:32},
-    d:{n:'Ginger chicken stir-fry & brown rice',k:610,p:36},
-    s:{n:'Cheese & whole-grain crackers',k:220,p:10} },
-  { name:'Sat',date:13,
-    b:{n:'Veggie omelette & sourdough',k:440,p:26},
-    l:{n:'Lentil & feta bowl',k:500,p:24},
-    d:{n:'Herb-baked salmon & asparagus',k:590,p:40},
-    s:{n:'Mango & cottage cheese',k:180,p:12} },
-  { name:'Sun',date:14,
-    b:{n:'Açaí bowl with seeds & fruit',k:400,p:12},
-    l:{n:'Tomato & white bean soup',k:460,p:20},
-    d:{n:'Slow-cooked chicken & root veg',k:600,p:44},
-    s:{n:'Date & nut energy balls ×2',k:230,p:6} },
-];
+/* ── Meals: a 7-day menu from the same recipe library as the daily plan ── */
+let activeDay = 0, activeStore = 'instacart', currentRecipe = null;
+const MEAL_SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function dayLabel(offset) { return offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : WEEKDAYS[new Date(todayEpoch(offset) * 86400000).getUTCDay()]; }
 
-const nutrients = [
-  {name:'Folate',icon:'🌿',color:'#22C55E',pcts:[82,74,90,88,78,85,80]},
-  {name:'Iron',  icon:'💪',color:'#EF4444',pcts:[68,72,80,76,65,75,70]},
-  {name:'Calcium',icon:'🦴',color:'#8B5CF6',pcts:[90,85,78,92,88,80,86]},
-  {name:'Omega-3',icon:'🐟',color:'#14B8A6',pcts:[55,80,60,75,65,85,50]},
-  {name:'Protein',icon:'⚡',color:'#F59E0B',pcts:[88,90,86,88,82,90,78]},
-];
+function menuFor(offset) {
+  const plan = getDailyPlan(offset), D = window.BLOOM_DAILY;
+  if (!plan || !D || !D.meals) return null;
+  const poolKey = plan.mode === 'born' ? 'pp' : plan.phase;
+  const pool = D.meals[poolKey].filter(r => fitsDiet(r, dietExclusions()));
+  const eat = plan.items.find(i => i.key === 'eat');
+  const featured = eat && eat.data;
+  const used = featured ? [featured] : [];
+  const meals = [];
+  MEAL_SLOTS.forEach(slot => {
+    if (featured && featured.type === slot) { meals.push({ slot, r:featured, isNew:true }); return; }
+    let cands = pool.filter(r => r.type === slot && !used.includes(r));
+    if (!cands.length) cands = pool.filter(r => !used.includes(r));
+    const r = rotPick(cands, plan.day, poolKey + slot);
+    if (r) { used.push(r); meals.push({ slot, r, isNew:false }); }
+  });
+  const stageName = plan.mode === 'born' ? 'Postpartum' : { t1:'First trimester', t2:'Second trimester', t3:'Third trimester' }[plan.phase];
+  return { plan, meals, stageName };
+}
 
-let activeDay = 3, activeStore = 'instacart';
+function kcalTarget() {
+  if (!(obData.weightVal && obData.age)) return null;
+  const hcm = (parseInt(obData.heightFt || 5) * 12 + parseInt(obData.heightIn || 4)) * 2.54;
+  const wkg = obData.weightUnit === 'kg' ? parseFloat(obData.weightVal) : parseFloat(obData.weightVal) * 0.4536;
+  const bmr = 10 * wkg + 6.25 * hcm - 5 * parseInt(obData.age) - 161;
+  const plan = getDailyPlan();
+  const add = !plan ? 340 : plan.mode === 'born' ? 400 : plan.phase === 't1' ? 0 : plan.phase === 't2' ? 340 : 452;
+  return Math.round(bmr * 1.4) + add;
+}
 
 function buildDayStrip() {
-  document.getElementById('dayStrip').innerHTML = days.map((d,i) => `
-    <div class="day-chip${i===activeDay?' active':''}" onclick="selectDay(${i})">
-      <span class="dn">${d.name}</span><span class="dd">${d.date}</span>
-    </div>`).join('');
+  const el = document.getElementById('dayStrip');
+  if (!el) return;
+  let html = '';
+  for (let o = 0; o < 7; o++) {
+    const d = new Date(todayEpoch(o) * 86400000);
+    html += '<div class="day-chip' + (o === activeDay ? ' active' : '') + '" onclick="selectDay(' + o + ')">' +
+      '<span class="dn">' + (o === 0 ? 'Today' : WEEKDAYS[d.getUTCDay()]) + '</span><span class="dd">' + d.getUTCDate() + '</span></div>';
+  }
+  el.innerHTML = html;
 }
 
-function selectDay(i) {
-  activeDay = i;
-  renderMeals(i);
-  renderNutrients(i);
-  document.querySelectorAll('.day-chip').forEach((c,j)=>c.classList.toggle('active',j===i));
+function selectDay(o) { activeDay = o; buildDayStrip(); renderMeals(); }
+
+function renderMeals() {
+  const m = menuFor(activeDay);
+  const card = document.getElementById('mealsCard'), macros = document.getElementById('macrosCard'), strip = document.getElementById('nutrientStrip');
+  if (!card || !macros || !strip) return;
+  if (!m || !m.meals.length) {
+    card.innerHTML = '<div class="sec-title">Menu</div><div class="fs-xs">No recipes match all of your food preferences. You can adjust them under Me → Diet &amp; Goals.</div>';
+    macros.hidden = true; strip.innerHTML = '';
+    return;
+  }
+  macros.hidden = false;
+  card.innerHTML = '<div class="sec-title">' + dayLabel(activeDay) + '\'s menu · ' + m.stageName + '</div>' +
+    m.meals.map((x, j) =>
+      '<div class="meal-block meal-tap" onclick="openRecipe(' + activeDay + ',' + j + ')">' +
+        '<div class="meal-type">' + x.slot + (x.isNew ? '<span class="meal-new">' + (activeDay === 0 ? 'New today' : 'New recipe') + '</span>' : '') + '</div>' +
+        '<div class="meal-row"><div><div class="meal-name">' + escHtml(x.r.n) + '</div>' +
+        '<div class="meal-macros">≈' + x.r.k + ' kcal · ' + x.r.p + ' g protein · ' + escHtml(x.r.focus) + '</div></div><div class="dtask-go" aria-hidden="true">›</div></div>' +
+      '</div>' + (j < m.meals.length - 1 ? '<div class="divider"></div>' : '')).join('');
+  const tk = m.meals.reduce((a, x) => a + x.r.k, 0), tp = m.meals.reduce((a, x) => a + x.r.p, 0);
+  const target = kcalTarget();
+  let msg = 'Add your height, weight and age under Me → Body to see your personal calorie target.';
+  if (target) {
+    const diff = target - tk;
+    msg = Math.abs(diff) <= 150 ? '✓ Close to your ~' + target.toLocaleString() + ' kcal target'
+      : diff > 0 ? '↑ About ' + (Math.round(diff / 50) * 50).toLocaleString() + ' kcal under your ~' + target.toLocaleString() + ' kcal target. Add a snack or bigger portions.'
+      : '↓ A little above your ~' + target.toLocaleString() + ' kcal target. Smaller portions are fine.';
+  }
+  macros.innerHTML = '<div class="sec-title">Daily totals</div>' +
+    '<div class="macro-row">' +
+      '<div class="macro-pill"><span class="mp-val">' + tk.toLocaleString() + '</span><span class="mp-lbl">kcal</span></div>' +
+      '<div class="macro-pill"><span class="mp-val">' + tp + 'g</span><span class="mp-lbl">protein</span></div>' +
+      '<div class="macro-pill"><span class="mp-val">' + m.meals.length + '</span><span class="mp-lbl">meals</span></div>' +
+    '</div><div style="font-size:.68rem;color:var(--ink-muted);margin-top:.45rem;line-height:1.45">' + msg + '</div>';
+  const focus = [...new Set(m.meals.flatMap(x => x.r.focus.split(' · ')))];
+  strip.innerHTML = focus.map(f => '<span class="ds-chip">' + escHtml(f) + '</span>').join('');
 }
 
-function renderNutrients(i) {
-  document.getElementById('nutrientStrip').innerHTML = nutrients.map(n => {
-    const pct = n.pcts[i];
-    return `<div class="nutrient-pill">
-      <div style="width:9px;height:9px;border-radius:50%;background:${n.color};margin:0 auto"></div>
-      <div class="np-name">${n.name}</div>
-      <div class="np-bar-track"><div class="np-bar-fill" style="width:${pct}%;background:${n.color}"></div></div>
-      <div class="np-pct" style="color:${pct>=80?n.color:'var(--ink-muted)'}">${pct}%</div>
-    </div>`;
-  }).join('');
+function recipeHtml(d) {
+  const prefs = (obData.diet || []).map(x => x.replace(/^\S+\s/, ''));
+  return '<div class="ds-title">' + escHtml(d.n) + '</div>' +
+    '<div class="ds-meta"><span class="ds-chip">' + escHtml(d.type) + '</span><span class="ds-chip">≈' + d.k + ' kcal</span><span class="ds-chip">' + d.p + ' g protein</span><span class="ds-chip">' + escHtml(d.focus) + '</span></div>' +
+    '<div><div class="ds-h">Ingredients</div>' + listHtml(d.ing) + '</div>' +
+    '<div><div class="ds-h">Method</div>' + listHtml(d.how, true) + '</div>' +
+    '<div class="ds-why"><b>Why it helps:</b> ' + escHtml(d.why) + '</div>' +
+    (prefs.length ? '<div class="ds-text" style="font-size:.72rem;color:var(--ink-muted)">Matched to your preferences: ' + escHtml(prefs.join(', ')) + '</div>' : '') +
+    '<div><div class="ds-h">Order ingredients</div><div class="ds-order">' +
+      '<button class="ds-sec-btn" onclick="orderRecipe(\'instacart\')">Instacart</button>' +
+      '<button class="ds-sec-btn" onclick="orderRecipe(\'walmart\')">Walmart</button>' +
+    '</div><div class="ds-order-note" id="dsOrderNote">We copy the ingredient list for you, so you can paste it into the store\'s search.</div></div>';
 }
 
-function renderMeals(i) {
-  const d = days[i];
-  const tk = d.b.k+d.l.k+d.d.k+d.s.k, tp = d.b.p+d.l.p+d.d.p+d.s.p;
-  document.getElementById('mealsCard').innerHTML = `
-    <div class="sec-title">${d.today?'Today':d.name}'s plan · Mediterranean focus</div>
-    ${[['Breakfast',d.b],['Lunch',d.l],['Dinner',d.d],['Snack',d.s]].map(([label,m],j)=>`
-      <div class="meal-block">
-        <div class="meal-type">${label}</div>
-        <div class="meal-name">${m.n}</div>
-        <div class="meal-macros">${m.k} kcal · ${m.p}g protein</div>
-      </div>${j<3?'<div class="divider"></div>':''}
-    `).join('')}`;
-  document.getElementById('macrosCard').innerHTML = `
-    <div class="sec-title">Daily Totals</div>
-    <div class="macro-row">
-      <div class="macro-pill"><span class="mp-val">${tk}</span><span class="mp-lbl">kcal</span></div>
-      <div class="macro-pill"><span class="mp-val">${tp}g</span><span class="mp-lbl">protein</span></div>
-      <div class="macro-pill"><span class="mp-val">${Math.round(tp*4/tk*100)}%</span><span class="mp-lbl">from protein</span></div>
-    </div>
-    <div style="font-size:.65rem;color:var(--ink-muted);margin-top:.4rem">
-      ${tk>=1800&&tk<=2200?'✓ Within your 1,800–2,200 kcal daily target':tk<1800?'↑ Below target — consider adding a snack':'↓ Above target — adjust portions if needed'}
-    </div>`;
+function openRecipe(offset, idx) {
+  const m = menuFor(offset), meal = m && m.meals[idx];
+  if (!meal) return;
+  if (offset === 0 && meal.isNew) { openDaySheet('eat'); return; }
+  if (!noticeAccepted()) { afterNotice = () => openRecipe(offset, idx); showHealthNotice(); return; }
+  currentRecipe = meal.r;
+  const label = document.getElementById('dsLabel');
+  label.textContent = meal.slot;
+  label.className = 'dtask-label lbl-eat';
+  document.getElementById('dsDay').textContent = dayLabel(offset) + ' · ' + m.stageName;
+  const body = document.getElementById('dsBody');
+  body.innerHTML = recipeHtml(meal.r) + '<div class="ds-source">Based on public guidelines from ACOG, AAP, CDC and WHO. General information, not medical advice. Check with your doctor or midwife; use at your own discretion.</div>';
+  body.scrollTop = 0;
+  document.getElementById('day-sheet').classList.add('open');
+  const fb = document.getElementById('fmapBtn'); if (fb) fb.hidden = true;
+}
+
+function copyThenNote(text, noteEl, name) {
+  const fail = () => { if (noteEl) noteEl.textContent = 'Opened ' + name + '. Search for the ingredients listed in the recipes.'; };
+  try { navigator.clipboard.writeText(text).then(() => { if (noteEl) noteEl.textContent = 'Shopping list copied. Paste it into ' + name + '\'s search to add items.'; }, fail); }
+  catch(e) { fail(); }
+}
+
+function orderDay() {
+  const m = menuFor(activeDay);
+  handleOrder();
+  if (!m) return;
+  const list = dayLabel(activeDay) + '\'s menu\n\n' + m.meals.map(x => x.r.n + '\n' + x.r.ing.map(i => '- ' + i).join('\n')).join('\n\n');
+  copyThenNote(list, document.getElementById('orderNote'), activeStore === 'instacart' ? 'Instacart' : 'Walmart');
 }
 
 function setStore(btn, store) {
@@ -2748,21 +2782,15 @@ function setStore(btn, store) {
 }
 
 function orderRecipe(store) {
-  const plan = getDailyPlan();
-  const it = plan && plan.items.find(i => i.key === 'eat');
-  if (!it || !it.data) return;
+  const r = currentRecipe;
+  if (!r) return;
   activeStore = store;
   document.querySelectorAll('.store-btn').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes("'" + store + "'")));
   const ob = document.getElementById('orderBtn'); if (ob) ob.textContent = store === 'instacart' ? 'Order via Instacart' : 'Order via Walmart Grocery';
   const name = store === 'instacart' ? 'Instacart' : 'Walmart';
   const note = document.getElementById('dsOrderNote');
-  const list = it.data.n + '\n' + it.data.ing.map(x => '- ' + x).join('\n');
   handleOrder();
-  try {
-    navigator.clipboard.writeText(list).then(
-      () => { if (note) note.textContent = 'Ingredient list copied. Paste it into ' + name + '\'s search to add items.'; },
-      () => { if (note) note.textContent = 'Opened ' + name + '. Search for the ingredients listed above.'; });
-  } catch(e) { if (note) note.textContent = 'Opened ' + name + '. Search for the ingredients listed above.'; }
+  copyThenNote(r.n + '\n' + r.ing.map(x => '- ' + x).join('\n'), note, name);
 }
 
 function handleOrder() {
@@ -3071,6 +3099,8 @@ function renderSchedule(i) {
   let nowIdx = itemMins.findIndex((t, j) => nowMins >= t && nowMins < itemEnd[j]);
   const nextIdx = nowIdx === -1 ? itemMins.findIndex(t => t > nowMins) : -1;
   const hiIdx = nowIdx !== -1 ? nowIdx : nextIdx;
+  const qs = document.getElementById('qbSchedSub');
+  if (qs) qs.textContent = nowIdx !== -1 ? 'Now: ' + s.items[nowIdx].title : nextIdx !== -1 ? 'Next: ' + s.items[nextIdx].title : 'All done for today';
 
   const fmtTime = mins => {
     const h = Math.floor(mins / 60) % 24, m = mins % 60;
@@ -3418,6 +3448,8 @@ function renderDaily() {
   const plan = getDailyPlan();
   dailyRenderedKey = epochKey(todayEpoch());
   renderMealsToday(plan);
+  buildDayStrip();
+  renderMeals();
   if (!plan) { el.hidden = true; return; }
   el.hidden = false;
   const rec = dayRec(todayEpoch()) || {};
@@ -3511,17 +3543,8 @@ function sheetHtml(it, plan) {
   const d = it.data;
   if (it.key === 'eat') {
     if (!d) return '<div class="ds-title">No recipe fits every preference today</div><div class="ds-text">Pick any meal with a protein, a vegetable and a whole grain. You can adjust your food preferences under Me → Diet &amp; Goals.</div>';
-    const prefs = (obData.diet || []).map(x => x.replace(/^\S+\s/, ''));
-    return '<div class="ds-title">' + escHtml(d.n) + '</div>' +
-      '<div class="ds-meta"><span class="ds-chip">' + escHtml(d.type) + '</span><span class="ds-chip">≈' + d.k + ' kcal</span><span class="ds-chip">' + d.p + ' g protein</span><span class="ds-chip">' + escHtml(d.focus) + '</span></div>' +
-      '<div><div class="ds-h">Ingredients</div>' + listHtml(d.ing) + '</div>' +
-      '<div><div class="ds-h">Method</div>' + listHtml(d.how, true) + '</div>' +
-      '<div class="ds-why"><b>Why today:</b> ' + escHtml(d.why) + '</div>' +
-      (prefs.length ? '<div class="ds-text" style="font-size:.72rem;color:var(--ink-muted)">Matched to your preferences: ' + escHtml(prefs.join(', ')) + '</div>' : '') +
-      '<div><div class="ds-h">Order ingredients</div><div class="ds-order">' +
-        '<button class="ds-sec-btn" onclick="orderRecipe(\'instacart\')">Instacart</button>' +
-        '<button class="ds-sec-btn" onclick="orderRecipe(\'walmart\')">Walmart</button>' +
-      '</div><div class="ds-order-note" id="dsOrderNote">We copy the ingredient list for you, so you can paste it into the store\'s search.</div></div>';
+    currentRecipe = d;
+    return recipeHtml(d);
   }
   if (it.key === 'move') {
     const cs = obData.delivery === 'csection' ? 'C-section: ' : obData.delivery === 'vaginal' ? '' : 'If you had a C-section: ';
@@ -3655,8 +3678,7 @@ function closeDaySheet() {
 
 /* ── Init ──────────────────────────────────────── */
 buildDayStrip();
-renderMeals(activeDay);
-renderNutrients(activeDay);
+renderMeals();
 buildSymGrid();
 buildMoodQs();
 renderSchedule(0);
