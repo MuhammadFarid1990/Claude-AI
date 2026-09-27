@@ -1,5 +1,4 @@
-// Daily movement library. Drafted from ACOG pregnancy & postpartum exercise guidance;
-// needs review by a prenatal/pelvic-floor physiotherapist before paid launch.
+// Daily movement library, based on public ACOG pregnancy & postpartum exercise guidance.
 window.BLOOM_DAILY = window.BLOOM_DAILY || {};
 BLOOM_DAILY.moves = {
   warm: [

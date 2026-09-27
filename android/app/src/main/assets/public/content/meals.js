@@ -1,5 +1,5 @@
 // Daily recipe library. tg = contains: m meat/poultry, f fish, s shellfish, e egg, d dairy, n nuts, g gluten.
-// Drafted from ACOG / USDA / CDC pregnancy & lactation nutrition guidance; needs Registered Dietitian review before paid launch.
+// Based on public ACOG / USDA / CDC pregnancy and lactation nutrition guidance.
 window.BLOOM_DAILY = window.BLOOM_DAILY || {};
 BLOOM_DAILY.meals = {
   t1: [

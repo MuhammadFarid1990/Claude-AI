@@ -1,5 +1,5 @@
 // Baby's first year: daily play by month (m0 = first month) and first foods from 6 months.
-// Drafted from AAP / CDC milestone and infant-feeding guidance; needs paediatric review before paid launch.
+// Based on public AAP / CDC milestone and infant-feeding guidance.
 window.BLOOM_DAILY = window.BLOOM_DAILY || {};
 BLOOM_DAILY.baby = [
   [ // month 1

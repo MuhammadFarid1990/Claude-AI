@@ -42,6 +42,8 @@ PRIVATE BY DESIGN
 All your data stays on your device. Bloom never sends your health information to any server. The only data that leaves your phone is your chat messages, processed securely to generate AI responses and immediately discarded.
 
 Bloom is designed for expectant parents who want clarity, not chaos — a calm, beautiful companion for the most important journey of your life.
+
+Health information in Bloom is general guidance based on public guidelines from ACOG, AAP, CDC and WHO. It is not medical advice. Always check with your doctor or midwife.
 ```
 
 **Keywords** (100 chars, comma-separated)
@@ -98,6 +100,8 @@ Ask anything about pregnancy, nutrition, symptoms, baby development, or parentin
 All your data stays on your device. We never sell or share your health information.
 
 Perfect for expecting parents who want one beautiful, calm app instead of five scattered ones.
+
+Health information in Bloom is general guidance based on public guidelines from ACOG, AAP, CDC and WHO. It is not medical advice. Always check with your doctor or midwife.
 ```
 
 **Category:** Health & Fitness
@@ -116,7 +120,7 @@ This app is a pregnancy tracking and parenting information app.
 To test the app without creating an account:
 1. Tap "⚡ Try Demo" on the welcome screen — this launches the full app immediately with sample data.
 
-The AI chat feature requires a network connection and calls our Vercel API endpoint (which uses the Groq language model). It will work on a device with internet access.
+The AI chat feature requires a network connection and calls our Vercel API endpoint (which uses Anthropic's Claude model). It will work on a device with internet access.
 
 All user health data is stored locally on the device (localStorage). No account or login is required to use the app.
 

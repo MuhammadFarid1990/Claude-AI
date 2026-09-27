@@ -582,6 +582,14 @@ body::before {
 @keyframes confFall { to { transform:translateY(460px) rotate(560deg);opacity:0; } }
 @media (prefers-reduced-motion: reduce) { .confetti { display:none; } }
 
+#health-notice { position:absolute;inset:0;z-index:600;background:rgba(40,0,24,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-end;border-radius:inherit; }
+.hn-box { background:#fff;width:100%;border-radius:26px 26px 0 0;padding:1.4rem 1.3rem calc(1.3rem + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:.7rem;max-height:92%;overflow-y:auto; }
+.hn-title { font-family:var(--f-d);font-size:1.35rem;font-weight:800;letter-spacing:-.025em;color:var(--ink); }
+.hn-text { font-size:.82rem;color:var(--ink-2);line-height:1.55; }
+.hn-small { font-size:.72rem;color:var(--ink-muted); }
+.hn-small a { color:var(--rose);font-weight:700; }
+.hn-list { padding-left:1.1rem;font-size:.8rem;color:var(--ink-2);line-height:1.5;display:flex;flex-direction:column;gap:.3rem; }
+.ds-source { font-size:.68rem;color:var(--ink-muted);line-height:1.45;text-align:center; }
 #day-sheet { position:absolute;inset:0;background:#fff;z-index:310;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);border-radius:inherit;visibility:hidden; }
 #day-sheet.open { transform:translateY(0);visibility:visible; }
 .ds-head { display:flex;align-items:center;gap:.6rem;padding:calc(.85rem + env(safe-area-inset-top, 0px)) 1.1rem .8rem;border-bottom:1px solid #ffe0ee;flex-shrink:0; }
@@ -1324,7 +1332,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       <div class="q-text">How are you feeling?</div>
       <div style="font-size:.72rem;color:var(--ink-muted);margin-bottom:.35rem">Tap everything you're experiencing right now.</div>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.1rem">
-        <span class="trust-badge">✓ Rules reviewed by licensed OB-GYN</span>
+        <span class="trust-badge">✓ Based on ACOG guidance</span>
         <span class="trust-badge">✓ Conservative — biased toward "seek care"</span>
       </div>
       <div id="symGrid"></div>
@@ -1449,8 +1457,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       <div style="display:flex;gap:.4rem;flex-wrap:wrap">
         <span class="privacy-badge">🔒 No ads</span>
         <span class="privacy-badge">🔒 No data selling</span>
-        <span class="trust-badge">✓ Dietitian-reviewed meals</span>
-        <span class="trust-badge">✓ OB-GYN reviewed triage</span>
+        <span class="trust-badge">✓ Based on ACOG · AAP · CDC guidelines</span>
       </div>
     </div>
 
@@ -1790,6 +1797,21 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       <input id="chat-input" type="text" placeholder="Ask Bloom anything…" autocomplete="off"
         onkeydown="if(event.key==='Enter')doSend()">
       <button id="chat-send" onclick="doSend()" aria-label="Send">➤</button>
+    </div>
+  </div>
+
+  <!-- One-time health information notice -->
+  <div id="health-notice" role="dialog" aria-modal="true" aria-labelledby="hnTitle" hidden>
+    <div class="hn-box">
+      <div class="hn-title" id="hnTitle">Before you start</div>
+      <p class="hn-text">Bloom's meals, exercises, baby activities and symptom guidance are general information based on public guidelines from ACOG, AAP, CDC and WHO. They are not medical advice and have not been personalised or checked by a doctor for you.</p>
+      <ul class="hn-list">
+        <li>Check with your doctor or midwife before starting new exercise or changing your diet, and follow their advice if it differs from Bloom's.</li>
+        <li>Stop any exercise and contact your provider if something feels wrong.</li>
+        <li>In an emergency, call your local emergency number.</li>
+      </ul>
+      <p class="hn-text hn-small">By continuing, you agree to use this information at your own discretion. <a href="privacy.html" target="_blank" rel="noopener">Privacy &amp; disclaimer</a></p>
+      <button class="ds-done-btn" onclick="acceptHealthNotice()">I understand</button>
     </div>
   </div>
 
@@ -2290,6 +2312,7 @@ function launchApp(name, dueDate, birthDate, pregnancyStatus) {
   renderSchedule();
   loadVaccDone();
   if (obData.delivery) setDelivery(obData.delivery);
+  showHealthNotice();
   // Wire scroll hint to active screen
   const initScr = document.querySelector('.screen.active');
   if (initScr) {
@@ -3419,10 +3442,20 @@ function openDaySheet(key) {
   document.getElementById('dsDay').textContent = 'Day ' + plan.day + ' · ' + plan.stage;
   const body = document.getElementById('dsBody');
   body.innerHTML = sheetHtml(it, plan) +
-    '<button class="ds-done-btn' + (done ? ' is-done' : '') + '" onclick="toggleDaily(\'' + key + '\')">' + (done ? '✓ Done · tap to undo' : 'Mark as done') + '</button>';
+    '<button class="ds-done-btn' + (done ? ' is-done' : '') + '" onclick="toggleDaily(\'' + key + '\')">' + (done ? '✓ Done · tap to undo' : 'Mark as done') + '</button>' +
+    '<div class="ds-source">Based on public guidelines from ACOG, AAP, CDC and WHO. General information, not medical advice. Check with your doctor or midwife; use at your own discretion.</div>';
   body.scrollTop = 0;
   document.getElementById('day-sheet').classList.add('open');
   const fb = document.getElementById('fmapBtn'); if (fb) fb.hidden = true;
+}
+function showHealthNotice() {
+  let seen = false;
+  try { seen = localStorage.getItem('bloom_notice_v1') === '1'; } catch(e) {}
+  document.getElementById('health-notice').hidden = seen;
+}
+function acceptHealthNotice() {
+  try { localStorage.setItem('bloom_notice_v1', '1'); } catch(e) {}
+  document.getElementById('health-notice').hidden = true;
 }
 function closeDaySheet() {
   document.getElementById('day-sheet').classList.remove('open');
