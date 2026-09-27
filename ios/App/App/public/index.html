@@ -615,6 +615,8 @@ body::before {
 .ds-safety { font-size:.74rem;line-height:1.5;color:#7F1D1D;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:.6rem .75rem; }
 .ds-done-btn { border:none;border-radius:16px;padding:.95rem;font-family:var(--f-b);font-weight:800;font-size:.92rem;cursor:pointer;background:linear-gradient(135deg,#E0377A,#AF1F59);color:#fff;box-shadow:0 8px 20px rgba(224,55,122,.35);flex-shrink:0; }
 .ds-done-btn.is-done { background:var(--green);box-shadow:none; }
+.ds-order { display:grid;grid-template-columns:1fr 1fr;gap:.5rem; }
+.ds-order-note { font-size:.7rem;color:var(--ink-muted);margin-top:.4rem;line-height:1.45; }
 .ds-sec-btn { border:1.5px solid var(--rose);background:#fff;color:var(--rose);border-radius:14px;padding:.72rem;font-family:var(--f-b);font-weight:700;font-size:.82rem;cursor:pointer; }
 
 /* ── ME ───────────────────────────────────────── */
@@ -2745,6 +2747,24 @@ function setStore(btn, store) {
     ? 'Order via Instacart' : 'Order via Walmart Grocery';
 }
 
+function orderRecipe(store) {
+  const plan = getDailyPlan();
+  const it = plan && plan.items.find(i => i.key === 'eat');
+  if (!it || !it.data) return;
+  activeStore = store;
+  document.querySelectorAll('.store-btn').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes("'" + store + "'")));
+  const ob = document.getElementById('orderBtn'); if (ob) ob.textContent = store === 'instacart' ? 'Order via Instacart' : 'Order via Walmart Grocery';
+  const name = store === 'instacart' ? 'Instacart' : 'Walmart';
+  const note = document.getElementById('dsOrderNote');
+  const list = it.data.n + '\n' + it.data.ing.map(x => '- ' + x).join('\n');
+  handleOrder();
+  try {
+    navigator.clipboard.writeText(list).then(
+      () => { if (note) note.textContent = 'Ingredient list copied. Paste it into ' + name + '\'s search to add items.'; },
+      () => { if (note) note.textContent = 'Opened ' + name + '. Search for the ingredients listed above.'; });
+  } catch(e) { if (note) note.textContent = 'Opened ' + name + '. Search for the ingredients listed above.'; }
+}
+
 function handleOrder() {
   const url = activeStore === 'instacart'
     ? 'https://www.instacart.com'
@@ -3498,7 +3518,10 @@ function sheetHtml(it, plan) {
       '<div><div class="ds-h">Method</div>' + listHtml(d.how, true) + '</div>' +
       '<div class="ds-why"><b>Why today:</b> ' + escHtml(d.why) + '</div>' +
       (prefs.length ? '<div class="ds-text" style="font-size:.72rem;color:var(--ink-muted)">Matched to your preferences: ' + escHtml(prefs.join(', ')) + '</div>' : '') +
-      '<button class="ds-sec-btn" onclick="handleOrder()">Order ingredients</button>';
+      '<div><div class="ds-h">Order ingredients</div><div class="ds-order">' +
+        '<button class="ds-sec-btn" onclick="orderRecipe(\'instacart\')">Instacart</button>' +
+        '<button class="ds-sec-btn" onclick="orderRecipe(\'walmart\')">Walmart</button>' +
+      '</div><div class="ds-order-note" id="dsOrderNote">We copy the ingredient list for you, so you can paste it into the store\'s search.</div></div>';
   }
   if (it.key === 'move') {
     const cs = obData.delivery === 'csection' ? 'C-section: ' : obData.delivery === 'vaginal' ? '' : 'If you had a C-section: ';
