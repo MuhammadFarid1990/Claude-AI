@@ -3777,7 +3777,7 @@ function loadThree(done) {
   if (threeState !== 0) return;
   threeState = 1;
   const add = (src, next) => { const sc = document.createElement('script'); sc.src = src; sc.onload = next; sc.onerror = () => { threeState = 3; }; document.head.appendChild(sc); };
-  add('content/vendor/three.min.js?v=160', () => add('content/figure3d.js?v=7', () => {
+  add('content/vendor/three.min.js?v=160', () => add('content/figure3d.js?v=9', () => {
     threeState = window.Bloom3D && Bloom3D.supported() ? 2 : 3;
     if (threeState === 2) done();
   }));
@@ -3801,7 +3801,7 @@ function build3D(svg) {
   svg.replaceWith(wrap);
   const w = canvas.clientWidth || 220, dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(w * vb[3] / vb[2] * dpr);
-  const g = Bloom3D.create(canvas, def, svg.dataset.bump === '1');
+  const g = Bloom3D.create(canvas, def, svg.dataset.bump === '1'); // resizes the canvas height to fit the movement
   const f = { el:wrap, frames:def.frames.map(resolvePose), paused:false, elapsed:0, three:g, lastDraw:-1e9 };
   f.draw = q => { Bloom3D.pose(g, q); Bloom3D.render(g); };
   wrap.addEventListener('click', () => { f.paused = !f.paused; tag.hidden = !f.paused; });

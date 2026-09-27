@@ -63,8 +63,10 @@ window.Bloom3D = (function () {
     mesh.scale.set(sx || 1, geoLen ? Math.max(0.4, len / geoLen) : 1, sz || 1);
   }
 
+  // Large backdrop props (mat, water, walls) are left out of camera framing; small ones are framed.
+  const BACKDROP = { mat:1, water:1, wall:1, wallback:1, door:1 };
   function addProps(scene, prop) {
-    const add = (m, x, y, z) => { m.position.set(x, y, z); scene.add(m); return m; };
+    const add = (m, x, y, z) => { m.position.set(x, y, z); if (!BACKDROP[prop]) m.userData.fit = true; scene.add(m); return m; };
     if (prop === 'mat') add(box(150, 1.2, 42, M.mat), 0, 0.6, 0).castShadow = false;
     if (prop === 'chair') {
       add(box(28, 3, 28, M.wood), -22, 25, 0); add(box(3, 36, 28, M.wood), -35.5, 44, 0);
@@ -78,7 +80,7 @@ window.Bloom3D = (function () {
     if (prop === 'ball') add(sph(18, M.ball), -16, 18, 0);
     if (prop === 'water') { const w = add(box(300, 52, 140, M.water), 0, 26, 0); w.castShadow = false; }
     if (prop === 'bike') {
-      const tube = (a, b, r) => { const m = cap(r, a.distanceTo(b), M.iron); span(m, a, b, a.distanceTo(b)); scene.add(m); };
+      const tube = (a, b, r) => { const m = cap(r, a.distanceTo(b), M.iron); span(m, a, b, a.distanceTo(b)); m.userData.fit = true; scene.add(m); };
       tube(new T.Vector3(-14, 50, 0), new T.Vector3(-2, 18, 0), 1.6);
       tube(new T.Vector3(-2, 18, 0), new T.Vector3(24, 46, 0), 1.6);
       tube(new T.Vector3(24, 46, 0), new T.Vector3(28, 68, 0), 1.4);
@@ -136,17 +138,36 @@ window.Bloom3D = (function () {
     floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
     addProps(scene, def.prop);
     const body = buildBody(scene, pregnant, def.prop);
-    const vb = (def.vb || '0 0 200 134').split(' ').map(Number);
-    // Orthographic three-quarter view, like an isometric illustration
-    const aspect = canvas.width / canvas.height;
-    let hw = vb[2] * 0.42, hh = vb[3] * 0.42;
-    if (hw / hh > aspect) hh = hw / aspect; else hw = hh * aspect;
-    const cam = new T.OrthographicCamera(-hw, hw, hh, -hh, 1, 3000);
-    const target = new T.Vector3(vb[0] + vb[2] / 2 - 100, 126 - (vb[1] + vb[3] / 2), 0);
-    const dir = new T.Vector3(0.55, 0.42, 1).normalize();
-    cam.position.copy(target).addScaledVector(dir, 600);
-    cam.lookAt(target);
-    return { canvas, ctx:canvas.getContext('2d'), scene, cam, body, prop:def.prop, pregnant };
+    // Orthographic three-quarter view, like an isometric illustration, framed to fit the whole movement.
+    const cam = new T.OrthographicCamera(-1, 1, 1, -1, 1, 3000);
+    cam.position.copy(new T.Vector3(0.55, 0.42, 1).normalize().multiplyScalar(700));
+    cam.lookAt(0, 0, 0);
+    cam.updateMatrixWorld(true);
+    const fig = { canvas, ctx:canvas.getContext('2d'), scene, cam, body, prop:def.prop, pregnant };
+    const lo = new T.Vector3(Infinity, Infinity, 0), hi = new T.Vector3(-Infinity, -Infinity, 0), bb = new T.Box3(), pt = new T.Vector3();
+    const fitAll = () => {
+      scene.updateMatrixWorld(true);
+      scene.traverse(o => {
+        if (!o.isMesh || !o.visible || o === body.ring) return;
+        if (!Object.values(body).includes(o) && !o.userData.fit) return;
+        bb.setFromObject(o);
+        for (let i = 0; i < 8; i++) {
+          pt.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z).applyMatrix4(cam.matrixWorldInverse);
+          lo.x = Math.min(lo.x, pt.x); lo.y = Math.min(lo.y, pt.y); hi.x = Math.max(hi.x, pt.x); hi.y = Math.max(hi.y, pt.y);
+        }
+      });
+    };
+    const frames = def.frames.map(resolvePose);
+    for (let ms = 0; ms < frames.length * 1300; ms += 100) { pose(fig, poseAt({ frames }, ms)); fitAll(); }
+    let w = (hi.x - lo.x) * 1.16, h = (hi.y - lo.y) * 1.2;
+    const aspect = Math.max(1.2, Math.min(2.2, w / h));
+    if (w / h > aspect) h = w / aspect; else w = h * aspect;
+    const cx = (lo.x + hi.x) / 2, cy = (lo.y + hi.y) / 2;
+    Object.assign(cam, { left:cx - w / 2, right:cx + w / 2, top:cy + h / 2, bottom:cy - h / 2 });
+    cam.updateProjectionMatrix();
+    canvas.height = Math.round(canvas.width / aspect);
+    canvas.style.aspectRatio = aspect.toFixed(3);
+    return fig;
   }
 
   function pose(fig, raw) {
