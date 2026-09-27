@@ -617,6 +617,10 @@ body::before {
 .ds-move-n { font-weight:800;font-size:.92rem;color:var(--ink); }
 .ds-move-d { margin-left:auto;font-size:.68rem;font-weight:800;color:var(--lime-dark);white-space:nowrap; }
 .ds-move .ds-list { font-size:.78rem; }
+.anim-wrap { position:relative;width:100%;max-width:240px;margin:.1rem auto .2rem;cursor:pointer; }
+.anim-wrap .move-anim { max-width:none;margin:0; }
+.move-3d { background:radial-gradient(ellipse 80% 55% at 50% 85%, #FBE3EE 0%, #FFF5FB 70%); }
+.anim-paused { position:absolute;left:8px;top:6px;font-size:.62rem;font-weight:700;color:var(--ink-muted);background:rgba(255,255,255,.85);border-radius:6px;padding:.1rem .35rem; }
 .move-anim { cursor:pointer;display:block;width:100%;max-width:220px;height:auto;margin:.1rem auto .2rem;background:var(--rose-bg);border-radius:12px; }
 .ds-move-why { font-size:.74rem;color:var(--ink-muted);line-height:1.45; }
 .ds-cs { font-size:.72rem;color:#6D28D9;background:#F3EEFF;border-radius:10px;padding:.42rem .58rem;line-height:1.45; }
@@ -3664,6 +3668,32 @@ function lerpPose(a, b, t) {
   POSE_KEYS.forEach(k => { o[k] = [a[k][0] + (b[k][0] - a[k][0]) * t, a[k][1] + (b[k][1] - a[k][1]) * t]; });
   return o;
 }
+// Re-solves a blended pose with fixed bone lengths so limbs bend at joints instead of stretching.
+const BONES = { torso:38, neck:14, thigh:24, shin:24, upper:18, fore:18, foot:7, shoulder:9, hip:6 };
+function rigidPose(q) {
+  const unit = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
+  const along = (a, u, L) => [a[0] + u[0] * L, a[1] + u[1] * L];
+  const front = q.view === 'front';
+  const o = { view:q.view, bn:q.bn, c:q.c, ring:q.ring, p:q.p };
+  o.s = along(q.p, unit(q.p, q.s), BONES.torso);
+  o.h = along(o.s, unit(q.s, q.h), BONES.neck);
+  const chain = (root, hintPt, end, l1, l2) => {
+    const mx = (root[0] + end[0]) / 2, my = (root[1] + end[1]) / 2;
+    const j = ikJoint(root, end, l1, l2, [hintPt[0] - mx, hintPt[1] - my]);
+    const jj = along(root, unit(root, j), l1);
+    return [jj, along(jj, unit(jj, end), l2)];
+  };
+  [1, 2].forEach(i => {
+    const side = i === 1 ? 1 : -1;
+    const hipRoot = front ? [o.p[0] + BONES.hip * side, o.p[1]] : o.p;
+    const shRoot = front ? [o.s[0] + BONES.shoulder * side, o.s[1]] : o.s;
+    o['r' + i] = hipRoot; o['a' + i] = shRoot;
+    [o['k' + i], o['f' + i]] = chain(hipRoot, q['k' + i], q['f' + i], BONES.thigh, BONES.shin);
+    [o['e' + i], o['w' + i]] = chain(shRoot, q['e' + i], q['w' + i], BONES.upper, BONES.fore);
+    o['t' + i] = along(o['f' + i], unit(q['f' + i], q['t' + i]), BONES.foot);
+  });
+  return o;
+}
 function svgEl(parent, tag, attrs) { const el = document.createElementNS(SVGNS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); parent.appendChild(el); return el; }
 function drawProp(g, prop) {
   const ink = { stroke:'#DDB7CB', 'stroke-width':4, 'stroke-linecap':'round', fill:'none' };
@@ -3706,12 +3736,13 @@ function buildFig(svg) {
   svg.addEventListener('click', () => { f.paused = !f.paused; f.pauseTag.style.display = f.paused ? '' : 'none'; });
   return f;
 }
-function drawFig(f, q) {
+function drawFig(f, raw) {
+  const q = rigidPose(raw);
   const pt = a => a[0].toFixed(1) + ',' + a[1].toFixed(1);
-  f.farArm.setAttribute('points', [q.s, q.e2, q.w2].map(pt).join(' '));
-  f.farLeg.setAttribute('points', [q.p, q.k2, q.f2, q.t2].map(pt).join(' '));
-  f.nearArm.setAttribute('points', [q.s, q.e1, q.w1].map(pt).join(' '));
-  f.nearLeg.setAttribute('points', [q.p, q.k1, q.f1, q.t1].map(pt).join(' '));
+  f.farArm.setAttribute('points', [q.a2, q.e2, q.w2].map(pt).join(' '));
+  f.farLeg.setAttribute('points', [q.r2, q.k2, q.f2, q.t2].map(pt).join(' '));
+  f.nearArm.setAttribute('points', [q.a1, q.e1, q.w1].map(pt).join(' '));
+  f.nearLeg.setAttribute('points', [q.r1, q.k1, q.f1, q.t1].map(pt).join(' '));
   const vx = q.s[0] - q.p[0], vy = q.s[1] - q.p[1], len = Math.hypot(vx, vy) || 1, nx = -vy / len, ny = vx / len;
   const cx = (q.s[0] + q.p[0]) / 2 + nx * q.c, cy = (q.s[1] + q.p[1]) / 2 + ny * q.c;
   f.torso.setAttribute('d', 'M' + pt(q.p) + ' Q' + cx.toFixed(1) + ',' + cy.toFixed(1) + ' ' + pt(q.s));
@@ -3740,25 +3771,81 @@ function poseAt(f, ms) {
   const e = local < 0.5 ? 2 * local * local : 1 - Math.pow(-2 * local + 2, 2) / 2;
   return lerpPose(f.frames[step % n], f.frames[(step + 1) % n], e);
 }
+let threeState = 0; // 0 not loaded, 1 loading, 2 ready, 3 unavailable
+function loadThree(done) {
+  if (threeState === 2) { done(); return; }
+  if (threeState !== 0) return;
+  threeState = 1;
+  const add = (src, next) => { const sc = document.createElement('script'); sc.src = src; sc.onload = next; sc.onerror = () => { threeState = 3; }; document.head.appendChild(sc); };
+  add('content/vendor/three.min.js?v=160', () => add('content/figure3d.js?v=7', () => {
+    threeState = window.Bloom3D && Bloom3D.supported() ? 2 : 3;
+    if (threeState === 2) done();
+  }));
+}
+
+// Swaps a 2D diagram for a 3D canvas of the same shape; returns a figure record or null.
+function build3D(svg) {
+  const def = BLOOM_DAILY.anim && BLOOM_DAILY.anim[svg.dataset.a];
+  if (!def) return null;
+  const vb = (def.vb || '0 0 200 134').split(' ').map(Number);
+  const wrap = document.createElement('div');
+  wrap.className = 'anim-wrap';
+  const canvas = document.createElement('canvas');
+  canvas.className = 'move-anim move-3d';
+  canvas.setAttribute('role', 'img');
+  canvas.setAttribute('aria-label', svg.getAttribute('aria-label') || 'Animated 3D diagram');
+  canvas.style.aspectRatio = vb[2] + ' / ' + vb[3];
+  const tag = document.createElement('span');
+  tag.className = 'anim-paused'; tag.textContent = 'Paused · tap to play'; tag.hidden = true;
+  wrap.appendChild(canvas); wrap.appendChild(tag);
+  svg.replaceWith(wrap);
+  const w = canvas.clientWidth || 220, dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(w * dpr); canvas.height = Math.round(w * vb[3] / vb[2] * dpr);
+  const g = Bloom3D.create(canvas, def, svg.dataset.bump === '1');
+  const f = { el:wrap, frames:def.frames.map(resolvePose), paused:false, elapsed:0, three:g, lastDraw:-1e9 };
+  f.draw = q => { Bloom3D.pose(g, q); Bloom3D.render(g); };
+  wrap.addEventListener('click', () => { f.paused = !f.paused; tag.hidden = !f.paused; });
+  return f;
+}
+
 function initMoveAnims(root) {
   stopMoveAnims();
-  root.querySelectorAll('svg.move-anim').forEach(svg => { const f = buildFig(svg); if (f) animFigs.push(f); });
+  const svgs = [...root.querySelectorAll('svg.move-anim')];
+  if (!svgs.length) return;
+  const use3D = threeState === 2;
+  svgs.forEach(svg => {
+    let f = null;
+    if (use3D) { try { f = build3D(svg); } catch (e) { f = null; } }
+    if (!f) { f = buildFig(svg); if (f) { f.el = svg; f.draw = q => drawFig(f, q); } }
+    if (f) animFigs.push(f);
+  });
+  if (!use3D && threeState === 0) loadThree(() => { if (root.isConnected && root.querySelector('svg.move-anim') && document.getElementById('day-sheet').classList.contains('open')) initMoveAnims(root); });
   if (!animFigs.length) return;
   // The motion is the instruction, so it always plays; reduced-motion users get a slower pace and tap-to-pause.
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const speed = reduce ? 0.55 : 1;
-  animFigs.forEach(f => drawFig(f, f.frames[0]));
+  animFigs.forEach(f => f.draw(f.frames[0]));
   let last = performance.now();
   const tick = now => {
-    animFigs = animFigs.filter(f => f.svg.isConnected);
+    animFigs = animFigs.filter(f => f.el.isConnected);
     if (!animFigs.length) { animRAF = 0; return; }
     const dt = Math.max(0, Math.min(100, now - last)); last = now;
-    animFigs.forEach(f => { if (!f.paused) { f.elapsed += dt * speed; drawFig(f, poseAt(f, f.elapsed)); } });
+    animFigs.forEach(f => {
+      if (f.paused) return;
+      f.elapsed += dt * speed;
+      if (f.three && now - f.lastDraw < 32) return; // 3D renders at ~30 fps to save battery
+      f.lastDraw = now;
+      f.draw(poseAt(f, f.elapsed));
+    });
     animRAF = requestAnimationFrame(tick);
   };
   animRAF = requestAnimationFrame(tick);
 }
-function stopMoveAnims() { if (animRAF) cancelAnimationFrame(animRAF); animRAF = 0; animFigs = []; }
+function stopMoveAnims() {
+  if (animRAF) cancelAnimationFrame(animRAF);
+  animFigs.forEach(f => { if (f.three) Bloom3D.dispose(f.three); });
+  animRAF = 0; animFigs = [];
+}
 
 function closeDaySheet() {
   stopMoveAnims();
