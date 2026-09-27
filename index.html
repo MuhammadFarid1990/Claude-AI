@@ -1856,7 +1856,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script src="content/baby.js?v=1"></script>
 <script src="content/newborn.js?v=1"></script>
 <script src="content/schedule.js?v=1"></script>
-<script src="content/anim.js?v=2"></script>
+<script src="content/anim.js?v=3"></script>
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
@@ -3524,7 +3524,7 @@ function sheetHtml(it, plan) {
         '<div class="ds-move">' +
           (steps[i] ? '<div class="ds-move-step">' + steps[i] + '</div>' : '') +
           '<div class="ds-move-top"><div class="ds-move-n">' + escHtml(m.n) + '</div><div class="ds-move-d">' + escHtml(m.dose) + '</div></div>' +
-          (m.a && BLOOM_DAILY.anim && BLOOM_DAILY.anim[m.a] ? '<svg class="move-anim" viewBox="0 0 200 134" role="img" aria-label="Animated diagram: ' + escHtml(m.n) + '" data-a="' + m.a + '" data-bump="' + (plan.mode === 'pregnant' ? 1 : 0) + '"></svg>' : '') +
+          (m.a && BLOOM_DAILY.anim && BLOOM_DAILY.anim[m.a] ? '<svg class="move-anim" viewBox="0 0 200 134" role="img" aria-label="Animated diagram: ' + escHtml(m.n) + '" data-a="' + m.a + '" data-bump="' + (plan.mode === 'pregnant' ? 1 : 0) + '" data-week="' + (plan.wk || 0) + '"></svg>' : '') +
           listHtml(m.how, true) +
           '<div class="ds-move-why">' + escHtml(m.why) + '</div>' +
           (m.cs && cs ? '<div class="ds-cs">' + cs + escHtml(m.cs) + '</div>' : '') +
@@ -3777,10 +3777,11 @@ function loadThree(done) {
   if (threeState !== 0) return;
   threeState = 1;
   const add = (src, next) => { const sc = document.createElement('script'); sc.src = src; sc.onload = next; sc.onerror = () => { threeState = 3; }; document.head.appendChild(sc); };
-  add('content/vendor/three.min.js?v=160', () => add('content/figure3d.js?v=9', () => {
-    threeState = window.Bloom3D && Bloom3D.supported() ? 2 : 3;
-    if (threeState === 2) done();
-  }));
+  add('content/vendor/three.min.js?v=160', () => add('content/vendor/GLTFLoader.js?v=160', () => add('content/vendor/SkeletonUtils.js?v=160', () => add('content/figure3d.js?v=13', () => {
+    if (!window.Bloom3D || !Bloom3D.supported()) { threeState = 3; return; }
+    // Only switch to 3D once the avatar has loaded; otherwise the 2D diagrams stay.
+    Bloom3D.loadAvatar(av => { threeState = av ? 2 : 3; if (av) done(); });
+  }))));
 }
 
 // Swaps a 2D diagram for a 3D canvas of the same shape; returns a figure record or null.
@@ -3801,7 +3802,8 @@ function build3D(svg) {
   svg.replaceWith(wrap);
   const w = canvas.clientWidth || 220, dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(w * vb[3] / vb[2] * dpr);
-  const g = Bloom3D.create(canvas, def, svg.dataset.bump === '1'); // resizes the canvas height to fit the movement
+  const g = Bloom3D.create(canvas, def, svg.dataset.bump === '1', +svg.dataset.week || 28); // resizes the canvas to fit the movement
+  if (!g) { wrap.replaceWith(svg); return null; }
   const f = { el:wrap, frames:def.frames.map(resolvePose), paused:false, elapsed:0, three:g, lastDraw:-1e9 };
   f.draw = q => { Bloom3D.pose(g, q); Bloom3D.render(g); };
   wrap.addEventListener('click', () => { f.paused = !f.paused; tag.hidden = !f.paused; });
