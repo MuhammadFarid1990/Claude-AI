@@ -18,3 +18,7 @@ android/build/
 *.jks
 android/app/key.properties
 bloom-release.keystore.b64
+
+# Firebase
+firebase-debug.log
+.firebase/

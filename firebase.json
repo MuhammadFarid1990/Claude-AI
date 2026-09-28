@@ -1,0 +1,49 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "android/**",
+      "ios/**",
+      "www/**",
+      "api/**",
+      "tools/**",
+      "mocap/**",
+      "store_assets/**",
+      "**/*.keystore",
+      "**/*.jks",
+      "**/*.b64",
+      "**/*.md",
+      "bloom_test.js",
+      "codemagic.yaml",
+      "capacitor.config.ts",
+      "package.json",
+      "package-lock.json",
+      "vercel.json",
+      "*.log"
+    ],
+    "headers": [
+      {
+        "source": "/sw.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  }
+}
