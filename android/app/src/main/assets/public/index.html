@@ -288,6 +288,15 @@ body::before {
 .greeting em { color:var(--rose);font-style:normal; }
 .week-chip { display:inline-flex;align-items:center;gap:.3rem;background:var(--lime-bg);color:var(--lime-dark);font-size:.7rem;font-weight:800;padding:.3rem .75rem;border-radius:20px;margin-top:.3rem;letter-spacing:.01em; }
 
+.baby-hero .week-chip { background:rgba(255,255,255,.2);color:#fff;margin:0 0 .55rem; }
+.hero-prog { margin-top:.85rem; }
+.hero-prog .prog-label { color:rgba(255,255,255,.92); }
+.hero-prog .prog-track { background:rgba(255,255,255,.25);box-shadow:none; }
+.hero-prog .prog-fill { background:#fff; }
+.hero-note { font-size:.65rem;opacity:.85;margin-top:.4rem; }
+.daily-title { font-family:var(--f-d);font-size:1.15rem;font-weight:800;color:var(--ink);letter-spacing:-.02em; }
+.daily-tomorrow { margin-top:.7rem;font-size:.7rem;color:var(--ink-muted);line-height:1.45; }
+.daily-tomorrow b { color:var(--rose); }
 .baby-title { font-family:var(--f-d);font-size:1.1rem;font-weight:800;margin-bottom:.28rem;letter-spacing:-.025em; }
 .baby-size  { font-size:.8rem;opacity:.9;margin-bottom:.9rem;line-height:1.55; }
 .baby-stats { display:flex;gap:.5rem; }
@@ -946,16 +955,11 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
   <!-- ════ TODAY ════════════════════════════════ -->
   <div class="screen active" id="screen-today">
 
-    <div>
-      <div class="greeting">Good morning, <em>Customer</em></div>
-      <div class="week-chip">Week 18 · Second Trimester</div>
-    </div>
-
-    <!-- Daily plan: new eat / move / do every day -->
-    <div class="card daily-card" id="dailyCard" hidden></div>
+    <div class="greeting">Good morning, <em>Customer</em></div>
 
     <!-- Baby card -->
-    <div class="card rose">
+    <div class="card rose baby-hero">
+      <div class="week-chip">Week 18 · Second Trimester</div>
       <div style="display:flex;align-items:flex-start;gap:.75rem">
         <div style="flex:1">
           <div class="baby-title">Your baby is a sweet potato</div>
@@ -1004,66 +1008,15 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         <div class="b-stat"><span class="bv" id="babyWt">6.7oz</span><span class="bl" id="babyWtL">Weight</span></div>
         <div class="b-stat"><span class="bv" id="babyDays">127</span><span class="bl" id="babyDaysL">Days in</span></div>
       </div>
-    </div>
-
-    <!-- Pregnancy progress -->
-    <div class="card">
-      <div class="sec-title" id="progTitle">Pregnancy Progress</div>
-      <div class="prog-wrap">
+      <div class="hero-prog">
         <div class="prog-label" id="progLabel"><span>Week 18 of 40</span><span>22 weeks left</span></div>
         <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
-      </div>
-      <div id="progNote" style="font-size:.65rem;color:var(--ink-muted);margin-top:.4rem">Due date: February 8, 2027 · Anatomy scan in 5 days</div>
-    </div>
-
-    <!-- Quick actions -->
-    <div>
-      <div class="sec-title">Quick Access</div>
-      <div class="quick-grid">
-        <button class="quick-btn" onclick="switchScreen('meals',document.querySelectorAll('.tab')[1])">
-          <svg class="qb-svg" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><line x1="7" y1="2" x2="7" y2="11"/><path d="M21 15a4 4 0 01-4 4h0a4 4 0 01-4-4v-3h8v3z"/><line x1="17" y1="2" x2="17" y2="11"/></svg>
-          <div class="qb-label">Today's Meals</div>
-          <div class="qb-sub" id="mealKcalSub" hidden></div>
-        </button>
-        <button class="quick-btn" onclick="switchScreen('health',document.querySelectorAll('.tab')[2])">
-          <svg class="qb-svg" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-          <div class="qb-label">Health Check</div>
-          <div class="qb-sub" id="qbHealthSub">Symptoms · Kicks · Mood</div>
-        </button>
-        <button class="quick-btn" onclick="switchScreen('schedule',document.querySelectorAll('.tab')[3])">
-          <svg class="qb-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <div class="qb-label">My Schedule</div>
-          <div class="qb-sub" id="qbSchedSub">Your daily routine</div>
-        </button>
-        <button class="quick-btn" onclick="switchScreen('me',document.querySelectorAll('.tab')[4]);showMeSection('docqs')">
-          <svg class="qb-svg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          <div class="qb-label">Doctor Qs</div>
-          <div class="qb-sub" id="docQsChip">0 questions saved</div>
-        </button>
+        <div class="hero-note" id="progNote">Due date: February 8, 2027</div>
       </div>
     </div>
 
-    <!-- Daily goals -->
-    <div class="card">
-      <div class="sec-title">Today's 3 Goals</div>
-      <div class="goal-list" id="goalList">
-        <div class="goal-item" onclick="toggleGoal(this)">
-          <div class="goal-check"></div>
-          <div class="goal-text">Take prenatal vitamin with breakfast</div>
-          <span class="goal-badge">Daily</span>
-        </div>
-        <div class="goal-item" onclick="toggleGoal(this)">
-          <div class="goal-check"></div>
-          <div class="goal-text">Drink 8 glasses of water (stay hydrated!)</div>
-          <span class="goal-badge">Daily</span>
-        </div>
-        <div class="goal-item" onclick="toggleGoal(this)">
-          <div class="goal-check"></div>
-          <div class="goal-text">30 min light movement — walk or prenatal yoga</div>
-          <span class="goal-badge">Wk 18</span>
-        </div>
-      </div>
-    </div>
+    <!-- Today's plan: something new to eat, do and move each day -->
+    <div class="card daily-card" id="dailyCard" hidden></div>
 
     <!-- Appointment -->
     <div id="todayApptCard"></div>
@@ -1076,15 +1029,6 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
           <div class="tip-label" id="todayTipLabel">Pregnancy tip</div>
           <div class="tip-text" id="todayTipText">Stay hydrated, rest when you need to, and remember to take your prenatal vitamin each day.</div>
         </div>
-      </div>
-    </div>
-
-    <!-- Mood prompt -->
-    <div class="card soft" style="cursor:pointer" onclick="switchScreen('health',document.querySelectorAll('.tab')[2]);switchHealth('mood',document.querySelectorAll('.sub-nav-btn')[2])">
-      <div class="row" style="gap:.65rem">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-        <div><div class="it">Daily mood check-in</div><div class="is">How are you feeling today? · Tap to check in</div></div>
-        <div class="ml-auto" style="font-size:.8rem;color:var(--rose);font-weight:700">→</div>
       </div>
     </div>
 
@@ -1474,14 +1418,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
   <div class="scroll-hint" id="scrollHint"></div>
 
   <!-- Floating feature-map button -->
-  <button id="fmapBtn" onclick="toggleFmap()" style="
-    position:absolute;bottom:72px;right:12px;z-index:500;
-    width:36px;height:36px;border-radius:50%;border:none;
-    background:rgba(224,55,122,0.92);color:white;font-size:.85rem;font-weight:800;
-    cursor:pointer;box-shadow:0 4px 14px rgba(180,0,80,.4);
-    display:flex;align-items:center;justify-content:center;
-    backdrop-filter:blur(8px);
-  "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+  <!-- (developer jump menu button removed) -->
 
   <!-- Feature map drawer -->
   <div id="fmapDrawer" hidden style="
@@ -3195,29 +3132,18 @@ function renderDaily() {
   const total = plan.items.length, doneN = plan.items.filter(it => rec[it.key]).length;
   if (dayRec(todayEpoch()) && !!rec.full !== (doneN === total)) { rec.full = doneN === total; saveDaily(); } // today's tasks can change if the profile changes
   const streak = currentStreak();
-  const letters = ['S','M','T','W','T','F','S'];
-  let dots = '';
-  for (let o = -6; o <= 0; o++) {
-    const r = dayRec(todayEpoch(o));
-    const cls = r && r.full ? 'full' : r && Object.keys(r).some(k => k !== 'full' && r[k]) ? 'part' : '';
-    dots += '<div class="wd ' + cls + (o === 0 ? ' today' : '') + '"><i>' + (r && r.full ? '✓' : '') + '</i>' + letters[new Date(todayEpoch(o) * 86400000).getUTCDay()] + '</div>';
-  }
   const next = getDailyPlan(1);
-  const nextBadge = STREAK_BADGES.find(b => b > streak);
-  const progText = doneN === total ? 'Day complete · ' + streak + '-day streak' : doneN + ' of ' + total + ' done';
+  const progText = doneN === total ? 'All done today 🎉' : doneN + ' of ' + total + ' done';
   el.innerHTML =
     '<div class="daily-head"><div>' +
-      '<div class="daily-day">Day ' + plan.day + '<span> of ' + plan.total + '</span></div>' +
-      '<div class="daily-stage">' + escHtml(plan.stage) + '</div></div>' +
+      '<div class="daily-title">Today\'s plan</div>' +
+      '<div class="daily-stage">Day ' + plan.day + ' · ' + progText + '</div></div>' +
       '<div class="streak-pill' + (streak ? '' : ' cold') + '" aria-label="' + streak + '-day streak">🔥 ' + streak + '</div>' +
     '</div>' +
-    '<div class="daily-prog"><div class="daily-prog-track"><div class="daily-prog-fill" style="width:' + Math.round(doneN / total * 100) + '%"></div></div>' + progText + '</div>' +
+    '<div class="daily-prog"><div class="daily-prog-track"><div class="daily-prog-fill" style="width:' + Math.round(doneN / total * 100) + '%"></div></div></div>' +
     plan.items.map(it => taskRowHtml(it, rec)).join('') +
     (plan.mode === 'pregnant' && plan.day >= 245 ? '<button class="ds-sec-btn baby-here-btn" onclick="openBabyArrived()">👶 Baby arrived? Switch to newborn mode</button>' : '') +
-    '<div class="week-dots">' + dots + '</div>' +
-    (next && next.day !== plan.day ? '<div class="daily-next">🔒 <b>Unlocks tomorrow:</b> ' + next.items.map(i => escHtml(i.title)).join(' · ') + '</div>' : '') +
-    '<div class="daily-badge">' + (nextBadge ? 'Next badge: ' + nextBadge + '-day streak · ' + (nextBadge - streak) + ' to go' : 'Every streak badge earned') +
-      (dailyState.best ? ' · Best ' + dailyState.best : '') + '</div>';
+    (next && next.day !== plan.day ? '<div class="daily-tomorrow"><b>Tomorrow:</b> ' + next.items.map(i => escHtml(i.title)).join(' · ') + '</div>' : '');
 }
 
 function toggleDaily(key, ev) {
