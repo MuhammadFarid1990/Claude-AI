@@ -1817,7 +1817,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script src="content/baby.js?v=1"></script>
 <script src="content/newborn.js?v=1"></script>
 <script src="content/schedule.js?v=2"></script>
-<script src="content/anim.js?v=4"></script>
+<script src="content/anim.js?v=5"></script>
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
@@ -3637,7 +3637,7 @@ function resolvePose(src) {
 }
 const POSE_KEYS = ['h','s','p','e1','w1','e2','w2','k1','f1','k2','f2','t1','t2'];
 function lerpPose(a, b, t) {
-  const o = { view:a.view, bn:a.bn, sz:a.sz, fold:a.fold, c:a.c + (b.c - a.c) * t, ring:a.ring + (b.ring - a.ring) * t };
+  const o = { view:a.view, bn:a.bn, sz:a.sz, fold:a.fold, seat:a.seat, flatShin:a.flatShin, kw:a.kw, c:a.c + (b.c - a.c) * t, ring:a.ring + (b.ring - a.ring) * t };
   POSE_KEYS.forEach(k => { o[k] = [a[k][0] + (b[k][0] - a[k][0]) * t, a[k][1] + (b[k][1] - a[k][1]) * t]; });
   return o;
 }
@@ -3647,7 +3647,7 @@ function rigidPose(q) {
   const unit = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
   const along = (a, u, L) => [a[0] + u[0] * L, a[1] + u[1] * L];
   const front = q.view === 'front';
-  const o = { view:q.view, bn:q.bn, c:q.c, ring:q.ring, p:q.p, sz:q.sz };
+  const o = { view:q.view, bn:q.bn, c:q.c, ring:q.ring, p:q.p, sz:q.sz, seat:q.seat, flatShin:q.flatShin, kw:q.kw };
   o.s = along(q.p, unit(q.p, q.s), BONES.torso);
   o.h = along(o.s, unit(q.s, q.h), BONES.neck);
   const chain = (root, hintPt, end, l1, l2) => {
@@ -3664,7 +3664,7 @@ function rigidPose(q) {
     const hipRoot = front ? along(o.p, perp, BONES.hip * side) : o.p;
     const shRoot = front ? along(o.s, perp, BONES.shoulder * side) : o.s;
     o['r' + i] = hipRoot; o['a' + i] = shRoot;
-    if (q.fold) o['kh' + i] = q['k' + i]; // raw knee target: side-lying legs are rebuilt in 3D from its height
+    if (q.fold || q.seat) o['kh' + i] = q['k' + i]; // raw knee target: side-lying legs are rebuilt in 3D from its height
     [o['k' + i], o['f' + i]] = chain(hipRoot, q['k' + i], q['f' + i], BONES.thigh, BONES.shin);
     [o['e' + i], o['w' + i]] = chain(shRoot, q['e' + i], q['w' + i], BONES.upper, BONES.fore);
     o['t' + i] = along(o['f' + i], unit(q['f' + i], q['t' + i]), BONES.foot);
@@ -3756,7 +3756,7 @@ function loadThree(done) {
   threeState = 1;
   const finish = ok => { if (threeState !== 1) return; threeState = ok ? 2 : 3; threeWaiters.splice(0).forEach(f => f()); };
   const add = (src, next) => { const sc = document.createElement('script'); sc.src = src; sc.onload = next; sc.onerror = () => finish(false); document.head.appendChild(sc); };
-  add('content/vendor/three.min.js?v=160', () => add('content/vendor/GLTFLoader.js?v=160', () => add('content/vendor/SkeletonUtils.js?v=160', () => add('content/figure3d.js?v=14', () => {
+  add('content/vendor/three.min.js?v=160', () => add('content/vendor/GLTFLoader.js?v=160', () => add('content/vendor/SkeletonUtils.js?v=160', () => add('content/figure3d.js?v=15', () => {
     if (!window.Bloom3D || !Bloom3D.supported()) { finish(false); return; }
     Bloom3D.loadAvatar(av => finish(!!av));
   }))));
@@ -3783,7 +3783,7 @@ function build3D(svg) {
   const g = Bloom3D.create(canvas, def, svg.dataset.bump === '1', +svg.dataset.week || 28); // resizes the canvas to fit the movement
   if (!g) { wrap.replaceWith(svg); return null; }
   const f = { el:wrap, frames:def.frames.map(resolvePose), paused:false, elapsed:0, three:g, lastDraw:-1e9 };
-  f.draw = q => { Bloom3D.pose(g, q); Bloom3D.render(g); };
+  f.draw = () => { Bloom3D.poseTime(g, f.elapsed); Bloom3D.render(g); };
   wrap.addEventListener('click', () => { f.paused = !f.paused; tag.hidden = !f.paused; });
   return f;
 }
