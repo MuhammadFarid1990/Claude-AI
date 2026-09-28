@@ -357,7 +357,11 @@ body::before {
 .meal-block:last-child { margin-bottom:0; }
 .meal-tap { cursor:pointer; }
 .meal-row { display:flex;align-items:center;gap:.5rem; }
-.meal-row > div:first-child { flex:1;min-width:0; }
+.meal-row > div:not(.dtask-go) { flex:1;min-width:0; }
+.meal-check { width:24px;height:24px;font-size:.7rem; }
+.meal-block.done .meal-check { background:var(--green);border-color:var(--green);color:#fff; }
+.meal-block.done .meal-name { text-decoration:line-through;color:var(--ink-muted); }
+.meal-block.later .meal-check { border-color:var(--rule);cursor:default; }
 .meal-new { margin-left:.4rem;background:var(--rose);color:#fff;border-radius:6px;padding:.08rem .38rem;font-size:.55rem;letter-spacing:.06em;vertical-align:1px; }
 .meal-type { font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--rose);margin-bottom:.22rem; }
 .meal-name { font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:.12rem;line-height:1.35; }
@@ -1303,7 +1307,6 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
   <!-- ════ MEALS ════════════════════════════════ -->
   <div class="screen" id="screen-meals">
 
-    <div class="card" id="mealsTodayCard" hidden></div>
 
     <div class="day-strip" id="dayStrip"></div>
 
@@ -2711,11 +2714,17 @@ function renderMeals() {
     return;
   }
   macros.hidden = false;
+  // Today's meals can be ticked off; the featured new recipe is the same tick as Today's "Eat" task.
+  const today = activeDay === 0, rec = today ? (dayRec(todayEpoch()) || {}) : {};
+  const mealDone = x => today && (x.isNew ? !!rec.eat : !!(rec.meals && rec.meals[x.slot]));
   card.innerHTML = '<div class="sec-title">' + dayLabel(activeDay) + '\'s menu · ' + m.stageName + '</div>' +
     m.meals.map((x, j) =>
-      '<div class="meal-block meal-tap" onclick="openRecipe(' + activeDay + ',' + j + ')">' +
+      '<div class="meal-block meal-tap' + (mealDone(x) ? ' done' : '') + (today ? '' : ' later') + '" onclick="openRecipe(' + activeDay + ',' + j + ')">' +
         '<div class="meal-type">' + x.slot + (x.isNew ? '<span class="meal-new">' + (activeDay === 0 ? 'New today' : 'New recipe') + '</span>' : '') + '</div>' +
-        '<div class="meal-row"><div><div class="meal-name">' + escHtml(x.r.n) + '</div>' +
+        '<div class="meal-row">' +
+        (today ? '<button class="dtask-check meal-check" onclick="toggleMeal(' + j + ',event)" aria-label="Mark ' + escHtml(x.slot) + ' as eaten">✓</button>'
+               : '<span class="dtask-check meal-check" title="Tick it off on the day" aria-hidden="true"></span>') +
+        '<div><div class="meal-name">' + escHtml(x.r.n) + '</div>' +
         '<div class="meal-macros">≈' + x.r.k + ' kcal · ' + x.r.p + ' g protein · ' + escHtml(x.r.focus) + '</div></div><div class="dtask-go" aria-hidden="true">›</div></div>' +
       '</div>' + (j < m.meals.length - 1 ? '<div class="divider"></div>' : '')).join('');
   const tk = m.meals.reduce((a, x) => a + x.r.k, 0), tp = m.meals.reduce((a, x) => a + x.r.p, 0);
@@ -2735,6 +2744,20 @@ function renderMeals() {
     '</div><div style="font-size:.68rem;color:var(--ink-muted);margin-top:.45rem;line-height:1.45">' + msg + '</div>';
   const focus = [...new Set(m.meals.flatMap(x => x.r.focus.split(' · ')))];
   strip.innerHTML = focus.map(f => '<span class="ds-chip">' + escHtml(f) + '</span>').join('');
+}
+
+function toggleMeal(j, ev) {
+  if (ev) ev.stopPropagation();
+  const m = menuFor(0), x = m && m.meals[j];
+  if (!x) return;
+  if (x.isNew) { toggleDaily('eat'); return; } // also ticks Today's Eat task and counts toward the streak
+  const k = epochKey(todayEpoch());
+  const rec = dailyState.days[k] || (dailyState.days[k] = {});
+  rec.meals = rec.meals || {};
+  rec.meals[x.slot] = !rec.meals[x.slot];
+  saveDaily();
+  haptic(rec.meals[x.slot] ? 'MEDIUM' : 'LIGHT');
+  renderMeals();
 }
 
 function recipeHtml(d) {
@@ -3412,7 +3435,6 @@ function renderDaily() {
   if (!el) return;
   const plan = getDailyPlan();
   dailyRenderedKey = epochKey(todayEpoch());
-  renderMealsToday(plan);
   buildDayStrip();
   renderMeals();
   if (!plan) { el.hidden = true; return; }
@@ -3446,15 +3468,6 @@ function renderDaily() {
       (dailyState.best ? ' · Best ' + dailyState.best : '') + '</div>';
 }
 
-function renderMealsToday(plan) {
-  const el = document.getElementById('mealsTodayCard');
-  if (!el) return;
-  const it = plan && plan.items.find(i => i.key === 'eat');
-  if (!it || !it.data) { el.hidden = true; return; }
-  el.hidden = false;
-  el.innerHTML = '<div class="sec-title">Today\'s new recipe · Day ' + plan.day + '</div>' + taskRowHtml(it, dayRec(todayEpoch()) || {});
-}
-
 function toggleDaily(key, ev) {
   if (ev) ev.stopPropagation();
   const plan = getDailyPlan();
@@ -3471,6 +3484,7 @@ function toggleDaily(key, ev) {
   if (sheetOpen && rec[key]) closeDaySheet();
   else if (sheetOpen) openDaySheet(key);
   renderDaily();
+  if (key === 'eat') renderMeals();
   if (rec.full && !wasFull) celebrateDay();
 }
 
