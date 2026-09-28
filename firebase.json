@@ -9,7 +9,6 @@
       "android/**",
       "ios/**",
       "www/**",
-      "api/**",
       "tools/**",
       "mocap/**",
       "store_assets/**",
@@ -22,8 +21,8 @@
       "capacitor.config.ts",
       "package.json",
       "package-lock.json",
-      "vercel.json",
-      "*.log"
+      "*.log",
+      "functions/**"
     ],
     "headers": [
       {
@@ -44,6 +43,29 @@
           }
         ]
       }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/chat",
+        "function": {
+          "functionId": "chat",
+          "region": "us-central1"
+        }
+      }
     ]
-  }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.log"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" install"
+      ]
+    }
+  ]
 }

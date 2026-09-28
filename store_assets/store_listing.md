@@ -56,7 +56,7 @@ pregnancy,baby,trimester,prenatal,kick counter,symptoms,nutrition,parenting,due 
 
 **Age Rating:** 4+
 
-**Privacy Policy URL:** https://bloomai-sandy.vercel.app/privacy
+**Privacy Policy URL:** https://bloom-cc7c4.web.app/privacy.html
 
 ---
 
@@ -108,7 +108,7 @@ Health information in Bloom is general guidance based on public guidelines from 
 
 **Content Rating:** Everyone
 
-**Privacy Policy:** https://bloomai-sandy.vercel.app/privacy
+**Privacy Policy:** https://bloom-cc7c4.web.app/privacy.html
 
 ---
 

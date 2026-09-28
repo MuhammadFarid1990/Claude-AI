@@ -1,18 +1,22 @@
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+// Bloom AI chat, running as a Firebase Cloud Function (2nd gen).
+// Firebase Hosting sends /api/chat here (see firebase.json). The Anthropic API key is a Firebase secret:
+//   firebase functions:secrets:set ANTHROPIC_API_KEY
+// It is never stored in the code or sent to the app.
+const { onRequest } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({
-      error: 'Bloom AI is not configured. Add ANTHROPIC_API_KEY to Vercel environment variables.'
-    });
+const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
+
+exports.chat = onRequest({ secrets:[ANTHROPIC_API_KEY], region:'us-central1', cors:true, maxInstances:10, timeoutSeconds:60 }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!ANTHROPIC_API_KEY.value()) {
+    return res.status(503).json({ error: 'Bloom AI is not configured yet. Set the ANTHROPIC_API_KEY secret in Firebase.' });
   }
 
-  const { message, context, history = [] } = req.body || {};
-  if (!message) return res.status(400).json({ error: 'message required' });
+  const { message, history = [] } = req.body || {};
+  const context = typeof (req.body || {}).context === 'string' ? req.body.context.slice(0, 6000) : '';
+  if (!message || typeof message !== 'string') return res.status(400).json({ error: 'message required' });
+  if (message.length > 4000) return res.status(400).json({ error: 'Please keep your message under 4000 characters.' });
 
   const systemPrompt = `You are Bloom — a warm, knowledgeable AI assistant built into the Bloom pregnancy and parenting app. You answer ANY question the user asks, helpfully and thoroughly.
 
@@ -20,7 +24,6 @@ You have deep expertise in:
 - Pregnancy (all trimesters), labor, delivery, postpartum recovery
 - Newborn and infant care: feeding, sleep, development, vaccines
 - Breastfeeding, pumping, formula feeding
-- Toddler development, milestones, behavior, language
 - Maternal nutrition, mental health, pelvic floor, postpartum body
 - Baby products, safety, childproofing, car seats
 
@@ -33,7 +36,7 @@ For medical decisions always recommend consulting a healthcare provider. Never d
 
   // Build messages array (Anthropic format: no system role in array)
   const messages = [
-    ...history.slice(-12).map(m => ({ role: m.role, content: m.content })),
+    ...(Array.isArray(history) ? history : []).slice(-12).filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string').map(m => ({ role: m.role, content: m.content.slice(0, 4000) })),
     { role: 'user', content: message },
   ];
 
@@ -42,7 +45,7 @@ For medical decisions always recommend consulting a healthcare provider. Never d
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'x-api-key': ANTHROPIC_API_KEY.value(),
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -66,4 +69,4 @@ For medical decisions always recommend consulting a healthcare provider. Never d
     console.error(err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
-};
+});
