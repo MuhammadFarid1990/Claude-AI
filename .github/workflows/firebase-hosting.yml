@@ -1,6 +1,6 @@
 # Deploys the app to Firebase Hosting (bloom-cc7c4) on every push to the app branch.
-# One-time setup: run `firebase init hosting:github` on your PC. It creates a Firebase service
-# account and stores its key in this repo as the secret FIREBASE_SERVICE_ACCOUNT_BLOOM_CC7C4.
+# Uses the Firebase Admin SDK service account key stored in this repo as the secret
+# FIREBASE_SERVICE_ACCOUNT_BLOOM_CC7C4 (Firebase console → Project settings → Service accounts).
 name: Deploy to Firebase Hosting
 on:
   push:
