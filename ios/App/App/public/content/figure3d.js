@@ -40,6 +40,7 @@ window.Bloom3D = (function () {
   };
   // Recolours or trims a skinned material by bind-pose height (metres, before skinning):
   // leggings on the legs, and a crop top that ends under the bust so the bump shows.
+  const skinColor = new T.Color(OUTFIT.skin); // the body's average skin tone, measured from its texture in prepareAvatar
   function byHeight(mat, opt) {
     const color = new T.Color(opt.color || 0xffffff);
     mat.onBeforeCompile = sh => {
@@ -48,9 +49,10 @@ window.Bloom3D = (function () {
       sh.uniforms.uCut = { value:new T.Vector2(opt.cut || -1, opt.cutX || 99) };
       sh.uniforms.uFlat = { value:new T.Vector2(opt.flatLo || -1, opt.flatHi || -1) };
       sh.uniforms.uFlatColor = { value:new T.Color(opt.flatColor || 0xffffff) };
+      sh.uniforms.uSkin = { value:skinColor };
       sh.vertexShader = 'varying vec3 vBind;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvBind = position;');
-      sh.fragmentShader = 'varying vec3 vBind;\nuniform vec2 uBand;\nuniform vec3 uBandColor;\nuniform vec2 uCut;\nuniform vec2 uFlat;\nuniform vec3 uFlatColor;\n' +
-        sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\nif (vBind.y < uCut.x || (abs(vBind.x) > uCut.y && vBind.y > 1.17)) discard;\nfloat bandTop = uBand.y + 0.075 * (1.0 - smoothstep(-0.03, 0.05, vBind.z));\nif (vBind.y > uBand.x && vBind.y < bandTop) diffuseColor.rgb = uBandColor;\nelse if (vBind.y > uFlat.x && vBind.y < uFlat.y && abs(vBind.x) < 0.2) diffuseColor.rgb = uFlatColor;');
+      sh.fragmentShader = 'varying vec3 vBind;\nuniform vec2 uBand;\nuniform vec3 uBandColor;\nuniform vec2 uCut;\nuniform vec2 uFlat;\nuniform vec3 uFlatColor;\nuniform vec3 uSkin;\n' +
+        sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\nif (vBind.y < uCut.x) discard;\nif (abs(vBind.x) > uCut.y && vBind.y > 1.12) diffuseColor.rgb = uSkin; // sleeves show as the upper arm (no skin under the shirt to reveal)\nfloat bandTop = uBand.y + 0.075 * (1.0 - smoothstep(-0.03, 0.05, vBind.z));\nif (vBind.y > uBand.x && vBind.y < bandTop) diffuseColor.rgb = uBandColor;\nelse if (vBind.y > uFlat.x && vBind.y < uFlat.y && abs(vBind.x) < 0.2) diffuseColor.rgb = uFlatColor;');
     };
     mat.customProgramCacheKey = () => 'bh' + (opt.cut ? 'c' : '') + (opt.hi ? 'b' : '');
   }
@@ -93,9 +95,18 @@ window.Bloom3D = (function () {
       const src = o.material, name = src.name || '';
       const opts = { map:src.map, transparent:src.transparent, alphaTest:src.alphaTest, side:src.side, depthWrite:src.depthWrite };
       const mat = /_FACE|_EYE/.test(name) ? new T.MeshBasicMaterial(opts) : new T.MeshToonMaterial(Object.assign(opts, { gradientMap:ramp }));
-      if (/Tops/.test(name)) { mat.map = null; mat.color = new T.Color(OUTFIT.top); byHeight(mat, { cut:1.118, cutX:0.112 }); } // sleeveless sports crop top
+      if (/Tops/.test(name)) { mat.map = null; mat.color = new T.Color(OUTFIT.top); mat.side = T.DoubleSide; byHeight(mat, { cut:1.09, cutX:0.13 }); } // sleeveless crop top; ends exactly where the model's skin begins (measured), inside drawn so the hem never shows a gap
       if (/Bottoms/.test(name)) o.visible = false;                                                          // leggings replace the shorts
       if (/_SKIN/.test(name)) mat.color = new T.Color(OUTFIT.skin);
+      if (/Body_00_SKIN/.test(name) && src.map && src.map.image) {
+        try {
+          const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+          const cx = cv.getContext('2d'); cx.drawImage(src.map.image, 0, 0, 64, 64);
+          const d = cx.getImageData(0, 0, 64, 64).data; let r = 0, g = 0, b = 0, n = 0;
+          for (let k = 0; k < d.length; k += 4) if (d[k + 3] > 200 && d[k] > d[k + 1] && d[k + 1] > d[k + 2] && d[k] > 150) { r += d[k]; g += d[k + 1]; b += d[k + 2]; n++; }
+          if (n) skinColor.setRGB(r / n / 255, g / n / 255, b / n / 255, T.SRGBColorSpace).multiply(mat.color);
+        } catch (e) {}
+      }
       if (/Body_00_SKIN/.test(name)) byHeight(mat, { lo:0.095, hi:0.915, color:OUTFIT.leggings, flatLo:0.9, flatHi:1.2, flatColor:OUTFIT.skin }); // plain skin where the texture has underwear               // full-length leggings
       if (/Shoes/.test(name)) { mat.map = null; mat.color = new T.Color(OUTFIT.shoes); }                          // flat shoes
       if (/HAIR/.test(name)) mat.color = new T.Color(OUTFIT.hair);
@@ -122,7 +133,7 @@ window.Bloom3D = (function () {
   function shapeBump(root, week, belly) {
     const grow = Math.max(0, Math.min(1, (week - 12) / 28));
     const A = 0.04 + 0.12 * grow;
-    const cy = belly.y0 + (belly.y1 - belly.y0) * 0.45, sy = (belly.y1 - belly.y0) * 0.62, sx = 0.105;
+    const cy = belly.y0 + (belly.y1 - belly.y0) * (0.42 - 0.05 * grow), sy = (belly.y1 - belly.y0) * (0.62 + 0.3 * grow), sx = 0.105 + 0.03 * grow; // widens as it grows, so it stays round
     root.traverse(o => {
       if (!o.isSkinnedMesh || !/Body_00_SKIN|Tops/.test(o.material.name)) return;
       const top = /Tops/.test(o.material.name);
@@ -133,7 +144,7 @@ window.Bloom3D = (function () {
         const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
         const f = Math.max(0, Math.min(1, (z - belly.z + 0.01) / 0.07));
         if (f <= 0) continue;
-        const u = (y - cy) / sy, w = x / sx, g = Math.exp(-(u * u + w * w));
+        const u = (y - cy) / sy, w = x / sx, r2 = u * u + w * w, g = Math.exp(-Math.pow(r2, 1.35)); // flatter top than a bell curve: a round dome
         pos.setZ(i, z + (A * (top ? 1.1 : 1) + (top ? 0.004 : 0)) * g * f * f * (3 - 2 * f));
       }
       pos.needsUpdate = true;
@@ -545,6 +556,8 @@ window.Bloom3D = (function () {
       j.world = []; // per frame, per bone: source world rotation
       for (let f = 0; f < j.frames; f++) j.world.push(j.bones.map((b, i) => new T.Quaternion(iq[(f * nb + i) * 4] / 32767, iq[(f * nb + i) * 4 + 1] / 32767, iq[(f * nb + i) * 4 + 2] / 32767, iq[(f * nb + i) * 4 + 3] / 32767).normalize()));
       j.restInv = j.rest.map(r => new T.Quaternion(...r).invert());
+      const depth = n => ['C_Hips','C_Spine','C_Chest','C_UpperChest'].indexOf(n) + 1 || (/Neck|Shoulder|UpperLeg/.test(n) ? 5 : /Head|UpperArm|LowerLeg/.test(n) ? 6 : /LowerArm|Foot/.test(n) ? 7 : 8);
+      j.order = j.bones.map((b, i) => i).sort((a, b) => depth(j.bones[a]) - depth(j.bones[b])); // parents before children
       clips[n] = j;
     }).catch(() => { clips[n] = null; }).finally(() => { if (--left === 0) done(); }));
   }
@@ -555,11 +568,11 @@ window.Bloom3D = (function () {
     const tf = ((ms % dur) / 1000) * c.fps, f0 = Math.floor(tf) % c.frames, f1 = (f0 + 1) % c.frames, t = tf - Math.floor(tf);
     rig.bones.forEach(b => b.quaternion.copy(rig.rest.get(b)));
     rig.root.position.set(0, 0, 0); rig.root.quaternion.identity(); rig.root.updateMatrixWorld(true);
-    const Y = fig.yawQ, Yi = Y.clone().invert(), q = new T.Quaternion();
-    c.bones.forEach((bn, i) => {
-      const bone = rig.get(B(bn)); if (!bone) return;
+    const Y = fig.yawQ, q = new T.Quaternion();
+    c.order.forEach(i => {
+      const bn = c.bones[i], bone = rig.get(B(bn)); if (!bone) return;
       q.slerpQuaternions(c.world[f0][i], c.world[f1][i], t).multiply(c.restInv[i]);   // source delta from rest
-      const tw = Y.clone().multiply(q).multiply(Yi).multiply(rig.restWorld.get(bone.name)); // in our scene, on her rest pose
+      const tw = Y.clone().multiply(q).multiply(rig.restWorld.get(bone.name)); // her rest pose, moved like the source, then turned to face the camera side
       bone.quaternion.copy(bone.parent.getWorldQuaternion(new T.Quaternion()).invert().multiply(tw));
       bone.updateMatrixWorld(true);
     });
@@ -580,6 +593,7 @@ window.Bloom3D = (function () {
     if (fig.lift) { fig.rig.root.position.y += fig.lift; fig.rig.root.updateMatrixWorld(true); placeExtras(fig, fig.lastFront); if (fig.extra.ring.visible) fig.extra.ring.position.y += fig.lift; }
   }
   function poseTimeRaw(fig, ms) {
+    if (!fig.frames.length) return;
     const fr = fig.frames, n = fr.length;
     ms = Math.max(0, ms);
     const step = Math.floor(ms / SEG), local = Math.min(1, (ms % SEG) / MOVE);
