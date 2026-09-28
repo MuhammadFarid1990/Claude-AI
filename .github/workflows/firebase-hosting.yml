@@ -1,7 +1,6 @@
-# Deploys the app to Firebase Hosting on every push to the app branch.
-# Needs two repository settings (GitHub → Settings → Secrets and variables → Actions):
-#   secret   FIREBASE_SERVICE_ACCOUNT  – the JSON key of a Firebase service account
-#   variable FIREBASE_PROJECT_ID       – your Firebase project ID (e.g. bloom-app-12345)
+# Deploys the app to Firebase Hosting (bloom-cc7c4) on every push to the app branch.
+# One-time setup: run `firebase init hosting:github` on your PC. It creates a Firebase service
+# account and stores its key in this repo as the secret FIREBASE_SERVICE_ACCOUNT_BLOOM_CC7C4.
 name: Deploy to Firebase Hosting
 on:
   push:
@@ -9,13 +8,20 @@ on:
   workflow_dispatch:
 jobs:
   deploy:
-    if: ${{ vars.FIREBASE_PROJECT_ID != '' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Check the Firebase key is set up
+        id: key
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BLOOM_CC7C4 }}
+        run: |
+          if [ -n "$KEY" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "::notice::Firebase key not set up yet; skipping deploy."; fi
       - uses: actions/checkout@v4
+        if: steps.key.outputs.ok == 'true'
       - uses: FirebaseExtended/action-hosting-deploy@v0
+        if: steps.key.outputs.ok == 'true'
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BLOOM_CC7C4 }}
+          projectId: bloom-cc7c4
           channelId: live
