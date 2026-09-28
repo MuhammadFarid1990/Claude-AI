@@ -21,8 +21,7 @@
       "capacitor.config.ts",
       "package.json",
       "package-lock.json",
-      "*.log",
-      "functions/**"
+      "*.log"
     ],
     "headers": [
       {
@@ -43,29 +42,6 @@
           }
         ]
       }
-    ],
-    "rewrites": [
-      {
-        "source": "/api/chat",
-        "function": {
-          "functionId": "chat",
-          "region": "us-central1"
-        }
-      }
     ]
-  },
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "*.log"
-      ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" install"
-      ]
-    }
-  ]
+  }
 }

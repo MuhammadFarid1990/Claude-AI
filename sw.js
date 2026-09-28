@@ -1,4 +1,4 @@
-const CACHE = 'bloom-v4';
+const CACHE = 'bloom-v5';
 const SHELL = ['/'];
 
 self.addEventListener('install', e => {
@@ -16,17 +16,6 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-
-  // Always network-first for API calls
-  if (url.pathname.startsWith('/api/')) {
-    e.respondWith(
-      fetch(e.request).catch(() =>
-        new Response(JSON.stringify({ error: 'You are offline. AI chat requires a connection.' }),
-          { status: 503, headers: { 'Content-Type': 'application/json' } })
-      )
-    );
-    return;
-  }
 
   // Network-first for HTML navigation (always get latest version)
   if (e.request.mode === 'navigate') {

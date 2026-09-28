@@ -11,7 +11,7 @@ Bloom: Pregnancy & Baby App
 
 **Subtitle** (30 chars max)
 ```
-AI Companion for Every Trimester
+Pregnancy & Postpartum Plan
 ```
 
 **Description** (4000 chars max)
@@ -35,11 +35,11 @@ A trimester-by-trimester timeline of what to expect: appointments, tests, vaccin
 ME — YOUR PROFILE
 Track your weight, BMI, age, and dietary goals. Edit your profile anytime. Keep a running list of questions for your next doctor's appointment — so you never walk in and forget what you wanted to ask.
 
-BLOOM AI CHAT 🌸
-Ask anything — nutrition questions, what a symptom means, how to sleep better in the third trimester, what to pack in your hospital bag. Bloom AI is a warm, knowledgeable assistant trained on pregnancy and parenting. It gives real answers, recommends seeing a doctor for serious concerns, and never makes you feel judged for asking.
+3D EXERCISE GUIDES 🌸
+Every day brings new movement for your stage: pregnancy-safe exercises and postpartum recovery moves, each shown by an animated 3D figure so you can see exactly how to do it.
 
 PRIVATE BY DESIGN
-All your data stays on your device. Bloom never sends your health information to any server. The only data that leaves your phone is your chat messages, processed securely to generate AI responses and immediately discarded.
+All your data stays on your device. Bloom never sends your health information to any server.
 
 Bloom is designed for expectant parents who want clarity, not chaos — a calm, beautiful companion for the most important journey of your life.
 
@@ -69,7 +69,7 @@ Bloom: Pregnancy & Baby Companion
 
 **Short Description** (80 chars max)
 ```
-AI-powered pregnancy tracker — meals, symptoms, kick counter & chat.
+Daily pregnancy & postpartum plan: meals, 3D exercises, kick counter.
 ```
 
 **Full Description** (4000 chars max)
@@ -93,8 +93,8 @@ Trimester-by-trimester timeline of appointments, tests, vaccines, and recovery m
 👤 YOUR PROFILE
 Track weight, BMI, body changes, dietary goals, and doctor questions — all in one place.
 
-🌸 BLOOM AI CHAT
-Ask anything about pregnancy, nutrition, symptoms, baby development, or parenting. Bloom AI gives warm, knowledgeable answers and always recommends professional care for medical decisions.
+🌸 3D EXERCISE GUIDES
+New pregnancy-safe exercises and postpartum recovery moves every day, each shown by an animated 3D figure.
 
 🔒 PRIVATE BY DESIGN
 All your data stays on your device. We never sell or share your health information.
@@ -119,8 +119,6 @@ This app is a pregnancy tracking and parenting information app.
 
 To test the app without creating an account:
 1. Tap "⚡ Try Demo" on the welcome screen — this launches the full app immediately with sample data.
-
-The AI chat feature requires a network connection and calls our Vercel API endpoint (which uses Anthropic's Claude model). It will work on a device with internet access.
 
 All user health data is stored locally on the device (localStorage). No account or login is required to use the app.
 
