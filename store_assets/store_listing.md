@@ -117,8 +117,8 @@ Health information in Bloom is general guidance based on public guidelines from 
 ```
 This app is a pregnancy tracking and parenting information app.
 
-To test the app without creating an account:
-1. Tap "⚡ Try Demo" on the welcome screen — this launches the full app immediately with sample data.
+To test the app:
+1. Tap "Create Account ✨" on the welcome screen, enter any name and a due date, and finish the short setup (about 30 seconds).
 
 All user health data is stored locally on the device (localStorage). No account or login is required to use the app.
 
