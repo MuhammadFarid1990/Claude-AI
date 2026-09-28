@@ -1625,8 +1625,8 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
           <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
           <div style="flex:1">
             <div class="vacc-name">Tdap (whooping cough)</div>
-            <div class="vacc-when">Recommended at weeks 27–36 · You're at week 18</div>
-            <span class="vacc-pill" id="vax-1-pill">Upcoming · 9 weeks away</span>
+            <div class="vacc-when" id="vax-1-when">Recommended at weeks 27–36 of every pregnancy</div>
+            <span class="vacc-pill" id="vax-1-pill">Weeks 27–36</span>
           </div>
           <div class="vacc-check">✓</div>
         </div>
@@ -1643,7 +1643,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
           <div class="vacc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-muted)"><path d="M10 20L4 14l10-10 6 6"/><path d="M14 14l-4-4"/><path d="M6 18L2 22"/><path d="M20 4l-2-2"/><line x1="16" y1="2" x2="22" y2="8"/></svg></div>
           <div style="flex:1">
             <div class="vacc-name">RSV Vaccine</div>
-            <div class="vacc-when">Weeks 32–36, September to January — protects baby for the first months. Or baby can get an RSV antibody shot after birth instead.</div>
+            <div class="vacc-when" id="vax-3-when">Weeks 32–36, September to January — protects baby for the first months. Or baby can get an RSV antibody shot after birth instead.</div>
             <span class="vacc-pill" id="vax-3-pill">Weeks 32–36</span>
           </div>
           <div class="vacc-check">✓</div>
@@ -1974,27 +1974,54 @@ function pickFirst(el) {
 }
 
 let vaccDone = {};
+// Tdap and RSV follow her real week (same week count as the rest of the app); flu and COVID are any time.
+const VACC_BASE = { 'vax-0':['', 'Due now'], 'vax-2':['upcoming', 'Discuss at next visit'] };
+function vaccStatus(id) {
+  if (VACC_BASE[id]) return { cls:VACC_BASE[id][0], pill:VACC_BASE[id][1] };
+  const plan = typeof getDailyPlan === 'function' && obData && (obData.dueDate || obData.birthDate) ? getDailyPlan(0) : null;
+  const born = plan && plan.mode === 'born', wk = plan && plan.wk;
+  const away = n => n === 1 ? 'Upcoming · 1 week away' : 'Upcoming · ' + n + ' weeks away';
+  if (id === 'vax-1') {
+    if (born) return { cls:'future', pill:'Given during pregnancy', when:'Recommended at weeks 27–36 of every pregnancy. Missed it? Ask your provider about getting it now.' };
+    if (!wk) return { cls:'upcoming', pill:'Weeks 27–36' };
+    const when = 'Recommended at weeks 27–36 · You\'re at week ' + wk;
+    if (wk < 27) return { cls:wk >= 23 ? 'upcoming' : 'future', pill:away(27 - wk), when };
+    if (wk <= 36) return { cls:'', pill:'Due now · book it', when };
+    return { cls:'upcoming', pill:'Missed? Ask at your next visit', when:'Best at weeks 27–36 · You\'re at week ' + wk + '. It can still be given now.' };
+  }
+  if (id === 'vax-3') {
+    if (born) return { cls:'future', pill:'Ask about baby\'s RSV shot', when:'If you didn\'t have the RSV vaccine in pregnancy, baby can get an RSV antibody shot, usually before or during their first RSV season.' };
+    if (!wk) return { cls:'future', pill:'Weeks 32–36' };
+    const inSeason = d => [8, 9, 10, 11, 0].includes(d.getMonth()); // September–January
+    const at = w => { const d = new Date(); d.setDate(d.getDate() + (w - wk) * 7); return d; };
+    const when = 'Weeks 32–36, September to January · You\'re at week ' + wk + '. Or baby can get an RSV antibody shot after birth instead.';
+    if (wk < 32) {
+      const seasonal = inSeason(at(32)) || inSeason(at(36));
+      return seasonal ? { cls:wk >= 28 ? 'upcoming' : 'future', pill:away(32 - wk), when }
+                      : { cls:'future', pill:'Out of season then · baby shot instead', when };
+    }
+    if (wk <= 36) return inSeason(new Date()) ? { cls:'', pill:'Due now · book it', when } : { cls:'future', pill:'Out of season · baby shot instead', when };
+    return { cls:'future', pill:'Ask about baby\'s RSV shot', when };
+  }
+  return { cls:'', pill:'' };
+}
+function renderVacc(id) {
+  const el = document.getElementById(id); if (!el) return;
+  const st = vaccStatus(id), done = !!vaccDone[id];
+  el.classList.remove('upcoming', 'future');
+  if (st.cls && !done) el.classList.add(st.cls);
+  el.classList.toggle('done', done);
+  const pill = document.getElementById(id + '-pill'); if (pill) pill.textContent = done ? 'Done ✓' : st.pill;
+  const when = document.getElementById(id + '-when'); if (when && st.when) when.textContent = st.when;
+}
 function loadVaccDone() {
   try { vaccDone = JSON.parse(localStorage.getItem('bloom_vacc') || '{}'); } catch(e) { vaccDone = {}; }
-  ['vax-0','vax-1','vax-2','vax-3'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.toggle('done', !!vaccDone[id]);
-    const pill = document.getElementById(id + '-pill');
-    if (pill && vaccDone[id]) pill.textContent = 'Done ✓';
-  });
+  ['vax-0','vax-1','vax-2','vax-3'].forEach(renderVacc);
 }
 function toggleVacc(id) {
   vaccDone[id] = !vaccDone[id];
   try { localStorage.setItem('bloom_vacc', JSON.stringify(vaccDone)); } catch(e) {}
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.classList.toggle('done', !!vaccDone[id]);
-  const pill = document.getElementById(id + '-pill');
-  if (pill) {
-    const labels = { 'vax-0':'Due now', 'vax-1':'Upcoming · 9 weeks away', 'vax-2':'Discuss at next visit', 'vax-3':'Weeks 32–36' };
-    pill.textContent = vaccDone[id] ? 'Done ✓' : (labels[id] || '');
-  }
+  renderVacc(id);
   haptic();
 }
 
@@ -2160,6 +2187,7 @@ function renderTodayAppt() {
 }
 
 function refreshDashboard() {
+  loadVaccDone(); // vaccine timing follows her week
   const name     = obData.name || 'Customer';
   const dueDate  = obData.dueDate;
 
