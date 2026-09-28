@@ -16,7 +16,7 @@ AI Companion for Every Trimester
 
 **Description** (4000 chars max)
 ```
-Bloom is your all-in-one pregnancy and parenting companion — from the first trimester to toddlerhood. Beautiful, warm, and built around you.
+Bloom is your all-in-one pregnancy and parenting companion — from your first trimester through the first months after birth. Beautiful, warm, and built around you.
 
 PREGNANCY TRACKING
 Know exactly where you are in your journey. Week-by-week baby size comparisons, milestone cards, and a progress bar that shows how far you've come. Bloom updates automatically so you always see what's happening right now — at week 18 your baby is a sweet potato; at week 30, a cabbage.
@@ -74,7 +74,7 @@ AI-powered pregnancy tracker — meals, symptoms, kick counter & chat.
 
 **Full Description** (4000 chars max)
 ```
-Bloom is your all-in-one pregnancy and parenting companion — from first trimester to toddlerhood.
+Bloom is your all-in-one pregnancy and parenting companion — from your first trimester through the first months after birth.
 
 🤰 PREGNANCY TRACKING
 Week-by-week baby milestones with size comparisons, a progress bar, and your due date countdown. Always know exactly where you are in your journey.

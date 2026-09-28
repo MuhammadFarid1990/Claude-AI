@@ -1105,7 +1105,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
         </svg>
       </div>
       <div class="auth-logo" style="margin-bottom:.3rem">bloom</div>
-      <div style="font-size:.82rem;color:var(--ink-muted);margin-bottom:2.2rem;text-align:center;line-height:1.4">Your pregnancy to toddler companion</div>
+      <div style="font-size:.82rem;color:var(--ink-muted);margin-bottom:2.2rem;text-align:center;line-height:1.4">Your pregnancy &amp; postpartum companion</div>
 
       <div style="width:100%;display:flex;flex-direction:column;gap:.75rem">
         <button class="auth-btn" onclick="showScreen('signin')" style="font-size:.95rem;padding:.85rem">Sign In</button>
@@ -1440,7 +1440,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
             <div class="profile-sub">Due Feb 8, 2027 · Week 18 · T2</div>
             <div class="profile-sub" id="profileDiet" style="margin-top:.12rem">Mediterranean · No shellfish · No nuts</div>
             <div class="profile-sub" id="profileBody" style="margin-top:.12rem;display:none"></div>
-            <div class="sub-badge">✓ Pregnancy Pass</div>
+            <div class="sub-badge">✓ Pregnancy + Postpartum Pass</div>
           </div>
         </div>
         <button id="profileEditBtn" onclick="profileEdit()" style="font-size:.72rem;font-family:var(--f-b);font-weight:600;color:var(--rose);background:none;border:none;cursor:pointer;padding:.2rem .4rem;flex-shrink:0">Edit ✏️</button>
@@ -1659,34 +1659,26 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
       <div class="sec-title">Plans &amp; Pricing</div>
       <div style="display:flex;flex-direction:column;gap:.55rem;margin-top:.3rem">
 
-        <!-- Pregnancy Pass (active) -->
+        <!-- Pregnancy + Postpartum Pass (active) -->
         <div class="price-tier active-plan">
-          <div class="pt-badge">LAUNCH PRICE</div>
-          <div class="pt-name">Pregnancy Pass</div>
-          <div class="pt-price">$99 <span>one-time · reg. $149</span></div>
-          <div class="pt-desc">Full access: pregnancy, postpartum &amp; first 6 weeks. No subscription — priced for pregnancy's natural fixed duration.</div>
+          <div class="pt-badge">BEST VALUE</div>
+          <div class="pt-name">Pregnancy + Postpartum Pass</div>
+          <div class="pt-price">$99 <span>one-time · 15 months</span></div>
+          <div class="pt-desc">Everything for your whole pregnancy plus 6 months after birth. No subscription. Paying monthly for 15 months would be about $150, so you save about $50.</div>
           <button class="pt-btn" disabled>✓ Active on your account</button>
         </div>
 
-        <!-- Monthly fallback -->
+        <!-- Monthly -->
         <div class="price-tier">
           <div class="pt-name">Monthly Plan</div>
-          <div class="pt-price">$19.99 <span>/month · no commitment</span></div>
-          <div class="pt-desc">All features, cancel any time. Switch to the Pass and save $141.</div>
-          <button class="pt-btn" onclick="alert('You already have the Pregnancy Pass — the better deal! 🌸')">Switch to Monthly</button>
-        </div>
-
-        <!-- Infant & Toddler (upcoming) -->
-        <div class="price-tier future-plan">
-          <div class="pt-name">Infant &amp; Toddler Continuity</div>
-          <div class="pt-price">$9.99 <span>/month · Pass alumni rate</span></div>
-          <div class="pt-desc">Adaptive scheduling from newborn → toddler. Unlocks after your delivery date. Regular price $12.99/mo or $99/yr.</div>
-          <button class="pt-btn" onclick="alert('Infant & Toddler plan unlocks automatically after your due date. 👶')">Unlocks after delivery</button>
+          <div class="pt-price">$9.99 <span>/month · cancel any time</span></div>
+          <div class="pt-desc">Everything, in pregnancy and after birth. Stop whenever you like.</div>
+          <button class="pt-btn" onclick="alert('You already have the Pregnancy + Postpartum Pass: the better deal! 🌸')">Switch to Monthly</button>
         </div>
 
       </div>
       <div style="margin-top:.75rem;font-size:.65rem;color:var(--ink-muted);line-height:1.5;text-align:center">
-        All plans include full feature access · Secure checkout · Cancel monthly at any time
+        Both plans include every feature · Secure checkout · Cancel monthly at any time
       </div>
     </div>
 
