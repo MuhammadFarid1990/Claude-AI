@@ -179,6 +179,8 @@ window.Bloom3D = (function () {
                 upper:wpos('L_UpperArm').distanceTo(wpos('L_LowerArm')), fore:wpos('L_LowerArm').distanceTo(wpos('L_Hand')),
                 torso:wpos('C_Hips').distanceTo(wpos('L_UpperArm').add(wpos('R_UpperArm')).multiplyScalar(0.5)), hipDrop:wpos('C_Hips').y - wpos('L_UpperLeg').y };
     { const fa = wpos('L_Foot'), ft = wpos('L_ToeBase'); rig.footTilt = Math.atan2(fa.y - ft.y, Math.hypot(ft.x - fa.x, ft.z - fa.z)); } // toe joint sits below the ankle
+    rig.restWorld = new Map(); rig.bones.forEach(b => rig.restWorld.set(b.name, b.getWorldQuaternion(new T.Quaternion())));
+    rig.hipsRestY = rig.hips.getWorldPosition(new T.Vector3()).y;
     rig.get = get;
     return rig;
   }
@@ -424,7 +426,14 @@ window.Bloom3D = (function () {
     cam.position.copy((def.high ? new T.Vector3(0.45, 0.6, 1) : new T.Vector3(0.16, 0.1, 1)).normalize().multiplyScalar(700)); // side-lying moves are seen from a little higher
     cam.lookAt(0, 0, 0);
     cam.updateMatrixWorld(true);
-    const fig = { canvas, ctx:canvas.getContext('2d'), scene, cam, rig, extra, pregnant, frames:def.frames.map(f => fitFrame(rig, resolvePose(f))), snaps:{} };
+    const clip = def.clip && clips[def.clip];
+    const fig = { canvas, ctx:canvas.getContext('2d'), scene, cam, rig, extra, pregnant, frames:clip ? [] : def.frames.map(f => fitFrame(rig, resolvePose(f))), snaps:{} };
+    if (clip) {
+      fig.clip = clip;
+      fig.yawQ = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), (def.yaw == null ? 90 : def.yaw) * Math.PI / 180); // she faces +x like the other diagrams
+      fig.clipOrigin = { x:clip.p[0], z:clip.p[2] };
+    }
+    fig.duration = clip ? clip.frames / clip.fps * 1000 : fig.frames.length * SEG;
     const lo = new T.Vector2(Infinity, Infinity), hi = new T.Vector2(-Infinity, -Infinity), pt = new T.Vector3(), bb = new T.Box3();
     const grow = (p, pad) => {
       pt.copy(p).applyMatrix4(cam.matrixWorldInverse);
@@ -442,15 +451,15 @@ window.Bloom3D = (function () {
     // Nothing may sink below the floor: find the lowest point of the body over the move and lift it clear.
     fig.lift = 0;
     if (def.prop !== 'water') {
-      let minY = 0; const v = new T.Vector3(), skins = [];
+      let minY = fig.clip ? Infinity : 0; const v = new T.Vector3(), skins = []; // clips are also brought down onto the floor
       rig.root.traverse(o => { if (o.isSkinnedMesh && o.visible && /SKIN|Tops|Shoes/.test(o.material.name)) skins.push(o); });
-      for (let ms = 0; ms < fig.frames.length * SEG; ms += 130) {
+      for (let ms = 0; ms < fig.duration; ms += 130) {
         poseTime(fig, ms); rig.root.updateMatrixWorld(true);
         skins.forEach(m => { const n = m.geometry.attributes.position.count; for (let k = 0; k < n; k += 7) { m.getVertexPosition(k, v); v.applyMatrix4(m.matrixWorld); if (v.y < minY) minY = v.y; } });
       }
       fig.lift = -minY;
     }
-    for (let ms = 0; ms < fig.frames.length * SEG; ms += 100) { poseTime(fig, ms); fitAll(); }
+    for (let ms = 0; ms < fig.duration; ms += 100) { poseTime(fig, ms); fitAll(); }
     let w = (hi.x - lo.x) * 1.1, h = (hi.y - lo.y) * 1.12;
     const aspect = Math.max(1.2, Math.min(2.2, w / h));
     if (w / h > aspect) h = w / aspect; else w = h * aspect;
@@ -524,11 +533,50 @@ window.Bloom3D = (function () {
     return o;
   }
 
+  // ── Motion-capture clips (Mixamo, converted by the bake script) ───────────
+  const clips = {};
+  function loadClips(names, done) {
+    const todo = [...new Set(names)].filter(n => n && !(n in clips)); // a clip that failed is remembered as null (keyframes play instead)
+    if (!todo.length) { done(); return; }
+    let left = todo.length;
+    todo.forEach(n => fetch('content/mocap/' + n + '.json?v=1').then(r => r.json()).then(j => {
+      const raw = Uint8Array.from(atob(j.q), c => c.charCodeAt(0));
+      const iq = new Int16Array(raw.buffer), nb = j.bones.length;
+      j.world = []; // per frame, per bone: source world rotation
+      for (let f = 0; f < j.frames; f++) j.world.push(j.bones.map((b, i) => new T.Quaternion(iq[(f * nb + i) * 4] / 32767, iq[(f * nb + i) * 4 + 1] / 32767, iq[(f * nb + i) * 4 + 2] / 32767, iq[(f * nb + i) * 4 + 3] / 32767).normalize()));
+      j.restInv = j.rest.map(r => new T.Quaternion(...r).invert());
+      clips[n] = j;
+    }).catch(() => { clips[n] = null; }).finally(() => { if (--left === 0) done(); }));
+  }
+  // Retargets the clip onto the avatar: each bone takes the source bone's rotation away from
+  // its own rest pose, so any rig in T-pose maps cleanly; the hips follow the source, scaled to her height.
+  function poseClip(fig, ms) {
+    const c = fig.clip, rig = fig.rig, dur = c.frames / c.fps * 1000;
+    const tf = ((ms % dur) / 1000) * c.fps, f0 = Math.floor(tf) % c.frames, f1 = (f0 + 1) % c.frames, t = tf - Math.floor(tf);
+    rig.bones.forEach(b => b.quaternion.copy(rig.rest.get(b)));
+    rig.root.position.set(0, 0, 0); rig.root.quaternion.identity(); rig.root.updateMatrixWorld(true);
+    const Y = fig.yawQ, Yi = Y.clone().invert(), q = new T.Quaternion();
+    c.bones.forEach((bn, i) => {
+      const bone = rig.get(B(bn)); if (!bone) return;
+      q.slerpQuaternions(c.world[f0][i], c.world[f1][i], t).multiply(c.restInv[i]);   // source delta from rest
+      const tw = Y.clone().multiply(q).multiply(Yi).multiply(rig.restWorld.get(bone.name)); // in our scene, on her rest pose
+      bone.quaternion.copy(bone.parent.getWorldQuaternion(new T.Quaternion()).invert().multiply(tw));
+      bone.updateMatrixWorld(true);
+    });
+    const s = rig.hipsRestY / c.legRef, P = new T.Vector3(
+      c.p[f0 * 3] + (c.p[f1 * 3] - c.p[f0 * 3]) * t, c.p[f0 * 3 + 1] + (c.p[f1 * 3 + 1] - c.p[f0 * 3 + 1]) * t, c.p[f0 * 3 + 2] + (c.p[f1 * 3 + 2] - c.p[f0 * 3 + 2]) * t);
+    P.sub(new T.Vector3(fig.clipOrigin.x, 0, fig.clipOrigin.z)).multiplyScalar(s).applyQuaternion(Y);
+    rig.root.position.add(P.sub(rig.hips.getWorldPosition(new T.Vector3())));
+    rig.root.updateMatrixWorld(true);
+    rig.aims.forEach(a => aimTo(a, a.child.getWorldPosition(new T.Vector3()).sub(a.bone.getWorldPosition(new T.Vector3()))));
+    fig.lastFront = false; placeExtras(fig, false); fig.extra.ring.visible = false;
+  }
+
   // Plays the move at time ms. Between keyframes seen from different angles (e.g. rolling from the
   // back onto the side) the joints turn smoothly from one solved pose to the next instead of blending drawings.
   const SEG = 1300, MOVE = 1000;
   function poseTime(fig, ms) {
-    poseTimeRaw(fig, ms);
+    if (fig.clip) poseClip(fig, ms); else poseTimeRaw(fig, ms);
     if (fig.lift) { fig.rig.root.position.y += fig.lift; fig.rig.root.updateMatrixWorld(true); placeExtras(fig, fig.lastFront); if (fig.extra.ring.visible) fig.extra.ring.position.y += fig.lift; }
   }
   function poseTimeRaw(fig, ms) {
@@ -584,5 +632,5 @@ window.Bloom3D = (function () {
     fig.scene.traverse(o => { if (o.isMesh && o.geometry && (!o.isSkinnedMesh || o.userData.ownGeometry)) o.geometry.dispose(); });
   }
 
-  return { supported, loadAvatar, create, pose, poseTime, render, dispose };
+  return { supported, loadAvatar, loadClips, create, pose, poseTime, render, dispose };
 })();

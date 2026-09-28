@@ -3756,7 +3756,7 @@ function loadThree(done) {
   threeState = 1;
   const finish = ok => { if (threeState !== 1) return; threeState = ok ? 2 : 3; threeWaiters.splice(0).forEach(f => f()); };
   const add = (src, next) => { const sc = document.createElement('script'); sc.src = src; sc.onload = next; sc.onerror = () => finish(false); document.head.appendChild(sc); };
-  add('content/vendor/three.min.js?v=160', () => add('content/vendor/GLTFLoader.js?v=160', () => add('content/vendor/SkeletonUtils.js?v=160', () => add('content/figure3d.js?v=15', () => {
+  add('content/vendor/three.min.js?v=160', () => add('content/vendor/GLTFLoader.js?v=160', () => add('content/vendor/SkeletonUtils.js?v=160', () => add('content/figure3d.js?v=16', () => {
     if (!window.Bloom3D || !Bloom3D.supported()) { finish(false); return; }
     Bloom3D.loadAvatar(av => finish(!!av));
   }))));
@@ -3802,6 +3802,14 @@ function initMoveAnims(root, force2D) {
     return;
   }
   const use3D = threeState === 2;
+  // Moves with a motion-capture clip load it first (placeholders meanwhile); missing clips fall back to keyframes.
+  const clipNames = use3D ? svgs.map(s => (BLOOM_DAILY.anim[s.dataset.a] || {}).clip).filter(Boolean) : [];
+  if (clipNames.length && !force2D) {
+    let sync = true, ready = false;
+    Bloom3D.loadClips(clipNames, () => { ready = true; if (!sync && sheetOpen()) initMoveAnims(root); });
+    sync = false;
+    if (!ready) { svgs.forEach(svg => svg.classList.add('anim-wait')); return; }
+  }
   svgs.forEach(svg => {
     svg.classList.remove('anim-wait');
     let f = null;

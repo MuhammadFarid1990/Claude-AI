@@ -6,11 +6,13 @@
     "build": "mkdir -p www && cp index.html www/index.html && cp sw.js www/sw.js && cp privacy.html www/privacy.html",
     "sync": "npm run build && npx cap sync",
     "open:ios": "npm run sync && npx cap open ios",
-    "open:android": "npm run sync && npx cap open android"
+    "open:android": "npm run sync && npx cap open android",
+    "mocap": "node tools/bake-mocap.mjs"
   },
   "devDependencies": {
     "playwright": "^1.63.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "three": "0.160.0"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
