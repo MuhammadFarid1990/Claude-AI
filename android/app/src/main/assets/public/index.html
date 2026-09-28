@@ -1812,7 +1812,7 @@ button, [onclick], .tab, .day-chip, .sym-chip, .mood-opt, .option-chip, .me-sec-
 <script src="content/baby.js?v=1"></script>
 <script src="content/newborn.js?v=1"></script>
 <script src="content/schedule.js?v=2"></script>
-<script src="content/anim.js?v=6"></script>
+<script src="content/anim.js?v=7"></script>
 <script>
 /* ── Login / Onboard ───────────────────────────── */
 let obStep = 0;
@@ -3790,7 +3790,7 @@ function loadThree(done) {
   threeState = 1;
   const finish = ok => { if (threeState !== 1) return; threeState = ok ? 2 : 3; threeWaiters.splice(0).forEach(f => f()); };
   const add = (src, next) => { const sc = document.createElement('script'); sc.src = src; sc.onload = next; sc.onerror = () => finish(false); document.head.appendChild(sc); };
-  add('content/vendor/three.min.js?v=160', () => add('content/vendor/GLTFLoader.js?v=160', () => add('content/vendor/SkeletonUtils.js?v=160', () => add('content/figure3d.js?v=17', () => {
+  add('content/vendor/three.min.js?v=160', () => add('content/vendor/GLTFLoader.js?v=160', () => add('content/vendor/SkeletonUtils.js?v=160', () => add('content/figure3d.js?v=18', () => {
     if (!window.Bloom3D || !Bloom3D.supported()) { finish(false); return; }
     Bloom3D.loadAvatar(av => finish(!!av));
   }))));

@@ -306,7 +306,11 @@ window.Bloom3D = (function () {
     const pelvisFront = f2.clone();
     rig.leftW = left;
     [2, 1].forEach(i => {
-      const sd = front ? (i === 1 ? 'L' : 'R') : (i === 1 ? 'R' : 'L'), g = k => V(q[k + i]);
+      const sd = front ? (i === 1 ? 'L' : 'R') : (i === 1 ? 'R' : 'L');
+      // In side views the drawing has no depth, so keep each arm and leg in line with its own shoulder or hip
+      // (otherwise both hands meet in the middle of the body, in front of the bump).
+      const armZ = wp(rig.spec[sd + 'UpperArm'].bone).z, legZ = wp(rig.spec[sd + 'UpperLeg'].bone).z;
+      const g = k => { const v = V(q[k + i]); if (!front) v.z = /^[aew]$/.test(k) ? armZ : /^[rkft]$/.test(k) ? legZ : 0; return v; };
       const out = sd === 'L' ? left.clone() : left.clone().negate();
       const fold = folds[i - 1], th = rig.spec[sd + 'UpperLeg'];
       if (fold) {
@@ -437,14 +441,15 @@ window.Bloom3D = (function () {
     cam.position.copy((def.high ? new T.Vector3(0.45, 0.6, 1) : new T.Vector3(0.16, 0.1, 1)).normalize().multiplyScalar(700)); // side-lying moves are seen from a little higher
     cam.lookAt(0, 0, 0);
     cam.updateMatrixWorld(true);
-    const clip = def.clip && clips[def.clip];
-    const fig = { canvas, ctx:canvas.getContext('2d'), scene, cam, rig, extra, pregnant, frames:clip ? [] : def.frames.map(f => fitFrame(rig, resolvePose(f))), snaps:{} };
+    const clip = def.clip && clips[def.clip], proc = def.proc && PROC[def.proc];
+    const fig = { canvas, ctx:canvas.getContext('2d'), scene, cam, rig, extra, pregnant, frames:clip || proc ? [] : def.frames.map(f => fitFrame(rig, resolvePose(f))), snaps:{} };
+    if (proc) { fig.proc = proc; fig.yawQ = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), (def.yaw == null ? 30 : def.yaw) * Math.PI / 180); }
     if (clip) {
       fig.clip = clip;
       fig.yawQ = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), (def.yaw == null ? 90 : def.yaw) * Math.PI / 180); // she faces +x like the other diagrams
       fig.clipOrigin = { x:clip.p[0], z:clip.p[2] };
     }
-    fig.duration = clip ? clip.frames / clip.fps * 1000 : fig.frames.length * SEG;
+    fig.duration = clip ? clip.frames / clip.fps * 1000 : proc ? proc.dur : fig.frames.length * SEG;
     const lo = new T.Vector2(Infinity, Infinity), hi = new T.Vector2(-Infinity, -Infinity), pt = new T.Vector3(), bb = new T.Box3();
     const grow = (p, pad) => {
       pt.copy(p).applyMatrix4(cam.matrixWorldInverse);
@@ -462,7 +467,7 @@ window.Bloom3D = (function () {
     // Nothing may sink below the floor: find the lowest point of the body over the move and lift it clear.
     fig.lift = 0;
     if (def.prop !== 'water') {
-      let minY = fig.clip ? Infinity : 0; const v = new T.Vector3(), skins = []; // clips are also brought down onto the floor
+      let minY = fig.clip || fig.proc ? Infinity : 0; const v = new T.Vector3(), skins = []; // clips are also brought down onto the floor
       rig.root.traverse(o => { if (o.isSkinnedMesh && o.visible && /SKIN|Tops|Shoes/.test(o.material.name)) skins.push(o); });
       for (let ms = 0; ms < fig.duration; ms += 130) {
         poseTime(fig, ms); rig.root.updateMatrixWorld(true);
@@ -585,11 +590,43 @@ window.Bloom3D = (function () {
     fig.lastFront = false; placeExtras(fig, false); fig.extra.ring.visible = false;
   }
 
+  // ── Procedural moves: small movements a flat drawing can't show (shoulder circles, ear-to-shoulder tilts) ──
+  const smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+  const PROC = {
+    // 3 slow backward shoulder rolls, then ear toward the right shoulder, then the left, each held.
+    shoulders:{ dur:9600, at(ms) {
+      const roll = 1600, rolls = 3 * roll, o = { up:0, back:0, tilt:0 };
+      if (ms < rolls) { const p = (ms % roll) / roll * 2 * Math.PI; o.up = Math.sin(p); o.back = -Math.cos(p) * Math.min(1, ms / 400, (rolls - ms) / 400); }
+      else { const t = ms - rolls, half = (9600 - rolls) / 2, k = t < half ? t : t - half, env = smooth(k / 500) * smooth((half - k) / 500); o.tilt = (t < half ? 1 : -1) * env; }
+      return o;
+    } }
+  };
+  function poseProc(fig, ms) {
+    const rig = fig.rig, Y = fig.yawQ, st = fig.proc.at(((ms % fig.proc.dur) + fig.proc.dur) % fig.proc.dur);
+    rig.bones.forEach(b => b.quaternion.copy(rig.rest.get(b)));
+    rig.root.position.set(0, 0, 0); rig.root.quaternion.copy(Y); rig.root.updateMatrixWorld(true);
+    const setWorld = (bone, q) => { bone.quaternion.copy(bone.parent.getWorldQuaternion(new T.Quaternion()).invert().multiply(q)); bone.updateMatrixWorld(true); };
+    const ax = (x, y, z) => new T.Vector3(x, y, z).applyQuaternion(Y);
+    const rot = (axis, deg) => new T.Quaternion().setFromAxisAngle(axis, deg * Math.PI / 180);
+    ['L', 'R'].forEach(sd => {
+      const s = sd === 'L' ? 1 : -1, sh = rig.get(B(sd + '_Shoulder'));
+      // shoulder circle: up/down about the front axis, back/forward about the vertical axis
+      if (sh) setWorld(sh, rot(ax(0, 0, 1), s * 30 * st.up).multiply(rot(ax(0, 1, 0), s * 26 * st.back)).multiply(Y.clone().multiply(rig.restWorld.get(sh.name))));
+      aimTo(rig.spec[sd + 'UpperArm'], ax(s * 0.14, -1, -0.02));                 // arms hang relaxed at her sides
+      aimTo(rig.spec[sd + 'LowerArm'], ax(s * 0.06, -1, 0.22));
+      aimTo(rig.spec[sd + 'Hand'], ax(s * 0.04, -1, 0.15));
+    });
+    const tiltAxis = ax(0, 0, 1);
+    ['C_Neck', 'C_Head'].forEach((n, k) => { const b = rig.get(B(n)); if (b) setWorld(b, rot(tiltAxis, st.tilt * (k ? 12 : 16)).multiply(b.getWorldQuaternion(new T.Quaternion()))); });
+    rig.aims.forEach(a => aimTo(a, a.child.getWorldPosition(new T.Vector3()).sub(a.bone.getWorldPosition(new T.Vector3()))));
+    fig.lastFront = false; placeExtras(fig, false); fig.extra.ring.visible = false;
+  }
+
   // Plays the move at time ms. Between keyframes seen from different angles (e.g. rolling from the
   // back onto the side) the joints turn smoothly from one solved pose to the next instead of blending drawings.
   const SEG = 1300, MOVE = 1000;
   function poseTime(fig, ms) {
-    if (fig.clip) poseClip(fig, ms); else poseTimeRaw(fig, ms);
+    if (fig.clip) poseClip(fig, ms); else if (fig.proc) poseProc(fig, ms); else poseTimeRaw(fig, ms);
     if (fig.lift) { fig.rig.root.position.y += fig.lift; fig.rig.root.updateMatrixWorld(true); placeExtras(fig, fig.lastFront); if (fig.extra.ring.visible) fig.extra.ring.position.y += fig.lift; }
   }
   function poseTimeRaw(fig, ms) {
