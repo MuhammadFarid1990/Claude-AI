@@ -1931,7 +1931,7 @@ const obSteps = [
   },
   {
     render() {
-      const opts = ['🫒 Mediterranean','🥦 Vegetarian','🌱 Vegan','🍽️ Eats everything','🥛 Dairy-free','🌾 Gluten-free','🦐 No shellfish','🥜 No nuts'];
+      const opts = ['🫒 Mediterranean','🥦 Vegetarian','🌱 Vegan','🥩 Omnivore','🥛 Dairy-free','🌾 Gluten-free','🦐 No shellfish','🥜 No nuts'];
       return `
         <div>
           <div style="font-size:1.8rem;margin-bottom:.35rem">🥗</div>
@@ -2446,7 +2446,7 @@ function profileSave() {
 }
 
 /* ── Diet & Goals edit ──────────────────────────── */
-const dietOpts  = ['🫒 Mediterranean','🥦 Vegetarian','🌱 Vegan','🍽️ Eats everything','🥛 Dairy-free','🌾 Gluten-free','🦐 No shellfish','🥜 No nuts'];
+const dietOpts  = ['🫒 Mediterranean','🥦 Vegetarian','🌱 Vegan','🥩 Omnivore','🥛 Dairy-free','🌾 Gluten-free','🦐 No shellfish','🥜 No nuts'];
 const goalsOpts = ['🥗 Nutrition','❤️ Symptoms','👶 Baby dev','😴 Sleep tips','💬 Doctor prep','🌸 Wellness','🏃 Fitness','💊 Supplements'];
 
 function dgEdit() {
@@ -4101,7 +4101,7 @@ function loadState() {
   try {
     const ob = localStorage.getItem('bloom_ob');
     if (ob) Object.assign(obData, JSON.parse(ob));
-    if (Array.isArray(obData.diet)) obData.diet = obData.diet.map(d => /Omnivore/.test(d) ? '🍽️ Eats everything' : d); // renamed option
+    if (Array.isArray(obData.diet)) obData.diet = obData.diet.map(d => /Eats everything/.test(d) ? '🥩 Omnivore' : d); // back to the original label
     const dq = localStorage.getItem('bloom_docqs');
     if (dq) docQs = JSON.parse(dq);
     const ap = localStorage.getItem('bloom_appts');
