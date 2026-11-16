@@ -44,7 +44,7 @@
   .side p { margin: 0; font-size: 1.6cqw; line-height: 1.4; }
   #words { position: relative; z-index: 2; flex: 1; min-width: 0; overflow: hidden; color: var(--yellow); padding: 10cqw; display: flex; flex-direction: column; justify-content: center; transition: opacity .8s; }
   #words .lead { font-weight: 300; font-size: 5.6cqw; line-height: 0.98; text-wrap: balance; } #words .txt { font-weight: 700; font-size: 5.6cqw; line-height: 0.98; text-wrap: balance; margin-top: 0.08em; }
-  #words .nm { margin-top: 0.75em; font-weight: 700; font-size: 4.2cqw; line-height: 1.15; } #words .sc { font-weight: 700; font-size: 4.2cqw; line-height: 1.15; margin-top: 0.3em; } #words .wait { font-size: 3.4cqw; opacity: .6; }
+  #words .nm { margin-top: 0.75em; font-weight: 700; font-size: 4.2cqw; line-height: 1.15; } #words .sc { font-weight: 300; font-size: 4.2cqw; line-height: 1.15; margin-top: 0.3em; } #words .wait { font-size: 3.4cqw; opacity: .6; }
   .card2 { text-shadow: 0 0 .35cqw #1d4ba9, 0 0 .7cqw #1d4ba9, 0 0 1.2cqw #1d4ba9, 0 0 1.2cqw #1d4ba9, 0 0 2.4cqw #1d4ba9, 0 0 2.4cqw #1d4ba9, 0 0 4cqw #1d4ba9; }
   .sun, .blob { position: absolute; left: 0; top: 0; border-radius: 50%; pointer-events: none; will-change: transform; }
   .sun { width: 100cqw; height: 100cqw; z-index: 1;
@@ -197,7 +197,7 @@ function esc(s) { return String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;"
 function v(id, k) { const e = document.getElementById(k + id); return e ? e.value : ""; }
 function mini(id) {
   const m = document.getElementById("m" + id); if (!m) return;
-  m.innerHTML = `<span style="font-weight:300">${cap(v(id,"w"))}</span><br><b>${esc(v(id,"c"))}</b><div style="margin-top:8px;font-size:.8rem"><b>${esc(v(id,"n"))}<br>${esc(v(id,"s"))}</b></div>`;
+  m.innerHTML = `<span style="font-weight:300">${cap(v(id,"w"))}</span><br><b>${esc(v(id,"c"))}</b><div style="margin-top:8px;font-size:.8rem"><b>${esc(v(id,"n"))}</b><br><span style="font-weight:300">${esc(v(id,"s"))}</span></div>`;
 }
 
 function render() {
