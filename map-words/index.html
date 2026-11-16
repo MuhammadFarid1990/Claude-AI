@@ -96,7 +96,7 @@
 
   <section class="panel">
     <h2><span class="step">2</span>Step 2</h2>
-    <div class="body" id="pending"><div class="empty">Nothing waiting. Send something from the tablet.</div></div>
+    <div class="body" id="pending"></div>
   </section>
 
   <section class="panel">
@@ -196,7 +196,7 @@ function mini(id) {
 
 function render() {
   const el = document.getElementById("pending");
-  if (!pending.length) { el.innerHTML = '<div class="empty">Nothing waiting. Send something from the tablet.</div>'; return; }
+  if (!pending.length) { el.innerHTML = ''; return; }
   el.innerHTML = pending.map(i => `
     <div class="card">
       <div class="orig">Student wrote: ${i.image ? "(photo)" : esc(i.text)}</div>
