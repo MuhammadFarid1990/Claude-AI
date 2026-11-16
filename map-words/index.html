@@ -66,6 +66,11 @@
   .lbl { font-size: .78rem; font-weight: 700; margin-bottom: -6px; }
   .mini { background: var(--yellow); border-radius: 10px; padding: 12px; color: var(--blue); margin-top: 8px; }
   .step { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background: var(--blue); color: #fff; border-radius: 50%; font-size: .75rem; margin-right: 6px; }
+  .popout { background: var(--blue); color: #fff; margin: 0 18px 12px; }
+  body.screenmode { background: #000; overflow: hidden; }
+  body.screenmode header, body.screenmode footer, body.screenmode .panel > :not(.screen) { display: none; }
+  body.screenmode .panel { display: contents; }
+  body.screenmode .flow > .panel:not(.proj) { display: none; }
   footer { max-width: 1280px; margin: 0 auto; padding: 0 24px 40px; color: #6d665b; font-size: .92rem; line-height: 1.55; }
   footer ul { padding-left: 18px; margin: 6px 0; }
 </style>
@@ -99,9 +104,10 @@
     <div class="body" id="pending"></div>
   </section>
 
-  <section class="panel">
+  <section class="panel proj">
     <h2><span class="step">3</span>Projector</h2>
     <h3>Approved sentences, cycling</h3>
+    <button class="popout" id="popout">Open projector window</button>
     <div class="screen" id="screen"><div class="sq">
       <div class="blob b1"></div><div class="blob b2"></div><div class="sun"></div><div id="words"></div></div>
       <button class="fsbtn" id="fs">Full screen</button>
@@ -220,8 +226,22 @@ function render() {
 function decide(id, ok) {
   const entry = { who: v(id, "w"), clean: v(id, "c").trim(), names: v(id, "n").trim(), school: v(id, "s").trim() };
   pending = pending.filter(p => p.id !== id); render();
-  if (ok && entry.clean) { approved.push(entry); idx = approved.length - 1; show(approved[idx]); }
+  if (ok && entry.clean) { approved.push(entry); idx = approved.length - 1; show(approved[idx]); sync(true); }
 }
+
+// Projector window: same page opened with ?screen, kept in step on this computer
+const SCREEN_MODE = new URLSearchParams(location.search).has("screen");
+let bc = null; try { bc = new BroadcastChannel("map-words"); } catch (e) {}
+function sync(isNew) { if (bc && !SCREEN_MODE) bc.postMessage({ type: "list", approved, isNew }); }
+if (bc) bc.onmessage = ({ data }) => {
+  if (SCREEN_MODE && data.type === "list") {
+    approved = data.approved;
+    if (data.isNew || !shownAny) { idx = approved.length - 1; if (idx >= 0) { shownAny = true; show(approved[idx]); } }
+  }
+  if (!SCREEN_MODE && data.type === "hello") sync(false);
+};
+let shownAny = false;
+document.getElementById("popout").onclick = () => window.open(location.pathname + "?screen", "map-words-screen", "width=900,height=900");
 
 const words = document.getElementById("words");
 let shown = 0;
@@ -261,8 +281,17 @@ words.innerHTML = '<div class="wait">Waiting for approved sentences</div>';
 setInterval(() => { if (approved.length > 1) { idx = (idx + 1) % approved.length; show(approved[idx]); } }, 6000);
 
 const screen = document.getElementById("screen");
+if (SCREEN_MODE) {
+  document.title = "MAP Words projector";
+  document.body.classList.add("screenmode"); screen.classList.add("full");
+  if (bc) bc.postMessage({ type: "hello" });
+}
 document.getElementById("fs").onclick = (e) => {
   e.stopPropagation();
+  if (SCREEN_MODE) {
+    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {});
+    return;
+  }
   screen.classList.toggle("full");
   document.getElementById("fs").textContent = screen.classList.contains("full") ? "Exit full screen" : "Full screen";
 };
