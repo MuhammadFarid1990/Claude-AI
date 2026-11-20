@@ -67,6 +67,7 @@
   .mini { background: var(--yellow); border-radius: 10px; padding: 12px; color: var(--blue); margin-top: 8px; }
   .step { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background: var(--blue); color: #fff; border-radius: 50%; font-size: .75rem; margin-right: 6px; }
   .popout { background: var(--blue); color: #fff; margin: 0 18px 12px; }
+  .clearall { background: transparent; color: #a33; font-size: .8rem; font-weight: 400; margin: -6px 18px 10px; padding: 4px 0; text-align: left; text-decoration: underline; }
   body.screenmode { background: #000; overflow: hidden; }
   body.screenmode header, body.screenmode footer, body.screenmode .panel > :not(.screen) { display: none; }
   body.screenmode .panel { display: contents; }
@@ -108,6 +109,7 @@
     <h2><span class="step">3</span>Projector</h2>
     <h3>Approved sentences, cycling</h3>
     <button class="popout" id="popout">Open projector window</button>
+    <button class="clearall" id="clearall">Clear all sentences</button>
     <div class="screen" id="screen"><div class="sq">
       <div class="blob b1"></div><div class="blob b2"></div><div class="sun"></div><div id="words"></div></div>
       <button class="fsbtn" id="fs">Full screen</button>
@@ -226,7 +228,7 @@ function render() {
 function decide(id, ok) {
   const entry = { who: v(id, "w"), clean: v(id, "c").trim(), names: v(id, "n").trim(), school: v(id, "s").trim() };
   pending = pending.filter(p => p.id !== id); render();
-  if (ok && entry.clean) { approved.push(entry); idx = approved.length - 1; show(approved[idx]); sync(true); }
+  if (ok && entry.clean) { approved.push(entry); idx = approved.length - 1; show(approved[idx]); sync(true); save(); }
 }
 
 // Projector window: same page opened with ?screen, kept in step on this computer
@@ -295,6 +297,26 @@ document.getElementById("fs").onclick = (e) => {
   screen.classList.toggle("full");
   document.getElementById("fs").textContent = screen.classList.contains("full") ? "Exit full screen" : "Full screen";
 };
+
+// Approved sentences are saved on this computer, so a refresh, crash or restart doesn't lose them
+const STORE = "map-words-approved";
+function save() { try { localStorage.setItem(STORE, JSON.stringify(approved)); } catch (e) {} }
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE) || "[]");
+  if (Array.isArray(saved) && saved.length && !approved.length) { approved = saved; idx = 0; shownAny = true; show(approved[0]); }
+} catch (e) {}
+document.getElementById("clearall").onclick = () => {
+  if (!approved.length || !confirm("Remove all " + approved.length + " approved sentences from the projector? Use this only to start a new event.")) return;
+  approved = []; idx = 0; save(); sync(false);
+  words.innerHTML = '<div class="wait">Waiting for approved sentences</div>';
+};
+if (bc) bc.addEventListener("message", ({ data }) => {
+  if (SCREEN_MODE && data.type === "list" && !data.approved.length) words.innerHTML = '<div class="wait">Waiting for approved sentences</div>';
+});
+
+// Keep the screen from sleeping during the event
+async function wake() { try { if ("wakeLock" in navigator && document.visibilityState === "visible") await navigator.wakeLock.request("screen"); } catch (e) {} }
+wake(); document.addEventListener("visibilitychange", wake);
 </script>
 </body>
 </html>
