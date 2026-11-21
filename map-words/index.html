@@ -56,8 +56,11 @@
   @keyframes blob1 { 0% { transform: translate(-25cqw,25cqw); } 25% { transform: translate(-10cqw,40cqw); } 50% { transform: translate(30cqw,38cqw); } 75% { transform: translate(40cqw,36cqw); } 100% { transform: translate(28cqw,18cqw); } }
   @keyframes blob2 { 0% { transform: translate(38cqw,8cqw); opacity: .8; } 50% { transform: translate(50cqw,0cqw); opacity: .35; } 100% { transform: translate(20cqw,30cqw); opacity: .6; } }
   @media (prefers-reduced-motion: reduce) { .sun, .blob { animation-play-state: paused; } }
-  .screen.full { position: fixed; inset: 0; margin: 0; border-radius: 0; z-index: 10; background: #000; }
-  .screen.full .sq { width: min(100vw, 100vh); height: min(100vw, 100vh); }
+  .screen.full { position: fixed; inset: 0; margin: 0; border-radius: 0; z-index: 10; background: #1d4ba9; }
+  .screen.full.idle, .screen.full.idle * { cursor: none; }
+  .screen.full.idle .fsbtn { opacity: 0; }
+  .fsbtn { transition: opacity .4s; }
+  .screen.full .sq { width: 100vw; height: 100vh; }
   .fsbtn { z-index: 5; position: absolute; right: 10px; bottom: 10px; background: #ffffff22; color: #ccc; font-size: .8rem; padding: 6px 10px; }
   .toggle { display: inline-flex; background: #fff; border: 2px solid var(--blue); border-radius: 999px; padding: 3px; }
   .toggle button { background: transparent; color: var(--blue); padding: 6px 12px; font-size: .82rem; border-radius: 999px; }
@@ -68,7 +71,7 @@
   .step { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background: var(--blue); color: #fff; border-radius: 50%; font-size: .75rem; margin-right: 6px; }
   .popout { background: var(--blue); color: #fff; margin: 0 18px 12px; }
   .clearall { background: transparent; color: #a33; font-size: .8rem; font-weight: 400; margin: -6px 18px 10px; padding: 4px 0; text-align: left; text-decoration: underline; }
-  body.screenmode { background: #000; overflow: hidden; }
+  body.screenmode { background: #1d4ba9; overflow: hidden; }
   body.screenmode header, body.screenmode footer, body.screenmode .panel > :not(.screen) { display: none; }
   body.screenmode .panel { display: contents; }
   body.screenmode .flow > .panel:not(.proj) { display: none; }
@@ -317,6 +320,11 @@ if (bc) bc.addEventListener("message", ({ data }) => {
 // Keep the screen from sleeping during the event
 async function wake() { try { if ("wakeLock" in navigator && document.visibilityState === "visible") await navigator.wakeLock.request("screen"); } catch (e) {} }
 wake(); document.addEventListener("visibilitychange", wake);
+
+// Hide the mouse pointer and the Full screen button when the mouse is still
+let idleT = null;
+function wakeMouse() { screen.classList.remove("idle"); clearTimeout(idleT); idleT = setTimeout(() => screen.classList.add("idle"), 2500); }
+document.addEventListener("mousemove", wakeMouse); wakeMouse();
 </script>
 </body>
 </html>
