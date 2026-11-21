@@ -120,7 +120,7 @@
 
   <section class="panel proj">
     <h2><span class="step">3</span>Projector</h2>
-    <h3>Approved sentences, cycling</h3>
+    <h3>Latest 20 approved sentences, cycling</h3>
     <button class="popout" id="popout">Open projector window</button>
     <div class="shape"><label for="shape">Board shape (adjust until letters look right on the board)</label>
       <div class="row" style="align-items:center"><input id="shape" type="range" min="0.5" max="2.5" step="0.01" value="1"><span id="shapeV">1.00</span><button id="shapeReset" class="shapebtn">Square</button><button id="shapeScreen" class="shapebtn">No squeeze</button></div></div>
@@ -295,7 +295,15 @@ function show(e) {
   }, 800);
 }
 words.innerHTML = '<div class="wait">Waiting for approved sentences</div>';
-setInterval(() => { if (approved.length > 1) { idx = (idx + 1) % approved.length; show(approved[idx]); } }, 6000);
+// The projector loops only the latest 20 approved sentences; older ones drop out of the loop
+const LOOP_SIZE = 20;
+function loopStart() { return Math.max(0, approved.length - LOOP_SIZE); }
+setInterval(() => {
+  if (approved.length - loopStart() > 1) {
+    idx++; if (idx >= approved.length || idx < loopStart()) idx = loopStart();
+    show(approved[idx]);
+  }
+}, 6000);
 
 const screen = document.getElementById("screen");
 if (SCREEN_MODE) {
@@ -319,7 +327,7 @@ const STORE = "map-words-approved";
 function save() { try { localStorage.setItem(STORE, JSON.stringify(approved)); } catch (e) {} }
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || "[]");
-  if (Array.isArray(saved) && saved.length && !approved.length) { approved = saved; idx = 0; shownAny = true; show(approved[0]); }
+  if (Array.isArray(saved) && saved.length && !approved.length) { approved = saved; idx = loopStart(); shownAny = true; show(approved[idx]); }
 } catch (e) {}
 document.getElementById("clearall").onclick = () => {
   if (!approved.length || !confirm("Remove all " + approved.length + " approved sentences from the projector? Use this only to start a new event.")) return;
