@@ -73,6 +73,13 @@
   .mini { font-family: "MAP Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; background: var(--yellow); border-radius: 10px; padding: 12px; color: var(--blue); margin-top: 8px; }
   .step { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background: var(--blue); color: #fff; border-radius: 50%; font-size: .75rem; margin-right: 6px; }
   .popout { background: var(--blue); color: #fff; margin: 0 18px 12px; }
+  .shape { margin: 0 18px 8px; font-size: .78rem; color: #6d665b; }
+  .shape input { flex: 1; min-width: 120px; accent-color: var(--blue); }
+  .shape span { width: 36px; font-variant-numeric: tabular-nums; }
+  .shapebtn { background: #fff; color: var(--blue); border: 1px solid var(--blue); padding: 4px 8px; font-size: .75rem; }
+  html:has(.screen.full), body:has(.screen.full), body.screenmode, html:has(body.screenmode) { overflow: hidden !important; scrollbar-width: none; }
+  .screen.full { overflow: hidden; }
+  body.screenmode::-webkit-scrollbar, html:has(.screen.full)::-webkit-scrollbar { display: none; }
   .clearall { background: transparent; color: #a33; font-size: .8rem; font-weight: 400; margin: -6px 18px 10px; padding: 4px 0; text-align: left; text-decoration: underline; }
   body.screenmode { background: #1d4ba9; overflow: hidden; }
   body.screenmode header, body.screenmode footer, body.screenmode .panel > :not(.screen) { display: none; }
@@ -115,6 +122,8 @@
     <h2><span class="step">3</span>Projector</h2>
     <h3>Approved sentences, cycling</h3>
     <button class="popout" id="popout">Open projector window</button>
+    <div class="shape"><label for="shape">Board shape (adjust until letters look right on the board)</label>
+      <div class="row" style="align-items:center"><input id="shape" type="range" min="0.5" max="2.5" step="0.01" value="1"><span id="shapeV">1.00</span><button id="shapeReset" class="shapebtn">Square</button><button id="shapeScreen" class="shapebtn">No squeeze</button></div></div>
     <button class="clearall" id="clearall">Clear all sentences</button>
     <div class="screen" id="screen"><div class="sq">
       <div class="blob b1"></div><div class="blob b2"></div><div class="sun"></div><div id="words"></div></div>
@@ -301,6 +310,7 @@ document.getElementById("fs").onclick = (e) => {
     return;
   }
   screen.classList.toggle("full");
+  fitBoard();
   document.getElementById("fs").textContent = screen.classList.contains("full") ? "Exit full screen" : "Full screen";
 };
 
@@ -328,6 +338,37 @@ wake(); document.addEventListener("visibilitychange", wake);
 let idleT = null;
 function wakeMouse() { screen.classList.remove("idle"); clearTimeout(idleT); idleT = setTimeout(() => screen.classList.add("idle"), 2500); }
 document.addEventListener("mousemove", wakeMouse); wakeMouse();
+
+// Board shape: the design is laid out at the board's width:height, then stretched to fill the
+// whole screen. When the projector squeezes the picture onto the board, the letters come out undistorted.
+const SHAPE = "map-words-shape";
+const shapeEl = document.getElementById("shape"), shapeV = document.getElementById("shapeV");
+function getShape() { try { const v = parseFloat(localStorage.getItem(SHAPE)); return v > 0 ? v : 1; } catch (e) { return 1; } }
+function fitBoard() {
+  const sq = screen.querySelector(".sq");
+  if (!screen.classList.contains("full")) { sq.style.cssText = ""; return; }
+  const H = 1000, W = Math.round(H * getShape());
+  sq.style.cssText = `position:absolute;left:0;top:0;width:${W}px;height:${H}px;transform-origin:0 0;transform:scale(${innerWidth / W},${innerHeight / H})`;
+  if (approved.length) show(approved[Math.min(idx, approved.length - 1)]);
+  if (SCREEN_MODE && bc) bc.postMessage({ type: "aspect", v: innerWidth / innerHeight });
+}
+function setShape(v, tell) {
+  v = Math.min(2.5, Math.max(0.5, +v || 1));
+  try { localStorage.setItem(SHAPE, String(v)); } catch (e) {}
+  shapeEl.value = v; shapeV.textContent = v.toFixed(2);
+  fitBoard();
+  if (tell && bc) bc.postMessage({ type: "shape", v });
+}
+shapeEl.oninput = () => setShape(shapeEl.value, true);
+document.getElementById("shapeReset").onclick = () => setShape(1, true);
+let projAspect = 16 / 9;  // reported by the projector window
+document.getElementById("shapeScreen").onclick = () => setShape(projAspect, true);
+if (bc) bc.addEventListener("message", ({ data }) => {
+  if (data.type === "shape") setShape(data.v, false);
+  if (data.type === "aspect" && !SCREEN_MODE) projAspect = data.v;
+});
+addEventListener("resize", () => { clearTimeout(window._rz); window._rz = setTimeout(fitBoard, 150); });
+setShape(getShape(), false);
 </script>
 </body>
 </html>
