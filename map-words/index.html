@@ -80,6 +80,13 @@
   html:has(.screen.full), body:has(.screen.full), body.screenmode, html:has(body.screenmode) { overflow: hidden !important; scrollbar-width: none; }
   .screen.full { overflow: hidden; }
   body.screenmode::-webkit-scrollbar, html:has(.screen.full)::-webkit-scrollbar { display: none; }
+  .alist { margin: 0 18px 18px; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+  .alist .it { display: flex; gap: 8px; align-items: center; border: 1px solid #eee7da; border-radius: 10px; padding: 8px 10px; font-size: .85rem; color: #3a362f; }
+  .alist .it.off { opacity: .5; }
+  .alist .it span { flex: 1; min-width: 0; }
+  .alist .it small { display: block; color: #8a8173; }
+  .alist .del { background: #f3dede; color: #a33; padding: 5px 10px; font-size: .78rem; }
+  .alist .hd { font-size: .78rem; font-weight: 700; color: var(--blue); }
   .clearall { background: transparent; color: #a33; font-size: .8rem; font-weight: 400; margin: -6px 18px 10px; padding: 4px 0; text-align: left; text-decoration: underline; }
   body.screenmode { background: #1d4ba9; overflow: hidden; }
   body.screenmode header, body.screenmode footer, body.screenmode .panel > :not(.screen) { display: none; }
@@ -125,6 +132,7 @@
     <div class="shape"><label for="shape">Board shape (adjust until letters look right on the board)</label>
       <div class="row" style="align-items:center"><input id="shape" type="range" min="0.5" max="2.5" step="0.01" value="1"><span id="shapeV">1.00</span><button id="shapeReset" class="shapebtn">Square</button><button id="shapeScreen" class="shapebtn">No squeeze</button></div></div>
     <button class="clearall" id="clearall">Clear all sentences</button>
+    <div class="alist" id="alist"></div>
     <div class="screen" id="screen"><div class="sq">
       <div class="blob b1"></div><div class="blob b2"></div><div class="sun"></div><div id="words"></div></div>
       <button class="fsbtn" id="fs">Full screen</button>
@@ -249,11 +257,15 @@ function decide(id, ok) {
 // Projector window: same page opened with ?screen, kept in step on this computer
 const SCREEN_MODE = new URLSearchParams(location.search).has("screen");
 let bc = null; try { bc = new BroadcastChannel("map-words"); } catch (e) {}
-function sync(isNew) { if (bc && !SCREEN_MODE) bc.postMessage({ type: "list", approved, isNew }); }
+function sync(isNew, deleted) { if (bc && !SCREEN_MODE) bc.postMessage({ type: "list", approved, isNew, deleted: !!deleted }); if (typeof renderList === "function") renderList(); }
 if (bc) bc.onmessage = ({ data }) => {
   if (SCREEN_MODE && data.type === "list") {
     approved = data.approved;
-    if (data.isNew || !shownAny) { idx = approved.length - 1; if (idx >= 0) { shownAny = true; show(approved[idx]); } }
+    if (data.isNew || !shownAny || data.deleted) {
+      idx = approved.length - 1;
+      if (idx >= 0) { shownAny = true; show(approved[idx]); }
+      else words.innerHTML = '<div class="wait">Waiting for approved sentences</div>';
+    }
   }
   if (!SCREEN_MODE && data.type === "hello") sync(false);
 };
@@ -300,7 +312,7 @@ const LOOP_SIZE = 20;
 function loopStart() { return Math.max(0, approved.length - LOOP_SIZE); }
 setInterval(() => {
   if (approved.length - loopStart() > 1) {
-    idx++; if (idx >= approved.length || idx < loopStart()) idx = loopStart();
+    idx--; if (idx < loopStart() || idx >= approved.length) idx = approved.length - 1;
     show(approved[idx]);
   }
 }, 6000);
@@ -327,7 +339,7 @@ const STORE = "map-words-approved";
 function save() { try { localStorage.setItem(STORE, JSON.stringify(approved)); } catch (e) {} }
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || "[]");
-  if (Array.isArray(saved) && saved.length && !approved.length) { approved = saved; idx = loopStart(); shownAny = true; show(approved[idx]); }
+  if (Array.isArray(saved) && saved.length && !approved.length) { approved = saved; idx = approved.length - 1; shownAny = true; show(approved[idx]); }
 } catch (e) {}
 document.getElementById("clearall").onclick = () => {
   if (!approved.length || !confirm("Remove all " + approved.length + " approved sentences from the projector? Use this only to start a new event.")) return;
@@ -377,6 +389,26 @@ if (bc) bc.addEventListener("message", ({ data }) => {
 });
 addEventListener("resize", () => { clearTimeout(window._rz); window._rz = setTimeout(fitBoard, 150); });
 setShape(getShape(), false);
+
+// Approved list with Delete, newest first
+function renderList() {
+  const el = document.getElementById("alist"); if (!el) return;
+  if (!approved.length) { el.innerHTML = ""; return; }
+  const start = loopStart();
+  el.innerHTML = '<div class="hd">Approved (' + approved.length + '), newest first</div>' +
+    approved.map((e, i) => ({ e, i })).reverse().map(({ e, i }) =>
+      `<div class="it${i < start ? " off" : ""}"><span>${esc(e.clean)}<small>${esc([e.names, e.school].filter(Boolean).join(" · "))}${i < start ? " (not in the latest 20)" : ""}</small></span><button class="del" onclick="delApproved(${i})">Delete</button></div>`).join("");
+}
+function delApproved(i) {
+  if (!confirm("Delete this sentence?\n\n" + approved[i].clean)) return;
+  const wasShowing = i === idx;
+  approved.splice(i, 1);
+  if (i < idx) idx--;
+  save(); sync(false, true);
+  if (!approved.length) { idx = 0; words.innerHTML = '<div class="wait">Waiting for approved sentences</div>'; }
+  else if (wasShowing || idx >= approved.length) { idx = approved.length - 1; show(approved[idx]); }
+}
+renderList();
 </script>
 </body>
 </html>
