@@ -318,15 +318,31 @@ setInterval(() => {
 }, 6000);
 
 const screen = document.getElementById("screen");
+function fsHint(on) {
+  let h = document.getElementById("fshint");
+  if (!h) {
+    h = document.createElement("div"); h.id = "fshint";
+    h.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:20;background:#fff;color:#1056B5;padding:22px 28px;border-radius:14px;font:600 1.3rem/1.4 Helvetica,Arial,sans-serif;text-align:center;box-shadow:0 10px 40px #0006;max-width:80vw";
+    h.innerHTML = 'Click here, then press <b>F11</b><br><span style="font-weight:400;font-size:1rem">On a Mac press <b>Control + Command + F</b>.<br>This full screen stays on when you approve sentences on the laptop.</span>';
+    h.onclick = () => fsHint(false);
+    document.body.appendChild(h);
+  }
+  h.style.display = on ? "block" : "none";
+}
+addEventListener("resize", () => { if (innerHeight >= window.screen.height - 2 && innerWidth >= window.screen.width - 2) fsHint(false); });
 if (SCREEN_MODE) {
   document.title = "MAP Words projector";
   document.body.classList.add("screenmode"); screen.classList.add("full");
+  document.getElementById("fs").textContent = "Full screen (F11)";
   if (bc) bc.postMessage({ type: "hello" });
 }
 document.getElementById("fs").onclick = (e) => {
   e.stopPropagation();
   if (SCREEN_MODE) {
-    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {});
+    // Button-triggered full screen switches off whenever another window is clicked (e.g. pressing Show),
+    // so use the browser's own full screen (F11), which stays on.
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    fsHint(true);
     return;
   }
   screen.classList.toggle("full");
