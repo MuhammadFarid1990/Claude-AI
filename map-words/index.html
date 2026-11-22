@@ -284,7 +284,32 @@ if (bc) bc.onmessage = ({ data }) => {
   if (!SCREEN_MODE && data.type === "hello") sync(false);
 };
 let shownAny = false;
-document.getElementById("popout").onclick = () => window.open(location.pathname + "?screen", "map-words-screen", "width=900,height=900");
+// One click: open the slideshow full screen on the projector (Chrome/Edge, after "Allow" for managing windows).
+// Falls back to a normal window plus an F11 reminder where that isn't available.
+let screensAllowed = false;
+(async () => { try { const st = await navigator.permissions.query({ name: "window-management" }); screensAllowed = st.state === "granted"; st.onchange = () => { screensAllowed = st.state === "granted"; }; } catch (e) {} })();
+document.getElementById("popout").onclick = async () => {
+  const url = location.pathname + "?screen";
+  let feats = "popup,width=900,height=900", proj = null;
+  try {
+    if ("getScreenDetails" in window) {
+      const asked = !screensAllowed;
+      const sd = await window.getScreenDetails();
+      screensAllowed = true;
+      proj = sd.screens.find(s => s !== sd.currentScreen) || null;
+      if (proj && asked) { popNote("Thanks! Now click <b>Open projector window</b> once more."); return; }
+    }
+  } catch (e) { proj = null; }
+  if (proj) feats = `popup,fullscreen,left=${proj.availLeft},top=${proj.availTop},width=${proj.availWidth},height=${proj.availHeight}`;
+  const w = window.open(url, "map-words-screen", feats);
+  if (!w) popNote("The browser blocked the window. Click <b>Open projector window</b> again.");
+  else if (!proj) popNote("No second screen found. Connect the projector (Extend, not Mirror) and click again, or drag this window onto it and press <b>F11</b>.");
+};
+function popNote(html) {
+  let n = document.getElementById("popnote");
+  if (!n) { n = document.createElement("div"); n.id = "popnote"; n.style.cssText = "margin:0 18px 10px;padding:8px 10px;border-radius:10px;background:#fff4d6;color:#6b5414;font-size:.82rem;line-height:1.4"; document.getElementById("popout").after(n); }
+  n.innerHTML = html; clearTimeout(n._t); n._t = setTimeout(() => n.remove(), 12000);
+}
 
 const words = document.getElementById("words");
 let shown = 0;
@@ -349,6 +374,7 @@ if (SCREEN_MODE) {
   document.body.classList.add("screenmode"); screen.classList.add("full");
   document.getElementById("fs").textContent = "Full screen (F11)";
   if (bc) bc.postMessage({ type: "hello" });
+  setTimeout(() => { if (!document.fullscreenElement && innerHeight < window.screen.height - 2) fsHint(true); }, 1500);
 }
 document.getElementById("fs").onclick = (e) => {
   e.stopPropagation();
