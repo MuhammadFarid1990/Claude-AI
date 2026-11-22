@@ -373,6 +373,7 @@ function fsHint(on) { return; // never show messages on the projector
 addEventListener("resize", () => { if (innerHeight >= window.screen.height - 2 && innerWidth >= window.screen.width - 2) fsHint(false); });
 if (SCREEN_MODE) {
   document.title = "MAP Words projector";
+  window.name = "map-words-screen";  // so "Open projector window" reuses this window instead of opening another
   document.body.classList.add("screenmode"); screen.classList.add("full");
   document.getElementById("fs").style.display = "none";
   if (bc) bc.postMessage({ type: "hello" });
