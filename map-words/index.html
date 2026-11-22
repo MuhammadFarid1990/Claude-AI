@@ -302,6 +302,7 @@ document.getElementById("popout").onclick = async () => {
   } catch (e) { proj = null; }
   if (proj) feats = `popup,fullscreen,left=${proj.availLeft},top=${proj.availTop},width=${proj.availWidth},height=${proj.availHeight}`;
   const w = window.open(url, "map-words-screen", feats);
+  if (w && proj) setTimeout(() => { try { if (w.innerHeight < proj.height - 2) popNote("If you can see a bar at the top of the projector, click on the projector picture once and press <b>F11</b>."); } catch (e) {} }, 2000);
   if (!w) popNote("The browser blocked the window. Click <b>Open projector window</b> again.");
   else if (!proj) popNote("No second screen found. Connect the projector (Extend, not Mirror) and click again, or drag this window onto it and press <b>F11</b>.");
 };
@@ -357,7 +358,8 @@ setInterval(() => {
 }, 6000);
 
 const screen = document.getElementById("screen");
-function fsHint(on) {
+function fsHint(on) { return; // never show messages on the projector
+
   let h = document.getElementById("fshint");
   if (!h) {
     h = document.createElement("div"); h.id = "fshint";
@@ -372,17 +374,14 @@ addEventListener("resize", () => { if (innerHeight >= window.screen.height - 2 &
 if (SCREEN_MODE) {
   document.title = "MAP Words projector";
   document.body.classList.add("screenmode"); screen.classList.add("full");
-  document.getElementById("fs").textContent = "Full screen (F11)";
+  document.getElementById("fs").style.display = "none";
   if (bc) bc.postMessage({ type: "hello" });
-  setTimeout(() => { if (!document.fullscreenElement && innerHeight < window.screen.height - 2) fsHint(true); }, 1500);
 }
 document.getElementById("fs").onclick = (e) => {
   e.stopPropagation();
   if (SCREEN_MODE) {
     // Button-triggered full screen switches off whenever another window is clicked (e.g. pressing Show),
     // so use the browser's own full screen (F11), which stays on.
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    fsHint(true);
     return;
   }
   screen.classList.toggle("full");
