@@ -274,8 +274,10 @@ let bc = null; try { bc = new BroadcastChannel("map-words"); } catch (e) {}
 function sync(isNew, deleted) { if (bc && !SCREEN_MODE) bc.postMessage({ type: "list", approved, isNew, deleted: !!deleted }); if (typeof renderList === "function") renderList(); }
 if (bc) bc.onmessage = ({ data }) => {
   if (SCREEN_MODE && data.type === "list") {
-    approved = data.approved;
-    if (data.isNew && shownAny && approved.length) showNew(approved[approved.length - 1]);
+    approved = ensureIds(data.approved);
+    const cur = approved.findIndex(e => e.id === currentId);
+    if (data.isNew && shownAny && approved.length) { if (cur >= 0) idx = cur; showNew(approved[approved.length - 1]); }
+    else if (data.deleted && cur >= 0) idx = cur;   // the sentence on screen is still there: keep showing it
     else if (!shownAny || data.deleted || data.isNew) {
       if (approved.length) { shownAny = true; display(approved.length - 1); }
       else { stopLoop(); words.innerHTML = '<div class="wait">Waiting for approved sentences</div>'; }
@@ -355,13 +357,15 @@ function loopStart() { return Math.max(0, approved.length - LOOP_SIZE); }
 // A new sentence waits until the current one has had its 5 seconds, then gets its own full turn.
 // Several new sentences arriving together line up and each gets its turn.
 const FADE = 800, HOLD = 6000, MIN_HOLD = 5000;
-let visibleAt = 0, loopTimer = null, newQueue = [];
+let visibleAt = 0, loopTimer = null, newQueue = [], currentId = null;
+// Older saved sentences have no id: give them one that is the same in every window
+function ensureIds(list) { list.forEach((e, i) => { if (!e.id) e.id = "r" + i + "-" + (e.clean || "").slice(0, 40); }); return list; }
 function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function stopLoop() { clearTimeout(loopTimer); loopTimer = null; newQueue = []; visibleAt = 0; }
 function schedule(ms) { clearTimeout(loopTimer); loopTimer = setTimeout(advance, Math.max(0, ms)); }
 function display(i) {
   if (i < 0 || i >= approved.length) return;
-  idx = i; show(approved[i]); visibleAt = Date.now() + FADE; schedule(FADE + HOLD);
+  idx = i; currentId = approved[i].id; show(approved[i]); visibleAt = Date.now() + FADE; schedule(FADE + HOLD);
 }
 function advance() {
   while (newQueue.length) {
@@ -421,7 +425,7 @@ const STORE = "map-words-approved";
 function save() { try { localStorage.setItem(STORE, JSON.stringify(approved)); } catch (e) {} }
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || "[]");
-  if (Array.isArray(saved) && saved.length && !approved.length) { approved = saved; shownAny = true; display(approved.length - 1); }
+  if (Array.isArray(saved) && saved.length && !approved.length) { approved = ensureIds(saved); shownAny = true; display(approved.length - 1); }
 } catch (e) {}
 document.getElementById("clearall").onclick = () => {
   if (!approved.length || !confirm("Remove all " + approved.length + " approved sentences from the projector? Use this only to start a new event.")) return;
