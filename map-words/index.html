@@ -87,6 +87,8 @@
   .alist .it small { display: block; color: #8a8173; }
   .alist .del { background: #f3dede; color: #a33; padding: 5px 10px; font-size: .78rem; }
   .alist .hd { font-size: .78rem; font-weight: 700; color: var(--blue); }
+  .auto { display: flex; gap: 8px; align-items: center; margin: 10px 18px 0; padding: 8px 10px; border-radius: 10px; background: #eef4ff; color: var(--blue); font-size: .85rem; font-weight: 600; cursor: pointer; }
+  .auto input { width: 18px; height: 18px; accent-color: var(--blue); }
   .clearall { background: transparent; color: #a33; font-size: .8rem; font-weight: 400; margin: -6px 18px 10px; padding: 4px 0; text-align: left; text-decoration: underline; }
   body.screenmode { background: #1d4ba9; overflow: hidden; }
   body.screenmode header, body.screenmode footer, body.screenmode .panel > :not(.screen) { display: none; }
@@ -122,6 +124,7 @@
 
   <section class="panel">
     <h2><span class="step">2</span>Step 2</h2>
+    <label class="auto"><input type="checkbox" id="auto"> Auto: new sentences go straight to the slideshow</label>
     <div class="body" id="pending"></div>
   </section>
 
@@ -214,8 +217,19 @@ async function submit({ text, image, who, names, school, example }) {
   if (!example) { const m = (text || "").match(/^\s*(in the future[\s,]*)?(i|we)\b/i); if (m) who = m[2].toLowerCase() === "we" ? "we" : "I"; }
   const item = { id: nextId++, text, image, who, names: names || "", school: school || "", example, clean: null };
   pending.unshift(item); render();
-  item.clean = await clean(item); render();
+  item.clean = await clean(item);
+  // Auto mode: typed sentences skip review and go straight to the slideshow (photos still need a person to type them)
+  if (autoOn() && item.clean) {
+    pending = pending.filter(p => p.id !== item.id);
+    approved.push({ who: item.who, clean: item.clean, names: item.names, school: item.school });
+    idx = approved.length - 1; show(approved[idx]); sync(true); save();
+  }
+  render();
 }
+const AUTO = "map-words-auto";
+function autoOn() { return document.getElementById("auto").checked; }
+try { document.getElementById("auto").checked = localStorage.getItem(AUTO) !== "off"; } catch (e) { document.getElementById("auto").checked = true; }
+document.getElementById("auto").onchange = e => { try { localStorage.setItem(AUTO, e.target.checked ? "on" : "off"); } catch (x) {} };
 
 function cap(w) { return "In the future, " + (w === "we" ? "we" : "I") + " want"; }
 function esc(s) { return String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
